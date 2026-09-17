@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TradingChart — Ultra-Complete TradingView Alternative</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2'><path d='M3 3v18h18'/><path d='m19 9-5 5-4-4-3 3'/></svg>" />
+</head>
+<body>
+  <div id="app-container">
+    <!-- Top Header Navigation -->
+    <header id="top-header">
+      <div class="header-left">
+        <div class="brand-badge" id="brand-logo-btn">
+          <svg class="logo-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+          <span>TradingChart</span>
+          <span class="badge-tag">PRO</span>
+        </div>
+
+        <div class="divider-vertical"></div>
+
+        <!-- Symbol Selector Button -->
+        <button id="btn-symbol-search" class="btn-header" style="font-weight: 700; color: #fff;">
+          <span id="header-symbol-label">BTCUSDT</span>
+          <span id="header-price-badge" style="font-size: 11px; background: rgba(14,203,129,0.15); color: var(--accent-green); padding: 1px 6px; border-radius: 4px;" class="num-ltr">...</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="divider-vertical"></div>
+
+        <!-- Timeframe Ribbon -->
+        <div class="tf-group" id="header-tf-group">
+          <button class="tf-chip" data-tf="1s">1s</button>
+          <button class="tf-chip" data-tf="1">1m</button>
+          <button class="tf-chip" data-tf="5">5m</button>
+          <button class="tf-chip" data-tf="15">15m</button>
+          <button class="tf-chip active" data-tf="60">1h</button>
+          <button class="tf-chip" data-tf="240">4h</button>
+          <button class="tf-chip" data-tf="D">1D</button>
+          <button class="tf-chip" data-tf="W">1W</button>
+        </div>
+
+        <div class="divider-vertical"></div>
+
+        <!-- Price Style Selector -->
+        <select id="header-style-select" style="padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px;">
+          <option value="candles">Candles</option>
+          <option value="hollow">Hollow Candles</option>
+          <option value="bars">Bars</option>
+          <option value="line">Line</option>
+          <option value="area">Area</option>
+          <option value="heikin-ashi">Heikin-Ashi</option>
+        </select>
+
+        <!-- Indicators Modal Button -->
+        <button id="btn-open-indicators" class="btn-header">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <span>Indicators (80+)</span>
+        </button>
+      </div>
+
+      <!-- Center / Actions -->
+      <div class="header-center">
+        <!-- Layout Selector -->
+        <select id="header-layout-select" style="padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px;">
+          <option value="1">Single Chart (1x1)</option>
+          <option value="2h">Dual Horizontal (2x1)</option>
+          <option value="2v">Dual Vertical (1x2)</option>
+          <option value="4">Quad Grid (2x2)</option>
+        </select>
+
+        <!-- Replay Mode Button -->
+        <button id="btn-toggle-replay" class="btn-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Replay</span>
+        </button>
+
+        <div class="divider-vertical"></div>
+
+        <button id="btn-undo" class="btn-header btn-icon-only" title="Undo (Ctrl+Z)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        </button>
+        <button id="btn-redo" class="btn-header btn-icon-only" title="Redo (Ctrl+Y)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+        </button>
+      </div>
+
+      <!-- Header Right -->
+      <div class="header-right">
+        <!-- Live Radar Connectivity -->
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); font-weight: 600; padding: 0 4px;">
+          <span class="radar-dot"></span>
+          <span>LIVE 12ms</span>
+        </div>
+
+        <div class="divider-vertical"></div>
+
+        <!-- Screenshot Button -->
+        <button id="btn-screenshot" class="btn-header btn-icon-only" title="Take High-Res Screenshot">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+
+        <!-- Fullscreen Button -->
+        <button id="btn-fullscreen" class="btn-header btn-icon-only" title="Toggle Fullscreen">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+
+        <!-- Language Switcher -->
+        <button id="btn-toggle-lang" class="btn-header" style="font-weight: 700; font-size: 11px; padding: 4px 8px;">
+          FA / EN
+        </button>
+
+        <!-- Settings Button -->
+        <button id="btn-open-settings" class="btn-header btn-icon-only" title="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+
+        <!-- Toggle Right Sidebar Button -->
+        <button id="btn-toggle-sidebar" class="btn-header btn-icon-only active" title="Toggle Sidebar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Viewport -->
+    <main id="main-viewport">
+      <!-- Center Chart Canvas with Vela's native drawing toolbar -->
+      <section id="chart-area">
+        <!-- Floating Bar Replay Bar -->
+        <div id="replay-bar"></div>
+
+        <!-- Mount point for Vela WebGL2 Workspace -->
+        <div id="vela-workspace-mount"></div>
+      </section>
+
+      <!-- Right Sidebar Dock -->
+      <aside id="right-sidebar">
+        <div class="sidebar-tab-strip">
+          <button class="sidebar-tab-btn active" data-tab="watchlist">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Watchlist
+          </button>
+          <button class="sidebar-tab-btn" data-tab="paper">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Trade
+          </button>
+          <button class="sidebar-tab-btn" data-tab="alerts">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Alerts
+          </button>
+        </div>
+
+        <!-- Sidebar Content Views -->
+        <div id="sidebar-tab-watchlist" class="sidebar-content-body" style="padding: 0;"></div>
+        <div id="sidebar-tab-paper" class="sidebar-content-body" style="display: none; padding: 0;"></div>
+        <div id="sidebar-tab-alerts" class="sidebar-content-body" style="display: none; padding: 0;"></div>
+      </aside>
+    </main>
+
+    <!-- Bottom Collapsible Suite Panel -->
+    <footer id="bottom-panel">
+      <!-- Panel Header Strip -->
+      <div class="panel-header-strip">
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-view="pine">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Pine Editor
+          </button>
+          <button class="panel-tab" data-view="strategy">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Strategy Tester
+          </button>
+          <button class="panel-tab" data-view="propsim">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Prop-Firm Simulator
+          </button>
+          <button class="panel-tab" data-view="journal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Trade Journal
+          </button>
+          <button class="panel-tab" data-view="trackers">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Market Trackers (SEC)
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button id="btn-toggle-bottom-panel" class="btn-header btn-icon-only" title="Collapse / Expand Panel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel Content Views -->
+      <div class="panel-body-area">
+        <div id="view-pine" class="panel-view active"></div>
+        <div id="view-strategy" class="panel-view"></div>
+        <div id="view-propsim" class="panel-view"></div>
+        <div id="view-journal" class="panel-view"></div>
+        <div id="view-trackers" class="panel-view"></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-indicators" class="modal-overlay"></div>
+  <div id="modal-settings" class="modal-overlay"></div>
+
+  <!-- Symbol Search Modal -->
+  <div id="modal-symbol-search" class="modal-overlay">
+    <div class="modal-box" style="width: 580px;">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Symbol Search (Universal Universe)
+        </h3>
+        <button class="modal-close-btn" id="modal-close-symbol">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding: 12px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px;">
+        <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)..." style="flex: 1; padding: 8px 12px; font-size: 13px;" />
+        <select id="symbol-cat-filter" style="padding: 8px 12px; font-size: 12px;">
+          <option value="all">All Markets</option>
+          <option value="crypto">Crypto</option>
+          <option value="metals">Metals</option>
+          <option value="commodities">Commodities</option>
+          <option value="forex">Forex</option>
+          <option value="indices">Indices</option>
+          <option value="stocks">Stocks</option>
+        </select>
+      </div>
+      <div class="modal-content" id="symbol-results-list" style="max-height: 400px; padding: 10px 20px;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

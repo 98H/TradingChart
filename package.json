@@ -1,0 +1,44 @@
+{
+  "name": "tradingchart",
+  "version": "1.0.0",
+  "description": "Ultra-Complete TradingView Alternative powered by LuxAlgo Open Ecosystem (Vela WebGL2, PineTS runtime, Prop-Firm-Sim, Broker-SDK, Trade-Journal)",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "build:client": "vite build",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "test:qa": "node tests/dogfood-test.js"
+  },
+  "keywords": [
+    "tradingview",
+    "charting",
+    "pine-script",
+    "webgl2",
+    "financial-terminal",
+    "luxalgo",
+    "vela",
+    "pinets",
+    "backtesting",
+    "prop-firm"
+  ],
+  "author": "Nexus & Hermes FinTech Architecture Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@luxalgo/broker-sdk": "^0.5.0",
+    "@luxalgo/journal-core": "^0.1.0",
+    "@luxalgo/prop-firm-sim-core": "^1.2.1",
+    "@luxalgo/vela": "^0.7.5",
+    "@luxalgo/vela-pinets": "^0.2.12",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "lucide": "^0.475.0",
+    "pinets": "^0.9.33",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.3.1",
+    "vite": "^6.2.0"
+  }
+}
