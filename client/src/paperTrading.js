@@ -5,7 +5,7 @@ export class PaperTrading {
   constructor(options = {}) {
     this.container = options.container;
     this.currentSymbol = 'BTCUSDT';
-    this.currentPrice = 64500.0;
+    this.currentPrice = 76650.0;
     this.balance = 100000.0;
     this.positions = [
       {
@@ -13,14 +13,14 @@ export class PaperTrading {
         symbol: 'BTCUSDT',
         side: 'long',
         qty: 0.5,
-        entryPrice: 63800.0,
-        markPrice: 64500.0,
+        entryPrice: 76200.0,
+        markPrice: 76650.0,
         leverage: 10,
-        margin: 3190.0,
-        unrealizedPnl: 350.0,
-        unrealizedPnlPct: 10.97,
-        sl: 62500.0,
-        tp: 67000.0
+        margin: 3810.0,
+        unrealizedPnl: 225.0,
+        unrealizedPnlPct: 5.9,
+        sl: 75000.0,
+        tp: 78500.0
       }
     ];
     this.orders = [];
@@ -48,20 +48,27 @@ export class PaperTrading {
     if (!this.container) return;
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 14px;">
-        <!-- Account Overview Card -->
-        <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-subtle);">
+        <!-- Account Overview Card (Grid Layout for Sidebar) -->
+        <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
           <div>
-            <div style="font-size: 11px; color: var(--text-dim);">Paper Account Equity</div>
-            <div style="font-size: 20px; font-weight: 800; color: #fff;" class="num-ltr" id="paper-equity">$${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Paper Account Equity</div>
+            <div style="font-size: 22px; font-weight: 800; color: #fff; margin-top: 2px;" class="num-ltr" id="paper-equity">
+              $${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </div>
-          <div style="display: flex; gap: 12px; text-align: right;">
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
             <div>
               <div style="font-size: 10px; color: var(--text-dim);">Available Balance</div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text-main);" class="num-ltr">$${this.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 2px;" class="num-ltr">
+                $${this.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
             </div>
             <div>
               <div style="font-size: 10px; color: var(--text-dim);">Unrealized P&L</div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--accent-green);" class="num-ltr" id="paper-total-pnl">+$350.00</div>
+              <div style="font-size: 13px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr" id="paper-total-pnl">
+                +$225.00
+              </div>
             </div>
           </div>
         </div>
@@ -108,9 +115,12 @@ export class PaperTrading {
           </div>
         </div>
 
-        <!-- Open Positions Table -->
-        <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Open Positions</div>
+        <!-- Open Positions List (Card-based for Perfect Sidebar Fit) -->
+        <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border-subtle);">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>Open Positions</span>
+            <span id="pos-count-badge" style="font-size: 10px; background: var(--bg-surface); padding: 1px 6px; border-radius: 3px; color: var(--accent-cyan);">1 Active</span>
+          </div>
           <div id="positions-table-wrap"></div>
         </div>
       </div>
@@ -131,13 +141,13 @@ export class PaperTrading {
     const inputQty = this.container.querySelector('#order-qty-input');
     const selLev = this.container.querySelector('#order-lev-sel');
 
-    btnBuy.addEventListener('click', () => {
+    btnBuy?.addEventListener('click', () => {
       const qty = parseFloat(inputQty.value) || 0.1;
       const lev = parseInt(selLev.value, 10) || 1;
       this.openPosition('long', qty, lev);
     });
 
-    btnSell.addEventListener('click', () => {
+    btnSell?.addEventListener('click', () => {
       const qty = parseFloat(inputQty.value) || 0.1;
       const lev = parseInt(selLev.value, 10) || 1;
       this.openPosition('short', qty, lev);
@@ -184,9 +194,11 @@ export class PaperTrading {
     const eqEl = this.container.querySelector('#paper-equity');
     const pnlEl = this.container.querySelector('#paper-total-pnl');
     const curPriceEl = this.container.querySelector('#order-cur-price');
+    const countBadge = this.container.querySelector('#pos-count-badge');
 
     if (eqEl) eqEl.innerText = `$${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (curPriceEl) curPriceEl.innerText = `$${this.currentPrice.toFixed(2)}`;
+    if (countBadge) countBadge.innerText = `${this.positions.length} Active`;
 
     const totalUnrealized = this.positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
     if (pnlEl) {
@@ -196,42 +208,55 @@ export class PaperTrading {
 
     if (!wrap) return;
     if (this.positions.length === 0) {
-      wrap.innerHTML = `<div style="font-size: 11px; color: var(--text-dim); padding: 8px 0;">No active positions open.</div>`;
+      wrap.innerHTML = `<div style="font-size: 11px; color: var(--text-dim); padding: 12px 0; text-align: center;">No active positions open.</div>`;
       return;
     }
 
-    wrap.innerHTML = `
-      <table class="data-table" style="font-size: 11px;">
-        <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Side</th>
-            <th>Size</th>
-            <th>Entry</th>
-            <th>Mark</th>
-            <th>P&L ($)</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${this.positions.map(p => `
-            <tr>
-              <td style="font-weight: 700;">${p.symbol}</td>
-              <td><span style="color: ${p.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">${p.side.toUpperCase()} ${p.leverage}x</span></td>
-              <td class="num-ltr">${p.qty}</td>
-              <td class="num-ltr">$${p.entryPrice.toFixed(2)}</td>
-              <td class="num-ltr">$${p.markPrice.toFixed(2)}</td>
-              <td class="num-ltr" style="color: ${p.unrealizedPnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">
-                ${p.unrealizedPnl >= 0 ? '+' : ''}$${p.unrealizedPnl.toFixed(2)}
-              </td>
-              <td>
-                <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 2px 6px; font-size: 10px; color: var(--accent-red); border-color: rgba(246, 70, 93, 0.4);">Close</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
+    wrap.innerHTML = this.positions.map(p => {
+      const isWin = p.unrealizedPnl >= 0;
+      const color = isWin ? 'var(--accent-green)' : 'var(--accent-red)';
+      const sideBg = p.side === 'long' ? 'rgba(14,203,129,0.15)' : 'rgba(246,70,93,0.15)';
+      const sideColor = p.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)';
+
+      return `
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; margin-bottom: 8px;">
+          <!-- Card Header -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-weight: 800; font-size: 13px; color: #fff;">${p.symbol}</span>
+              <span style="font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; background: ${sideBg}; color: ${sideColor};">
+                ${p.side.toUpperCase()} ${p.leverage}x
+              </span>
+            </div>
+            <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 2px 8px; font-size: 10px; color: var(--accent-red); border-color: rgba(246, 70, 93, 0.4);">
+              Close
+            </button>
+          </div>
+
+          <!-- Position Grid Metrics -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px;">
+            <div>
+              <span style="color: var(--text-dim);">Size:</span>
+              <span class="num-ltr" style="font-weight: 700; color: var(--text-main); margin-left: 2px;">${p.qty}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="color: var(--text-dim);">Entry:</span>
+              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.entryPrice.toFixed(2)}</span>
+            </div>
+            <div>
+              <span style="color: var(--text-dim);">Mark:</span>
+              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.markPrice.toFixed(2)}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="color: var(--text-dim);">P&L:</span>
+              <span class="num-ltr" style="font-weight: 800; color: ${color}; margin-left: 2px;">
+                ${isWin ? '+' : ''}$${p.unrealizedPnl.toFixed(2)} (${isWin ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
 
     wrap.querySelectorAll('.close-pos-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {

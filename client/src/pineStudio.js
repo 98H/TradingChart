@@ -126,8 +126,9 @@ export class PineStudio {
   render() {
     if (!this.container) return;
     this.container.innerHTML = `
-      <div style="display: flex; height: 100%; flex-direction: column;">
-        <div style="height: 38px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 12px;">
+      <div style="display: flex; height: 100%; flex-direction: column; direction: ltr !important;">
+        <!-- Top Toolbar -->
+        <div style="height: 38px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; direction: ltr !important;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <select id="pine-template-select" style="padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 4px;">
               <option value="smc_pro">Nexus SMC Pro (Order Blocks & BOS)</option>
@@ -151,22 +152,34 @@ export class PineStudio {
           </div>
         </div>
 
-        <div style="flex: 1; display: flex; overflow: hidden;">
-          <div style="flex: 1; position: relative;">
-            <textarea id="pine-code-editor" style="width: 100%; height: 100%; resize: none; background: #070a10; color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; padding: 12px; border: none; outline: none; white-space: pre;" spellcheck="false"></textarea>
+        <!-- Split View: Editor + Line Numbers + Diagnostics -->
+        <div style="flex: 1; display: flex; overflow: hidden; direction: ltr !important;">
+          <!-- Line Numbers Gutter -->
+          <div id="pine-line-gutter" style="width: 42px; background: #06080d; color: #475569; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; text-align: right; padding: 12px 6px 12px 0; user-select: none; border-right: 1px solid var(--border-subtle); overflow: hidden;">
+            1
           </div>
-          <div id="pine-diagnostics-pane" style="width: 280px; background: var(--bg-darkest); border-left: 1px solid var(--border-subtle); padding: 12px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 8px; direction: ltr; text-align: left;">
-            <div style="font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; direction: ltr; text-align: left;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);"></span>
+
+          <!-- Code Textarea -->
+          <div style="flex: 1; position: relative; overflow: hidden;">
+            <textarea id="pine-code-editor" style="width: 100%; height: 100%; resize: none; background: #070a10; color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 12px; border: none; outline: none; white-space: pre;" spellcheck="false"></textarea>
+          </div>
+
+          <!-- Diagnostics Console with Clear Visual Divider -->
+          <div id="pine-diagnostics-pane" style="width: 300px; background: var(--bg-darkest); border-left: 1px solid var(--border-subtle); padding: 14px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 10px; direction: ltr !important; text-align: left !important; box-shadow: -4px 0 16px rgba(0,0,0,0.4);">
+            <div style="font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green);"></span>
               Diagnostics Console
             </div>
-            <div id="pine-diag-content" style="color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; direction: ltr; text-align: left; margin: 0; padding: 0;">Ready. Click 'Add to Chart' to compile Pine Script.</div>
+            <div id="pine-diag-content" style="color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; line-height: 1.6; white-space: pre-wrap; direction: ltr !important; text-align: left !important; margin: 0; padding: 0;">
+              Ready. Click 'Add to Chart' to compile Pine Script.
+            </div>
           </div>
         </div>
       </div>
     `;
 
     const textarea = this.container.querySelector('#pine-code-editor');
+    const gutter = this.container.querySelector('#pine-line-gutter');
     const select = this.container.querySelector('#pine-template-select');
     const btnCompile = this.container.querySelector('#btn-pine-compile');
     const btnBacktest = this.container.querySelector('#btn-pine-backtest');
@@ -174,20 +187,39 @@ export class PineStudio {
     const btnSave = this.container.querySelector('#btn-pine-save');
     const diag = this.container.querySelector('#pine-diag-content');
 
+    const updateGutter = () => {
+      if (!textarea || !gutter) return;
+      const linesCount = textarea.value.split('\n').length;
+      let gutterStr = '';
+      for (let i = 1; i <= Math.max(linesCount, 1); i++) {
+        gutterStr += i + '\n';
+      }
+      gutter.innerText = gutterStr;
+    };
+
+    textarea.addEventListener('scroll', () => {
+      gutter.scrollTop = textarea.scrollTop;
+    });
+
+    textarea.addEventListener('input', updateGutter);
+
     // Restore saved code or default
     const saved = localStorage.getItem('tradingchart_pine_code');
     textarea.value = saved || this.activeCode;
+    updateGutter();
 
     select.addEventListener('change', (e) => {
       const tpl = PINE_TEMPLATES[e.target.value];
       if (tpl) {
         textarea.value = tpl.code;
         this.activeCode = tpl.code;
+        updateGutter();
       }
     });
 
     btnNew.addEventListener('click', () => {
       textarea.value = `//@version=5\nindicator("My Custom Indicator", overlay=true)\n\nlen = input.int(14, "Length")\nplot(ta.sma(close, len), color=color.yellow, linewidth=2)\n`;
+      updateGutter();
     });
 
     btnSave.addEventListener('click', () => {
@@ -211,11 +243,11 @@ export class PineStudio {
       const declaration = ind.getDeclarationType();
       const meta = ind.getInputsMeta();
 
-      diagEl.innerHTML = `<span style="color: var(--accent-green);">✓ AST Validation Succeeded</span>\nMode: ${declaration}\nDetected Inputs: ${meta.length} inputs\nMounting into active chart...`;
+      diagEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">✓ AST Validation Succeeded</span>\nMode: ${declaration.toUpperCase()}\nDetected Inputs: ${meta.length} inputs\nMounting into active chart...`;
 
       this.onAddToChart(sanitized);
     } catch (e) {
-      diagEl.innerHTML = `<span style="color: var(--accent-red);">✗ Compilation Error:</span>\n${e.message}`;
+      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">✗ Compilation Error:</span>\n${e.message}`;
     }
   }
 
@@ -223,10 +255,10 @@ export class PineStudio {
     try {
       const sanitized = source.replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)');
       const ind = Indicator.from(sanitized);
-      diagEl.innerHTML = `<span style="color: var(--accent-green);">✓ Initializing Backtest Engine</span>\nExecuting on active candle dataset...`;
+      diagEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">✓ Initializing Backtest Engine</span>\nExecuting on active candle dataset...`;
       this.onBacktest(sanitized);
     } catch (e) {
-      diagEl.innerHTML = `<span style="color: var(--accent-red);">✗ Backtest Parse Error:</span>\n${e.message}`;
+      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">✗ Backtest Parse Error:</span>\n${e.message}`;
     }
   }
 }

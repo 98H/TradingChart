@@ -211,30 +211,44 @@
 
   <!-- Symbol Search Modal -->
   <div id="modal-symbol-search" class="modal-overlay">
-    <div class="modal-box" style="width: 580px;">
+    <div class="modal-box" style="width: 620px; max-height: 85vh; display: flex; flex-direction: column;">
       <div class="modal-header">
         <h3>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Symbol Search (Universal Universe)
+          Symbol Search & Market Navigator
         </h3>
         <button class="modal-close-btn" id="modal-close-symbol">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div style="padding: 12px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px;">
-        <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)..." style="flex: 1; padding: 8px 12px; font-size: 13px;" />
-        <select id="symbol-cat-filter" style="padding: 8px 12px; font-size: 12px;">
-          <option value="all">All Markets</option>
-          <option value="crypto">Crypto</option>
-          <option value="metals">Metals</option>
-          <option value="commodities">Commodities</option>
-          <option value="forex">Forex</option>
-          <option value="indices">Indices</option>
-          <option value="stocks">Stocks</option>
-        </select>
+
+      <!-- Search Input Row -->
+      <div style="padding: 12px 20px 8px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: center;">
+        <div style="flex: 1; position: relative; display: flex; align-items: center;">
+          <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)..." style="width: 100%; height: 36px; padding: 6px 32px 6px 12px; font-size: 13px;" />
+          <button id="symbol-clear-search" style="position: absolute; right: 8px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; display: none; font-size: 14px;">✕</button>
+        </div>
       </div>
-      <div class="modal-content" id="symbol-results-list" style="max-height: 400px; padding: 10px 20px;">
+
+      <!-- Quick Filter Categories Bar -->
+      <div style="display: flex; gap: 4px; padding: 6px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); overflow-x: auto;">
+        <button class="sym-cat-btn active" data-cat="all" style="padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 4px; border: 1px solid transparent; background: var(--accent-cyan-dim); color: var(--accent-cyan); cursor: pointer;">All</button>
+        <button class="sym-cat-btn" data-cat="crypto" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Crypto</button>
+        <button class="sym-cat-btn" data-cat="metals" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Metals</button>
+        <button class="sym-cat-btn" data-cat="commodities" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Commodities</button>
+        <button class="sym-cat-btn" data-cat="forex" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Forex</button>
+        <button class="sym-cat-btn" data-cat="indices" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Indices</button>
+        <button class="sym-cat-btn" data-cat="stocks" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Stocks</button>
+      </div>
+
+      <div class="modal-content" id="symbol-results-list" style="flex: 1; max-height: 400px; padding: 10px 20px; overflow-y: auto;">
         <!-- Populated dynamically -->
+      </div>
+
+      <!-- Modal Footer with Keyboard Navigation Hints -->
+      <div style="padding: 8px 20px; font-size: 11px; color: var(--text-dim); background: var(--bg-darkest); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <span><kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↑</kbd> <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↓</kbd> Navigate &nbsp;·&nbsp; <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↵</kbd> Select &nbsp;·&nbsp; <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">ESC</kbd> Close</span>
+        <span id="sym-count-badge" style="color: var(--accent-cyan); font-weight: 600;">30+ Instruments</span>
       </div>
     </div>
   </div>

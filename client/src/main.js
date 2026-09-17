@@ -196,12 +196,15 @@ class TradingChartApp {
     const modalSymbol = document.querySelector('#modal-symbol-search');
     const closeSymbol = document.querySelector('#modal-close-symbol');
     const inputSymbol = document.querySelector('#symbol-search-input');
-    const filterCat = document.querySelector('#symbol-cat-filter');
+    const clearSymbol = document.querySelector('#symbol-clear-search');
 
     if (btnSymbol && modalSymbol) {
       btnSymbol.addEventListener('click', () => {
         modalSymbol.classList.add('open');
-        inputSymbol.focus();
+        if (inputSymbol) {
+          inputSymbol.value = '';
+          inputSymbol.focus();
+        }
         this.populateSymbolSearch('', 'all');
       });
 
@@ -211,10 +214,36 @@ class TradingChartApp {
       });
 
       const updateSymbolSearch = () => {
-        this.populateSymbolSearch(inputSymbol.value.trim(), filterCat.value);
+        const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
+        const q = inputSymbol ? inputSymbol.value.trim() : '';
+        if (clearSymbol) clearSymbol.style.display = q ? 'block' : 'none';
+        this.populateSymbolSearch(q, activeCat);
       };
+
       inputSymbol?.addEventListener('input', updateSymbolSearch);
-      filterCat?.addEventListener('change', updateSymbolSearch);
+
+      clearSymbol?.addEventListener('click', () => {
+        if (inputSymbol) {
+          inputSymbol.value = '';
+          updateSymbolSearch();
+          inputSymbol.focus();
+        }
+      });
+
+      // Quick filter category buttons
+      document.querySelectorAll('.sym-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.sym-cat-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = 'var(--text-dim)';
+          });
+          btn.classList.add('active');
+          btn.style.background = 'var(--accent-cyan-dim)';
+          btn.style.color = 'var(--accent-cyan)';
+          updateSymbolSearch();
+        });
+      });
     }
 
     // Timeframe Chips
@@ -331,36 +360,69 @@ class TradingChartApp {
 
   async populateSymbolSearch(query = '', category = 'all') {
     const listCont = document.querySelector('#symbol-results-list');
+    const countBadge = document.querySelector('#sym-count-badge');
     if (!listCont) return;
 
     try {
       const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}`);
       if (res.ok) {
         const symbols = await res.json();
+        if (countBadge) countBadge.innerText = `${symbols.length} Instruments`;
+
         if (symbols.length === 0) {
-          listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 32px 0;">No symbols found.</div>`;
+          listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 13px;">No instruments match your search.</div>`;
           return;
         }
 
-        listCont.innerHTML = symbols.map(s => `
-          <div class="sym-search-row" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.12s;">
-            <div>
-              <div style="font-weight: 700; font-size: 14px; color: #fff;">${s.symbol}</div>
-              <div style="font-size: 11px; color: var(--text-dim);">${s.name}</div>
+        const CAT_COLORS = {
+          crypto: { bg: 'rgba(0, 229, 255, 0.12)', color: '#00e5ff' },
+          metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
+          commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
+          forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
+          indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
+          stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }
+        };
+
+        listCont.innerHTML = symbols.map((s, idx) => {
+          const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
+          return `
+            <div class="sym-search-row" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
+                  ${s.symbol.slice(0, 3)}
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 800; font-size: 14px; color: #fff;">${s.symbol}</span>
+                    <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
+                      ${s.category}
+                    </span>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${s.name} (${s.base}/${s.quote})</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                  ${s.exchange || 'Global'}
+                </span>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; background: var(--bg-card); padding: 2px 8px; border-radius: 4px; color: var(--accent-cyan);">
-                ${s.category}
-              </span>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
 
         listCont.querySelectorAll('.sym-search-row').forEach(row => {
           row.addEventListener('click', () => {
             const sym = row.getAttribute('data-symbol');
             this.switchSymbol(sym);
             document.querySelector('#modal-symbol-search')?.classList.remove('open');
+          });
+          row.addEventListener('mouseenter', () => {
+            row.style.borderColor = 'var(--accent-cyan)';
+            row.style.background = 'var(--bg-card-hover)';
+          });
+          row.addEventListener('mouseleave', () => {
+            row.style.borderColor = 'var(--border-subtle)';
+            row.style.background = 'var(--bg-card)';
           });
         });
       }
