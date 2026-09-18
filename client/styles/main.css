@@ -594,7 +594,8 @@ body.persian-mode .top-nav-layout-suite {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3px 10px;
+  gap: 2px;
+  padding: 4px 10px;
   border-radius: 5px;
   min-width: 72px;
   transition: all 0.15s ease;
@@ -957,7 +958,8 @@ body.persian-mode .top-nav-layout-suite {
   z-index: 200;
 }
 
-.modal-overlay.open {
+.modal-overlay.open,
+.modal-overlay.active {
   display: flex;
 }
 
@@ -1137,11 +1139,17 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   /* Hide desktop-only navigation controls from mobile top header to prevent cutoffs */
   #btn-toggle-panels-dock,
   #nav-btn-journal,
-  #nav-btn-panels,
   #btn-shortcuts-help,
   .top-nav-layout-suite,
   .latency-badge {
     display: none !important;
+  }
+
+  #nav-btn-panels {
+    display: inline-flex !important;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
   }
 
   .top-nav-left {
@@ -1709,12 +1717,16 @@ body.persian-mode .nav-pill svg {
     padding: 0 6px;
   }
   .scale-controls-dock {
-    bottom: 38px;
-    right: 42px;
+    bottom: calc(52px + env(safe-area-inset-bottom, 14px));
+    right: 38px;
   }
   .compare-floating-legend {
     top: 40px;
     left: 8px;
+  }
+  #floating-drawing-toolbar,
+  .floating-drawing-toolbar {
+    display: none !important;
   }
 }
 

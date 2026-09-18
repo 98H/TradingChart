@@ -1075,6 +1075,21 @@ class TradingChartApp {
   switchLanguage(lang) {
     setLanguage(lang);
     this.chartStylePicker?.updateButtonUI();
+    this.marketNewsSide?.render?.();
+    this.marketNews?.render?.();
+    this.tradeJournal?.render?.();
+    this.fullPageJournal?.render?.();
+    this.depthOfMarket?.render?.();
+    this.technicalScreener?.render?.();
+    this.economicCalendar?.render?.();
+    this.paperTrading?.render?.();
+    this.barReplay?.render?.();
+    this.layoutManager?.updateTopbarLabel?.();
+    this.chartAlertsOverlay?.updateAlerts(
+      this.alertsManager?.alerts,
+      this.currentSymbol,
+      this.activeBars?.[this.activeBars.length - 1]?.close
+    );
     console.log('[TradingChart] Language switched to:', lang);
   }
 

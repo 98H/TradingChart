@@ -10,7 +10,7 @@ export const translations = {
     liveLatency: 'Live 12ms',
     toggleSideDock: 'Toggle Side Dock / Panels',
     langToggle: 'FA / EN',
-    userProfile: 'User Profile: Hussein Mohammadi',
+    userProfile: 'Institutional Desk: TC-8942-INST',
 
     // Bottom Suite Tabs
     tabPine: 'Pine Editor',
@@ -115,7 +115,7 @@ export const translations = {
     liveLatency: 'زنده ۱۲ میلی‌ثانیه',
     toggleSideDock: 'باز و بسته کردن پنل‌های کناری',
     langToggle: 'EN / FA',
-    userProfile: 'پروفایل کاربر: حسین محمدی',
+    userProfile: 'میز معاملات نهادی: TC-8942-INST',
 
     // Bottom Suite Tabs
     tabPine: 'ویرایشگر پاین',
@@ -299,6 +299,9 @@ export function applyTranslationsToDOM() {
   const tabScr = document.querySelector('#tab-label-screener');
   if (tabScr) tabScr.innerText = dict.tabScreener;
 
+  const tabNews = document.querySelector('#tab-label-news');
+  if (tabNews) tabNews.innerText = dict.tabNews;
+
   const compareLabel = document.querySelector('#topbar-compare-label');
   if (compareLabel) compareLabel.innerText = currentLang === 'fa' ? 'مقایسه' : 'Compare';
 
@@ -376,7 +379,7 @@ export function applyTranslationsToDOM() {
     screener: currentLang === 'fa' ? 'دیده‌بان تکنیکال' : 'Technical Screener',
     dom: currentLang === 'fa' ? 'عمق بازار (DOM)' : 'Depth of Market (DOM)',
     calendar: currentLang === 'fa' ? 'تقویم اقتصادی' : 'Economic Calendar',
-    news: currentLang === 'fa' ? 'اخبار و کاتالیزورهای بازار' : 'Market News'
+    news: currentLang === 'fa' ? 'اخبار بازار' : 'Market News'
   };
 
   for (const [id, title] of Object.entries(panelTitlesMap)) {

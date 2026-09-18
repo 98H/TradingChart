@@ -29,13 +29,13 @@ export class UserProfileModal {
         <div style="padding: 16px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'flex-direction: row; direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: #1a2234; color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-cyan); letter-spacing: 0.5px;">
-              HM
+              IP
             </div>
             <div>
-              <div style="font-weight: 800; font-size: 15px; color: #fff;">${isFa ? 'حسین محمدی' : 'Hussein Mohammadi'}</div>
+              <div style="font-weight: 800; font-size: 15px; color: #fff;">${isFa ? 'مدیر پورتفوی نهادی' : 'Institutional Portfolio Lead'}</div>
               <div style="margin-top: 3px;">
                 <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.12); border: 1px solid rgba(0, 242, 176, 0.3); padding: 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
-                  👑 ${isFa ? 'معامله‌گر نهادی VIP' : 'INSTITUTIONAL PRO VIP'}
+                  👑 ${isFa ? 'میز معاملات نهادی تاییدشده' : 'VERIFIED INSTITUTIONAL DESK'}
                 </span>
               </div>
             </div>

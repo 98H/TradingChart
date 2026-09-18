@@ -172,8 +172,21 @@ export class ScaleControls {
 
     const tf = this.app.currentTimeframe || '60';
     const intervalSec = this.timeframeToSeconds(tf);
-    const now = Math.floor(Date.now() / 1000);
-    const remaining = intervalSec - (now % intervalSec);
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    let remaining = intervalSec - (nowSec % intervalSec);
+
+    // If activeBars has last bar, align with the active bar open time
+    const bars = this.app?.activeBars;
+    if (bars && bars.length > 0) {
+      const lastBar = bars[bars.length - 1];
+      let barTimeSec = lastBar.time;
+      if (barTimeSec > 1e11) barTimeSec = Math.floor(barTimeSec / 1000);
+      const closeTimeSec = barTimeSec + intervalSec;
+      if (closeTimeSec > nowSec) {
+        remaining = closeTimeSec - nowSec;
+      }
+    }
 
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
