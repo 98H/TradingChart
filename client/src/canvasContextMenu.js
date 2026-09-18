@@ -125,6 +125,15 @@ export class CanvasContextMenu {
           <span style="font-size: 10px; color: var(--text-dim);">/</span>
         </button>
 
+        <!-- Change Timeframe -->
+        <button class="ctx-item context-menu-item" id="ctx-change-timeframe" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>⏱</span>
+            <span>${isFa ? 'تغییر بازه زمانی (Timeframe)...' : 'Change Timeframe...'}</span>
+          </div>
+          <span style="font-size: 10px; color: var(--text-dim);">,</span>
+        </button>
+
         <!-- Compare Symbol -->
         <button class="ctx-item context-menu-item" id="ctx-compare-symbol" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -221,6 +230,11 @@ export class CanvasContextMenu {
     this.menuEl.querySelector('#ctx-add-indicator')?.addEventListener('click', () => {
       this.hideMenu();
       this.app?.indicatorsModal?.open();
+    });
+
+    this.menuEl.querySelector('#ctx-change-timeframe')?.addEventListener('click', () => {
+      this.hideMenu();
+      this.app?.timeframeManager?.open();
     });
 
     this.menuEl.querySelector('#ctx-compare-symbol')?.addEventListener('click', () => {

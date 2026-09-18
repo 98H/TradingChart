@@ -68,7 +68,7 @@ export class ShortcutsModal {
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'تغییر سریع تایم‌فریم' : 'Quick Timeframe'}</span>
-                <span class="keys"><kbd>1</kbd> <kbd>5</kbd> <kbd>15</kbd> <kbd>60</kbd> <kbd>D</kbd></span>
+                <span class="keys"><kbd>,</kbd> or <kbd>1</kbd> <kbd>5</kbd> <kbd>15</kbd> <kbd>60</kbd> <kbd>D</kbd></span>
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'نماد بعدی دیده‌بان' : 'Next Watchlist Symbol'}</span>

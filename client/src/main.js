@@ -840,6 +840,9 @@ class TradingChartApp {
       } else if (e.key === ' ' && e.shiftKey) {
         e.preventDefault();
         this.stepNextWatchlistSymbol(-1);
+      } else if (e.key === ',') {
+        e.preventDefault();
+        this.timeframeManager?.open();
       }
     }, true);
 
