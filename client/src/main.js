@@ -29,6 +29,10 @@ import { TechnicalScreenerView } from './technicalScreener.js';
 import { DepthOfMarketView } from './depthOfMarket.js';
 import { FloatingDrawingToolbar } from './floatingDrawingToolbar.js';
 import { ChartAlertsOverlay } from './chartAlertsOverlay.js';
+import { MarketNewsView } from './marketNewsView.js';
+import { ChartStylePicker } from './chartStylePicker.js';
+import { CanvasContextMenu } from './canvasContextMenu.js';
+import { SoundEngine } from './soundEngine.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
 
 class TradingChartApp {
@@ -130,6 +134,18 @@ class TradingChartApp {
     // 4. Initialize Floating Drawing Toolbar & Canvas Alert Overlay (TradingView Parity)
     this.floatingToolbar = new FloatingDrawingToolbar(this);
     this.chartAlertsOverlay = new ChartAlertsOverlay(this);
+    this.chartStylePicker = new ChartStylePicker(this);
+    this.contextMenu = new CanvasContextMenu(this);
+
+    // 4b. Sound Feedback Engine & Toggle Button
+    this.soundEngine = new SoundEngine();
+    const btnSound = document.querySelector('#btn-toggle-sound');
+    btnSound?.addEventListener('click', () => {
+      const isMuted = this.soundEngine.toggleMute();
+      btnSound.style.opacity = isMuted ? '0.35' : '1';
+      btnSound.setAttribute('title', isMuted ? 'Sound Muted' : 'Sound Active');
+      if (!isMuted) this.soundEngine.playAlert();
+    });
 
     // 5. Initialize Desktop Bottom Suite
     this.initDesktopBottomSuite();
@@ -220,6 +236,14 @@ class TradingChartApp {
     if (screenerEl) {
       this.technicalScreener = new TechnicalScreenerView({
         container: screenerEl,
+        app: this
+      });
+    }
+
+    const newsEl = document.querySelector('#view-news');
+    if (newsEl) {
+      this.marketNews = new MarketNewsView({
+        container: newsEl,
         app: this
       });
     }
@@ -325,6 +349,13 @@ class TradingChartApp {
     this.depthOfMarket.setSymbol(this.currentSymbol);
   }
 
+  mountMarketNews(body) {
+    this.marketNewsSide = new MarketNewsView({
+      container: body,
+      app: this
+    });
+  }
+
   mountWorkspaces(body) {
     body.innerHTML = `
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
@@ -411,6 +442,7 @@ class TradingChartApp {
     this.currentSymbol = clean;
     this.chartManager.setSymbol(clean);
     this.depthOfMarket?.setSymbol(clean);
+    this.watchlist?.setSymbol(clean);
     this.loadActiveCandles();
   }
 
@@ -418,6 +450,7 @@ class TradingChartApp {
     const clean = sym.replace(/^.*:/, '').toUpperCase();
     this.currentSymbol = clean;
     this.depthOfMarket?.setSymbol(clean);
+    this.watchlist?.setSymbol(clean);
     this.loadActiveCandles();
   }
 
@@ -606,12 +639,14 @@ class TradingChartApp {
     document.querySelector('#quick-trade-sell-btn')?.addEventListener('click', () => {
       const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
       this.paperTrading?.openPosition('short', qty, 10);
+      this.soundEngine?.playOrder();
       this.showExecutionToast('SELL', qty, this.currentSymbol);
     });
 
     document.querySelector('#quick-trade-buy-btn')?.addEventListener('click', () => {
       const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
       this.paperTrading?.openPosition('long', qty, 10);
+      this.soundEngine?.playOrder();
       this.showExecutionToast('BUY', qty, this.currentSymbol);
     });
 
@@ -730,6 +765,9 @@ class TradingChartApp {
       } else if (e.key === '/' || (e.ctrlKey && e.key === 'k')) {
         e.preventDefault();
         this.openSymbolSearch();
+      } else if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        this.openAlertsModal();
       } else if (e.altKey && (e.key === 't' || e.key === 'T')) {
         e.preventDefault();
         this.chartManager?.armDrawingTool('trendline');
@@ -774,6 +812,11 @@ class TradingChartApp {
         document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
       }
     });
+  }
+
+  openAlertsModal(price = null) {
+    this.chartManager?.togglePanel('alerts', true);
+    this.alertsManager?.openCreateAlert?.(price);
   }
 
   openSymbolSearch() {
@@ -1031,6 +1074,7 @@ class TradingChartApp {
 
   switchLanguage(lang) {
     setLanguage(lang);
+    this.chartStylePicker?.updateButtonUI();
     console.log('[TradingChart] Language switched to:', lang);
   }
 

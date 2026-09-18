@@ -42,6 +42,13 @@
 
         <!-- TradingView Multi-Chart Layout Suite & Replay -->
         <div class="top-nav-layout-suite">
+          <button id="btn-topbar-chart-style" class="nav-style-btn" title="Chart Style (Candles, Bars, Line, Area, Heikin Ashi)">
+            <span id="topbar-chart-style-icon" style="display: flex; align-items: center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="2" x2="9" y2="6"/><rect x="6" y="6" width="6" height="12" rx="1" fill="currentColor" fill-opacity="0.3"/><line x1="9" y1="18" x2="9" y2="22"/></svg>
+            </span>
+            <span id="topbar-chart-style-label">Candles</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
           <button id="btn-topbar-compare" class="nav-compare-btn" title="Compare or Add Symbol (+ / Alt+C)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span id="topbar-compare-label">Compare</span>
@@ -72,6 +79,11 @@
           <span class="pulse-dot"></span>
           <span id="latency-val" class="num-ltr">12ms</span>
         </div>
+
+        <!-- Sound Audio Feedback Toggle Button -->
+        <button id="btn-toggle-sound" class="nav-icon-btn" title="Toggle Sound Feedback (Alerts & Orders)" aria-label="Toggle Sound">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        </button>
 
         <!-- Mobile Fullscreen / Rotate Button -->
         <button id="btn-mobile-fullscreen" class="mobile-only-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
@@ -174,6 +186,9 @@
         <button class="rail-btn" data-panel="calendar" title="Economic Calendar">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg>
         </button>
+        <button class="rail-btn" data-panel="news" title="Market News & Catalysts">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+        </button>
       </aside>
 
       <!-- 2. Full-Page Trade Journal Workspace View -->
@@ -214,6 +229,10 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h20l-8 9.5v6.5l-4-2v-4.5L2 3z"/></svg>
             <span id="tab-label-screener">Technical Screener</span>
           </button>
+          <button class="panel-tab" data-view="news">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+            <span id="tab-label-news">Market News</span>
+          </button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 4px;">
@@ -234,6 +253,7 @@
         <div id="view-trackers" class="panel-view"></div>
         <div id="view-calendar" class="panel-view"></div>
         <div id="view-screener" class="panel-view"></div>
+        <div id="view-news" class="panel-view"></div>
       </div>
     </footer>
   </div>
@@ -388,6 +408,36 @@
           <div class="panel-item-info">
             <div class="panel-item-title">Workspaces</div>
             <div class="panel-item-desc">Multi-chart grid layouts & sync switches</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="news">
+          <div class="panel-item-icon" style="color: #38bdf8;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Market News & Catalysts</div>
+            <div class="panel-item-desc">Breaking headlines, sentiment & macro catalysts</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="objects">
+          <div class="panel-item-icon" style="color: #a78bfa;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Object Tree & Layers</div>
+            <div class="panel-item-desc">Manage drawings and indicator layers</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="dataWindow">
+          <div class="panel-item-icon" style="color: #34d399;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Data Window</div>
+            <div class="panel-item-desc">Real-time cursor OHLC, volume & indicator values</div>
           </div>
         </button>
       </div>

@@ -3,6 +3,7 @@
 // Features color flags (Red, Green, Blue, Yellow, Purple), multi-column sorting, and custom list curation
 
 import { getLanguage } from './i18n.js';
+import { TechnicalRatingCard } from './technicalRatingCard.js';
 
 export const PRESET_WATCHLISTS = {
   crypto: {
@@ -153,9 +154,21 @@ export class WatchlistManager {
         </div>
 
         <!-- Watchlist Table -->
-        <div id="wl-items-list" style="flex: 1; overflow-y: auto; padding: 2px 0;"></div>
+        <div id="wl-items-list" style="flex: 1; min-height: 160px; overflow-y: auto; padding: 2px 0;"></div>
+
+        <!-- Symbol Details & Technical Rating Gauge Card -->
+        <div id="wl-technical-rating-container" style="flex-shrink: 0; max-height: 52%; overflow-y: auto; border-top: 1px solid var(--border-subtle);"></div>
       </div>
     `;
+
+    // Initialize Technical Rating Card
+    const trcContainer = this.container.querySelector('#wl-technical-rating-container');
+    if (trcContainer) {
+      this.technicalRatingCard = new TechnicalRatingCard({
+        container: trcContainer,
+        symbol: this.activeSymbol || 'BTCUSDT'
+      });
+    }
 
     const select = this.container.querySelector('#wl-category-select');
     const input = this.container.querySelector('#wl-add-input');
@@ -279,7 +292,11 @@ export class WatchlistManager {
       row.addEventListener('click', (e) => {
         if (e.target.closest('.btn-toggle-flag')) return;
         const sym = row.getAttribute('data-symbol');
-        if (sym) this.onSelectSymbol(sym);
+        if (sym) {
+          this.activeSymbol = sym;
+          this.technicalRatingCard?.setSymbol(sym);
+          this.onSelectSymbol(sym);
+        }
       });
     });
 
@@ -294,5 +311,11 @@ export class WatchlistManager {
         this.setFlag(sym, flagCycle[nextIdx]);
       });
     });
+  }
+
+  setSymbol(sym) {
+    if (!sym) return;
+    this.activeSymbol = sym;
+    this.technicalRatingCard?.setSymbol(sym);
   }
 }

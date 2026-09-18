@@ -20,6 +20,7 @@ export const translations = {
     tabTrackers: 'Market Trackers (SEC)',
     tabCalendar: 'Economic Calendar',
     tabScreener: 'Technical Screener',
+    tabNews: 'Market News',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'Workspace Panels & Tools',
@@ -83,6 +84,10 @@ export const translations = {
     railObjectTree: 'Object Tree',
     railPine: 'Pine Editor',
     railJournal: 'Trade Journal',
+    railScreener: 'Technical Screener',
+    railDOM: 'Depth of Market (DOM)',
+    railCalendar: 'Economic Calendar',
+    railNews: 'Market News & Catalysts',
 
     // Quick Trade
     qtSell: 'SELL',
@@ -120,6 +125,7 @@ export const translations = {
     tabTrackers: 'شفافیت بازار و نهنگ‌ها',
     tabCalendar: 'تقویم اقتصادی',
     tabScreener: 'دیده‌بان تکنیکال',
+    tabNews: 'اخبار بازار',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'پنل‌ها و ابزارهای تحلیلی فضای کاری',
@@ -183,6 +189,10 @@ export const translations = {
     railObjectTree: 'درخت لایه‌ها و ابزارها',
     railPine: 'ویرایشگر پاین',
     railJournal: 'ژورنال معاملات',
+    railScreener: 'دیده‌بان تکنیکال',
+    railDOM: 'عمق بازار و دفتر سفارشات (DOM)',
+    railCalendar: 'تقویم اقتصادی',
+    railNews: 'اخبار و کاتالیزورهای بازار',
 
     // Quick Trade
     qtSell: 'فروش',
@@ -331,6 +341,14 @@ export function applyTranslationsToDOM() {
   if (railPine) railPine.title = dict.railPine;
   const railJour = document.querySelector('#desktop-side-rail .rail-btn[data-panel="journal"]');
   if (railJour) railJour.title = dict.railJournal;
+  const railScreener = document.querySelector('#desktop-side-rail .rail-btn[data-panel="screener"]');
+  if (railScreener) railScreener.title = dict.railScreener;
+  const railDOM = document.querySelector('#desktop-side-rail .rail-btn[data-panel="dom"]');
+  if (railDOM) railDOM.title = dict.railDOM;
+  const railCalendar = document.querySelector('#desktop-side-rail .rail-btn[data-panel="calendar"]');
+  if (railCalendar) railCalendar.title = dict.railCalendar;
+  const railNews = document.querySelector('#desktop-side-rail .rail-btn[data-panel="news"]');
+  if (railNews) railNews.title = dict.railNews;
 
   // 7. Vela topbar Indicators button translation
   const velaIndBtn = document.querySelector('.vela-widget-indicators');
@@ -354,7 +372,11 @@ export function applyTranslationsToDOM() {
     templates: currentLang === 'fa' ? 'قالب‌های اندیکاتور' : 'Indicator Templates',
     workspaces: currentLang === 'fa' ? 'فضاهای کاری' : 'Workspaces',
     dataWindow: currentLang === 'fa' ? 'پنجره داده‌ها' : 'Data window',
-    objects: currentLang === 'fa' ? 'درخت لایه‌ها' : 'Object tree'
+    objects: currentLang === 'fa' ? 'درخت لایه‌ها' : 'Object tree',
+    screener: currentLang === 'fa' ? 'دیده‌بان تکنیکال' : 'Technical Screener',
+    dom: currentLang === 'fa' ? 'عمق بازار (DOM)' : 'Depth of Market (DOM)',
+    calendar: currentLang === 'fa' ? 'تقویم اقتصادی' : 'Economic Calendar',
+    news: currentLang === 'fa' ? 'اخبار و کاتالیزورهای بازار' : 'Market News'
   };
 
   for (const [id, title] of Object.entries(panelTitlesMap)) {

@@ -14,6 +14,7 @@ import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
 import { getScreenerData } from './technicalScreener.js';
 import { getOrderBookDepth } from './depthFeed.js';
 import { globalRelay } from './tradeRelay.js';
+import { getMarketNews } from './newsFeed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -145,6 +146,23 @@ app.get('/api/depth', async (req, res) => {
   } catch (error) {
     console.error('[API /api/depth] Error:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// 6e. Real-Time Market News & Breaking Catalyst Feed
+app.get('/api/news', (req, res) => {
+  try {
+    const category = req.query.category || 'all';
+    const symbol = req.query.symbol || null;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const news = getMarketNews({ category, symbol, limit });
+    res.json({
+      total: news.length,
+      news
+    });
+  } catch (error) {
+    console.error('[API /api/news] Error:', error.message);
+    res.status(500).json({ error: error.message, news: [] });
   }
 });
 

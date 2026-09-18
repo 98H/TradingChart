@@ -61,6 +61,14 @@ export class AlertsManager {
     }
   }
 
+  openCreateAlert(price = null) {
+    this.isCreating = true;
+    if (price !== null && !isNaN(price)) {
+      this.currentPrice = Number(price);
+    }
+    this.render();
+  }
+
   checkPrice(symbol, price) {
     for (const a of this.alerts) {
       if (!a.active || a.triggered || a.symbol !== symbol) continue;

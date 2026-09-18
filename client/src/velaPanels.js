@@ -20,6 +20,7 @@ export function registerAllVelaPanels(app) {
   registerIcon('compare', svg16('<circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/>'));
   registerIcon('screener', svg16('<path d="M2 3h12l-4.5 5.5v5l-3-1.5v-3.5L2 3z"/><line x1="10.5" y1="11.5" x2="14.5" y2="11.5"/><line x1="10.5" y1="13.5" x2="13.5" y2="13.5"/>'));
   registerIcon('dom', svg16('<rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="6" y1="2" x2="6" y2="14"/><line x1="10" y1="2" x2="10" y2="14"/>'));
+  registerIcon('news', svg16('<path d="M2.5 13.5h11a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v10a1 1 0 0 1-1 1Zm0 0a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h1"/><line x1="11.5" y1="9" x2="6.5" y2="9"/><line x1="9.5" y1="11" x2="6.5" y2="11"/><rect x="6.5" y="3.5" width="5" height="3" rx="0.5"/>'));
 
   // 2. Register Side Panels (Rendered in Vela's PanelDock on Desktop & MoreDrawer on Mobile)
 
@@ -191,5 +192,18 @@ export function registerAllVelaPanels(app) {
     }
   });
 
-  console.log('[VelaPanels] All 12 custom panels and icons registered into Vela WebGL2 Workspace');
+  // Market News & Catalysts (Panel #14 - TradingView Parity)
+  registerSidePanel({
+    id: 'news',
+    title: 'Market News',
+    icon: 'news',
+    order: 140,
+    width: 440,
+    resizable: true,
+    mount: (ctx, body, header) => {
+      app.mountMarketNews(body);
+    }
+  });
+
+  console.log('[VelaPanels] All 13 custom panels and icons registered into Vela WebGL2 Workspace');
 }

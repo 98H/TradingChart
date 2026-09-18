@@ -1846,3 +1846,78 @@ body.persian-mode .nav-pill svg {
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* ── Chart Style Popover & Topbar Button ──────────────────────────── */
+.nav-style-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-normal);
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-style-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-medium);
+  color: #fff;
+}
+
+.popover-chart-style {
+  z-index: 999999;
+  animation: popoverFadeIn 0.15s ease-out;
+}
+
+@keyframes popoverFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Canvas Context Menu ──────────────────────────────────────────── */
+.canvas-context-menu {
+  position: fixed;
+  z-index: 999999;
+  animation: ctxFadeIn 0.12s ease-out;
+}
+
+@keyframes ctxFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Market News Feed Styling ─────────────────────────────────────── */
+.market-news-wrapper {
+  color: #fff;
+}
+
+.news-feed-card:hover {
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.news-cat-btn.active {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+/* ── Technical Rating Consensus Card ──────────────────────────────── */
+#wl-technical-rating-container {
+  background: var(--bg-darkest);
+}
+
+#wl-technical-rating-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+#wl-technical-rating-container::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
