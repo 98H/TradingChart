@@ -59,6 +59,7 @@ export class PropFirmSimulator {
     this.tradesPerDay = 2.5;
     this.riskPct = 1.0;
     this.render();
+    setTimeout(() => this.runSimulation(), 100);
   }
 
   setProfileParams(params) {

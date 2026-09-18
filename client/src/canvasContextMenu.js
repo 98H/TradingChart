@@ -90,7 +90,7 @@ export class CanvasContextMenu {
     this.menuEl.innerHTML = `
       <div class="ctx-menu-inner" style="background: rgba(14, 17, 23, 0.96); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); min-width: 220px; z-index: 99999;">
         <!-- Add Alert at price -->
-        <button class="ctx-item" id="ctx-add-alert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left; transition: background 0.12s;">
+        <button class="ctx-item context-menu-item" id="ctx-add-alert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left; transition: background 0.12s;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: var(--accent-gold);">🔔</span>
             <span>${isFa ? `ثبت هشدار روی ${priceStr}` : `Add Alert at ${priceStr}`}</span>
@@ -99,7 +99,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Buy Limit -->
-        <button class="ctx-item" id="ctx-buy-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-green); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-buy-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-green); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>⚡</span>
             <span>${isFa ? `سفارش لیمیت خرید روی ${priceStr}` : `Buy Limit at ${priceStr}`}</span>
@@ -107,7 +107,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Sell Limit -->
-        <button class="ctx-item" id="ctx-sell-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-red); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-sell-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-red); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>⚡</span>
             <span>${isFa ? `سفارش لیمیت فروش روی ${priceStr}` : `Sell Limit at ${priceStr}`}</span>
@@ -117,7 +117,7 @@ export class CanvasContextMenu {
         <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>
 
         <!-- Add Indicator -->
-        <button class="ctx-item" id="ctx-add-indicator" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-add-indicator" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: var(--accent-cyan);">📐</span>
             <span>${isFa ? 'افزودن اندیکاتور...' : 'Add Indicator...'}</span>
@@ -126,7 +126,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Compare Symbol -->
-        <button class="ctx-item" id="ctx-compare-symbol" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-compare-symbol" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: #38bdf8;">➕</span>
             <span>${isFa ? 'مقایسه دارایی (Compare)...' : 'Compare Symbol...'}</span>
@@ -137,7 +137,7 @@ export class CanvasContextMenu {
         <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>
 
         <!-- Reset Price Scale -->
-        <button class="ctx-item" id="ctx-reset-scale" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-reset-scale" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>🔄</span>
             <span>${isFa ? 'بازنشانی مقیاس قیمت (Auto)' : 'Reset Price Scale'}</span>
@@ -146,7 +146,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Logarithmic Scale -->
-        <button class="ctx-item" id="ctx-toggle-log" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-toggle-log" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>📈</span>
             <span>${isFa ? 'مقیاس لگاریتمی (Log)' : 'Logarithmic Scale'}</span>
@@ -154,7 +154,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Invert Scale -->
-        <button class="ctx-item" id="ctx-toggle-invert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-toggle-invert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>↕</span>
             <span>${isFa ? 'معکوس‌سازی قیمت (Invert)' : 'Invert Price Scale'}</span>
@@ -165,7 +165,7 @@ export class CanvasContextMenu {
         <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>
 
         <!-- Take Screenshot -->
-        <button class="ctx-item" id="ctx-take-screenshot" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-take-screenshot" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>📸</span>
             <span>${isFa ? 'تصویر چارت و اشتراک‌گذاری' : 'Take Screenshot / Share'}</span>
@@ -174,7 +174,7 @@ export class CanvasContextMenu {
         </button>
 
         <!-- Chart Settings -->
-        <button class="ctx-item" id="ctx-open-settings" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
+        <button class="ctx-item context-menu-item" id="ctx-open-settings" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: left;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>⚙</span>
             <span>${isFa ? 'تنظیمات چارت...' : 'Chart Settings...'}</span>

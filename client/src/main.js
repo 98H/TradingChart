@@ -841,7 +841,7 @@ class TradingChartApp {
         e.preventDefault();
         this.stepNextWatchlistSymbol(-1);
       }
-    });
+    }, true);
 
     // 9b. Global Backdrop Click Dismiss for all Modals
     document.addEventListener('click', (e) => {

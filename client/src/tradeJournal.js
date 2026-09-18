@@ -92,26 +92,26 @@ export class TradeJournal {
     this.container.innerHTML = `
       <div style="display: flex; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px; box-sizing: border-box; width: 100%; min-height: 100%;">
         <!-- Top Metrics KPI Ribbon (2x2 on Mobile, 4x1 on Desktop) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; flex-shrink: 0;">
-          <div style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+        <div class="journal-kpi-ribbon" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; flex-shrink: 0;">
+          <div class="journal-stat-card" style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'سود/زیان محقق‌شده ماهانه' : 'Monthly Realized P&L'}</div>
             <div style="font-size: 17px; font-weight: 800; color: ${isProfit ? 'var(--accent-green)' : 'var(--accent-red)'}; margin-top: 2px;" class="num-ltr">
               ${isProfit ? '+' : ''}$${totalPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="journal-stat-card" style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نرخ برد (Win Rate)' : 'Win Rate'}</div>
             <div style="font-size: 17px; font-weight: 800; color: var(--accent-cyan); margin-top: 2px;" class="num-ltr">
               ${winRate.toFixed(1)}% <span style="font-size: 10px; color: var(--text-dim);">(${winTrips.length}/${trips.length})</span>
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); min-width: 0;">
+          <div class="journal-stat-card" style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); min-width: 0;">
             <div style="font-size: 11px; color: var(--text-dim); white-space: nowrap;">${isFa ? 'امتیاز برتری تحلیلی' : 'Edge Score v2'}</div>
             <div style="font-size: 15px; font-weight: 800; color: var(--accent-gold); margin-top: 2px; white-space: nowrap;" class="num-ltr">
               88.4 <span style="font-size: 10px; color: var(--text-dim);">/100</span> <span style="font-size: 10px; color: var(--accent-green); font-weight: 700;">(Top 5%)</span>
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="journal-stat-card" style="background: var(--bg-card); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'بهترین روز معاملاتی' : 'Best Day'}</div>
             <div style="font-size: 15px; font-weight: 800; color: #fff; margin-top: 2px;">${isFa ? 'سه‌شنبه' : 'Tuesday'} <span style="color: var(--accent-green); font-size: 11px;" class="num-ltr">(+$2,840)</span></div>
           </div>
@@ -128,7 +128,7 @@ export class TradeJournal {
           </div>
 
           <!-- 7-Day Grid fitting 100% inside mobile with zero horizontal clipping -->
-          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; width: 100%; box-sizing: border-box;">
+          <div class="journal-calendar-grid" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; width: 100%; box-sizing: border-box;">
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? '۱ش' : 'Sun'}</div>
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? '۲ش' : 'Mon'}</div>
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? '۳ش' : 'Tue'}</div>
@@ -136,6 +136,11 @@ export class TradeJournal {
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? '۵ش' : 'Thu'}</div>
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? 'جمعه' : 'Fri'}</div>
             <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 2px;">${isFa ? 'شنبه' : 'Sat'}</div>
+
+            <!-- Leading blank slots for September 1, 2026 (Tuesday = slot index 2) -->
+            ${Array.from({ length: 2 }).map(() => `
+              <div style="background: transparent; border: 1px dashed rgba(255,255,255,0.03); border-radius: 4px; min-height: 42px;"></div>
+            `).join('')}
 
             ${Array.from({ length: 30 }, (_, i) => i + 1).map(day => {
               const pnl = dayPnl[day];
@@ -202,15 +207,16 @@ export class TradeJournal {
             ${trips.map(t => {
               const pnl = t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * t.quantity;
               const isWin = pnl >= 0;
-              const retPct = ((t.avgExit - t.avgEntry) / t.avgEntry) * 100 * (t.side === 'buy' ? 1 : -1);
+              const isLong = t.direction === 'long' || t.direction === 'buy' || t.side === 'buy';
+              const retPct = ((t.avgExit - t.avgEntry) / t.avgEntry) * 100 * (isLong ? 1 : -1);
               const dateStr = t.closedAt ? new Date(t.closedAt).toLocaleDateString(isFa ? 'fa-IR' : 'en-US', { month: 'short', day: 'numeric' }) : 'Sep 2026';
               return `
                 <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <span style="font-weight: 800; font-size: 13px; color: #fff;">${t.symbol}</span>
-                      <span style="font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${t.side === 'buy' ? 'rgba(0, 242, 176, 0.15)' : 'rgba(255, 77, 91, 0.15)'}; color: ${t.side === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)'};">
-                        ${t.side === 'buy' ? (isFa ? 'خرید (LONG)' : 'LONG') : (isFa ? 'فروش (SHORT)' : 'SHORT')}
+                      <span style="font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${isLong ? 'rgba(0, 242, 176, 0.15)' : 'rgba(255, 77, 91, 0.15)'}; color: ${isLong ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                        ${isLong ? (isFa ? 'خرید (LONG)' : 'LONG') : (isFa ? 'فروش (SHORT)' : 'SHORT')}
                       </span>
                     </div>
                     <span style="font-size: 11px; color: var(--text-dim);">${dateStr}</span>

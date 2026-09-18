@@ -12,6 +12,9 @@ export class StrategyTester {
 
   setCandles(candles) {
     this.candles = candles || [];
+    if (!this.results && this.candles.length >= 30) {
+      this.runSimulation(null, this.candles);
+    }
   }
 
   renderEmpty() {

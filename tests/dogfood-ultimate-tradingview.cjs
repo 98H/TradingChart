@@ -13,7 +13,7 @@ async function runUltimateDogfood() {
   console.log('=== Starting TradingChart Ultimate TradingView Parity Dogfooding QA ===\n');
 
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/chromium',
+    executablePath: '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
