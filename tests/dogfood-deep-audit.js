@@ -49,7 +49,7 @@ async function runDeepAudit() {
   // 1. Initial Desktop Load (1440x900)
   console.log('\n--- 1. Desktop Initial Load ---');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 4000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_desktop_loaded.png') });
 
@@ -217,7 +217,7 @@ async function runDeepAudit() {
   // 13. Mobile Viewport Audit (390x844)
   console.log('\n--- 13. Mobile Viewport Audit (390x844) ---');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '13_mobile_portrait.png') });
 

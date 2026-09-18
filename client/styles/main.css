@@ -1544,3 +1544,176 @@ body.persian-mode .nav-pill svg {
   color: #00F2B0 !important;
   font-weight: 700 !important;
 }
+
+/* ── Topbar Compare & Export Buttons ───────────────────────────────── */
+.nav-compare-btn,
+.nav-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-compare-btn:hover,
+.nav-export-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+
+.nav-compare-btn svg {
+  color: var(--accent-cyan);
+}
+
+.nav-export-btn svg {
+  color: var(--accent-green);
+}
+
+/* ── Floating Scale & Coordinate Controls Dock (#scale-controls-bar) ─ */
+.scale-controls-dock {
+  position: absolute;
+  bottom: 34px;
+  right: 56px;
+  z-index: 18;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.scale-dock-inner {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(11, 14, 20, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2px 4px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.scale-dock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 28px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.scale-dock-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.scale-dock-btn.active {
+  background: rgba(0, 242, 176, 0.14);
+  border-color: rgba(0, 242, 176, 0.4);
+  color: var(--accent-cyan);
+}
+
+.countdown-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #fff;
+}
+
+.countdown-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* ── Floating Compare Legend Badges (#compare-legend-badges) ──────── */
+.compare-floating-legend {
+  position: absolute;
+  top: 78px;
+  left: 60px;
+  z-index: 18;
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+/* ── Economic Calendar Styling ─────────────────────────────────────── */
+.cal-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.cal-filter-btn:hover {
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+
+.cal-filter-btn.active {
+  background: rgba(0, 242, 176, 0.12);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.calendar-event-card:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: var(--bg-card-hover) !important;
+}
+
+/* ── Mobile Viewport Adaptations for New Features ─────────────────── */
+@media (max-width: 768px) {
+  .nav-compare-btn span,
+  .nav-export-btn span {
+    display: none;
+  }
+  .nav-compare-btn,
+  .nav-export-btn {
+    padding: 0 6px;
+  }
+  .scale-controls-dock {
+    bottom: 38px;
+    right: 42px;
+  }
+  .compare-floating-legend {
+    top: 40px;
+    left: 8px;
+  }
+}

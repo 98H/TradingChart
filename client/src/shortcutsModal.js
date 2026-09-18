@@ -94,6 +94,10 @@ export class ShortcutsModal {
                 <span class="keys"><kbd>Alt+H</kbd></span>
               </div>
               <div class="shortcut-row">
+                <span>${isFa ? 'خط عمودی (Vertical)' : 'Vertical Line'}</span>
+                <span class="keys"><kbd>Alt+V</kbd></span>
+              </div>
+              <div class="shortcut-row">
                 <span>${isFa ? 'فیبوناچی ریتریسمنت' : 'Fib Retracement'}</span>
                 <span class="keys"><kbd>Alt+F</kbd></span>
               </div>
@@ -104,6 +108,22 @@ export class ShortcutsModal {
               <div class="shortcut-row">
                 <span>${isFa ? 'محاسبه پوزیشن لانگ/شورت' : 'Long/Short Position'}</span>
                 <span class="keys"><kbd>Alt+P</kbd></span>
+              </div>
+              <div class="shortcut-row">
+                <span>${isFa ? 'مقایسه و افزودن نماد' : 'Compare / Add Symbol'}</span>
+                <span class="keys"><kbd>Alt+C</kbd></span>
+              </div>
+              <div class="shortcut-row">
+                <span>${isFa ? 'خروجی داده‌های چارت' : 'Export Chart Data'}</span>
+                <span class="keys"><kbd>Alt+E</kbd></span>
+              </div>
+              <div class="shortcut-row">
+                <span>${isFa ? 'تنظیم خودکار مقیاس چارت' : 'Auto Scale / Fit Data'}</span>
+                <span class="keys"><kbd>Alt+R</kbd></span>
+              </div>
+              <div class="shortcut-row">
+                <span>${isFa ? 'معکوس‌سازی عمودی قیمت' : 'Invert Price Scale'}</span>
+                <span class="keys"><kbd>Alt+I</kbd></span>
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'حالت آهنربا (Magnet)' : 'Magnet Mode'}</span>

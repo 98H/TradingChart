@@ -18,6 +18,13 @@ import { LayoutManager } from './layoutManager.js';
 import { UserProfileModal } from './userProfileModal.js';
 import { TradeJournalModal } from './tradeJournalModal.js';
 import { ScreenshotModal } from './screenshotModal.js';
+import { CompareModal } from './compareModal.js';
+import { ScaleControls } from './scaleControls.js';
+import { EconomicCalendarView } from './economicCalendar.js';
+import { DataExportModal } from './dataExport.js';
+import { IndicatorSettingsModal } from './indicatorSettingsModal.js';
+import { TimeframeManager } from './timeframeManager.js';
+import { TemplateManager } from './templateManager.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
 
 class TradingChartApp {
@@ -36,9 +43,15 @@ class TradingChartApp {
     this.tradeJournal = null;
     this.fullPageJournal = null;
     this.marketTrackers = null;
+    this.economicCalendar = null;
     this.indicatorsModal = null;
     this.settingsModal = null;
     this.barReplay = null;
+    this.compareModal = null;
+    this.scaleControls = null;
+    this.dataExportModal = null;
+    this.indicatorSettingsModal = null;
+    this.timeframeManager = null;
     this.isBottomPanelCollapsed = true;
 
     this.init();
@@ -114,6 +127,11 @@ class TradingChartApp {
     this.userProfileModal = new UserProfileModal(this);
     this.tradeJournalModal = new TradeJournalModal(this);
     this.screenshotModal = new ScreenshotModal(this);
+    this.compareModal = new CompareModal(this);
+    this.scaleControls = new ScaleControls(this);
+    this.dataExportModal = new DataExportModal(this);
+    this.indicatorSettingsModal = new IndicatorSettingsModal(this);
+    this.timeframeManager = new TimeframeManager(this);
 
     // 6. Wire Top App Header & Modals
     this.bindEvents();
@@ -173,6 +191,13 @@ class TradingChartApp {
     if (trackersEl) {
       this.marketTrackers = new MarketTrackersView({
         container: trackersEl
+      });
+    }
+
+    const calendarEl = document.querySelector('#view-calendar');
+    if (calendarEl) {
+      this.economicCalendar = new EconomicCalendarView({
+        container: calendarEl
       });
     }
   }
@@ -253,80 +278,12 @@ class TradingChartApp {
   }
 
   mountIndicatorTemplates(body) {
-    const templates = [
-      {
-        id: 'smc',
-        name: 'Smart Money Concepts (SMC)',
-        category: 'SMC/ICT',
-        color: '#00F2B0',
-        description: 'Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, and structural breaks.',
-        scripts: [
-          `//@version=5\nindicator("SMC Order Blocks & FVG", overlay=true)\nplot(ta.highest(high, 20), "BSL Liquidity", color=color.rgb(255, 77, 91))\nplot(ta.lowest(low, 20), "SSL Liquidity", color=color.rgb(0, 242, 176))`
-        ]
-      },
-      {
-        id: 'trend',
-        name: 'LuxAlgo Trend Confirmation',
-        category: 'TREND',
-        color: '#60a5fa',
-        description: 'Supertrend ATR baseline with fast EMA ribbon and MACD momentum filter.',
-        scripts: [
-          `//@version=5\nindicator("LuxAlgo Supertrend ATR", overlay=true)\n[st, dir] = ta.supertrend(3.0, 10)\nplot(st, "Supertrend", color = dir == 1 ? color.rgb(0, 242, 176) : color.rgb(255, 77, 91), linewidth=2)`
-        ]
-      },
-      {
-        id: 'scalper',
-        name: 'Institutional Scalper Pro',
-        category: 'VOLATILITY',
-        color: '#f59e0b',
-        description: 'Bollinger Bands mean-reversion channels with Stochastic RSI momentum filter.',
-        scripts: [
-          `//@version=5\nindicator("Scalper Pro Bands", overlay=true)\n[mid, up, low] = ta.bb(close, 20, 2.0)\nplot(mid, "Basis", color=color.orange)\np1 = plot(up, "Upper", color=color.rgb(0, 242, 176))\np2 = plot(low, "Lower", color=color.rgb(255, 77, 91))\nfill(p1, p2, color=color.new(color.blue, 90))`
-        ]
-      },
-      {
-        id: 'reversal',
-        name: 'Reversal & Volume Absorption',
-        category: 'VOLUME',
-        color: '#c084fc',
-        description: 'Volume spike absorption detector paired with high-volume rejection levels.',
-        scripts: [
-          `//@version=5\nindicator("Volume Absorption Spike", overlay=false)\nvolSma = ta.sma(volume, 20)\nisSpike = volume > volSma * 2.0\nplot(volume, "Volume", color = isSpike ? color.rgb(245, 158, 11) : (close >= open ? color.rgb(0, 242, 176) : color.rgb(255, 77, 91)), style=plot.style_columns)`
-        ]
-      }
-    ];
+    new TemplateManager(this, body);
+  }
 
-    body.innerHTML = `
-      <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
-        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 2px;">Apply 1-click curated indicator setups:</div>
-        ${templates.map(t => `
-          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <div style="font-weight: 700; font-size: 13px; color: #fff;">${t.name}</div>
-              <span style="font-size: 9px; font-weight: 800; background: rgba(255,255,255,0.06); color: ${t.color}; padding: 1px 6px; border-radius: 3px;">${t.category}</span>
-            </div>
-            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4;">${t.description}</div>
-            <button class="btn-apply-template btn-primary" data-id="${t.id}" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px 12px;">
-              ✓ Apply Setup to Chart
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    body.querySelectorAll('.btn-apply-template').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const t = templates.find(x => x.id === id);
-        if (t) {
-          for (const s of t.scripts) {
-            this.chartManager.addPineIndicator(s, t.name);
-          }
-          btn.innerText = '✓ Applied to Canvas!';
-          btn.style.background = '#089981';
-          setTimeout(() => { btn.innerText = '✓ Apply Setup to Chart'; btn.style.background = 'var(--accent-cyan)'; }, 2000);
-        }
-      });
+  mountEconomicCalendar(body) {
+    new EconomicCalendarView({
+      container: body
     });
   }
 
@@ -516,6 +473,19 @@ class TradingChartApp {
       this.shortcutsModal?.open();
     });
 
+    // 4c. Topbar Compare, Export & Replay Triggers
+    document.querySelector('#btn-topbar-compare')?.addEventListener('click', () => {
+      this.compareModal?.open();
+    });
+
+    document.querySelector('#btn-topbar-export')?.addEventListener('click', () => {
+      this.dataExportModal?.open();
+    });
+
+    document.querySelector('#btn-topbar-replay')?.addEventListener('click', () => {
+      this.barReplay?.startReplay(this.activeBars.length || 500);
+    });
+
     document.querySelector('#btn-toggle-lang')?.addEventListener('click', () => {
       const next = getLanguage() === 'en' ? 'fa' : 'en';
       this.switchLanguage(next);
@@ -679,6 +649,13 @@ class TradingChartApp {
         this.tradeJournalModal?.open();
         return;
       }
+      const indSettingsBtn = e.target.closest('[class*="vela-sl-settings"], [aria-label*="Settings"], [class*="legend-settings"], [data-action="settings"]');
+      if (indSettingsBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.indicatorSettingsModal?.open();
+        return;
+      }
     }, true);
 
     // 8b. Ensure More Drawer is translated upon open
@@ -725,6 +702,21 @@ class TradingChartApp {
       } else if (e.altKey && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
         this.chartManager?.armDrawingTool('position');
+      } else if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('vline');
+      } else if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        this.compareModal?.open();
+      } else if (e.altKey && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        this.dataExportModal?.open();
+      } else if (e.altKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        this.scaleControls?.container?.querySelector('#btn-scale-auto')?.click();
+      } else if (e.altKey && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        this.scaleControls?.container?.querySelector('#btn-scale-invert')?.click();
       } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         this.chartManager?.takeScreenshot();

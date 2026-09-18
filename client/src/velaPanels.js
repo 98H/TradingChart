@@ -16,6 +16,8 @@ export function registerAllVelaPanels(app) {
   registerIcon('strategy', svg16('<polygon points="3.5 2.5 13.5 8 3.5 13.5 3.5 2.5"/>'));
   registerIcon('propsim', svg16('<path d="M8 1.5v13M11.5 3.5H6.5a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H4"/>'));
   registerIcon('trackers', svg16('<circle cx="8" cy="8" r="6.5"/><line x1="1.5" y1="8" x2="14.5" y2="8"/><path d="M8 1.5a10 10 0 0 1 2.5 6.5 10 10 0 0 1-2.5 6.5 10 10 0 0 1-2.5-6.5A10 10 0 0 1 8 1.5z"/>'));
+  registerIcon('calendar', svg16('<rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="11" y1="1.5" x2="11" y2="4"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="2" y1="6.5" x2="14" y2="6.5"/>'));
+  registerIcon('compare', svg16('<circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/>'));
 
   // 2. Register Side Panels (Rendered in Vela's PanelDock on Desktop & MoreDrawer on Mobile)
   // Matching LuxAlgo sequence from screenshot: Data window (10), Object tree (20), Pine editor (30), Indicator Templates (40), Workspaces (50)...
@@ -146,6 +148,19 @@ export function registerAllVelaPanels(app) {
     resizable: true,
     mount: (ctx, body, header) => {
       app.mountMarketTrackers(body);
+    }
+  });
+
+  // Economic Calendar (Panel #13)
+  registerSidePanel({
+    id: 'calendar',
+    title: 'Economic Calendar',
+    icon: 'calendar',
+    order: 130,
+    width: 420,
+    resizable: true,
+    mount: (ctx, body, header) => {
+      app.mountEconomicCalendar(body);
     }
   });
 

@@ -42,6 +42,10 @@
 
         <!-- TradingView Multi-Chart Layout Suite & Replay -->
         <div class="top-nav-layout-suite">
+          <button id="btn-topbar-compare" class="nav-compare-btn" title="Compare or Add Symbol (+ / Alt+C)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span id="topbar-compare-label">Compare</span>
+          </button>
           <button id="btn-layout-manager" class="nav-layout-btn" title="TradingView Multi-Chart Layout Manager">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
             <span id="active-layout-name">1x1 Single</span>
@@ -54,6 +58,10 @@
           <button id="btn-topbar-replay" class="nav-replay-btn" title="Bar Replay Engine (Historical Rewind)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
             <span id="topbar-replay-label">Replay</span>
+          </button>
+          <button id="btn-topbar-export" class="nav-export-btn" title="Export Chart Data (Alt+E)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span id="topbar-export-label">Export</span>
           </button>
         </div>
       </div>
@@ -157,6 +165,9 @@
         <button class="rail-btn" data-panel="journal" title="Trade Journal">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
+        <button class="rail-btn" data-panel="calendar" title="Economic Calendar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg>
+        </button>
       </aside>
 
       <!-- 2. Full-Page Trade Journal Workspace View -->
@@ -189,6 +200,10 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span id="tab-label-trackers">Market Trackers (SEC)</span>
           </button>
+          <button class="panel-tab" data-view="calendar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg>
+            <span id="tab-label-calendar">Economic Calendar</span>
+          </button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 4px;">
@@ -207,6 +222,7 @@
         <div id="view-propsim" class="panel-view"></div>
         <div id="view-journal" class="panel-view"></div>
         <div id="view-trackers" class="panel-view"></div>
+        <div id="view-calendar" class="panel-view"></div>
       </div>
     </footer>
   </div>
@@ -301,6 +317,26 @@
           <div class="panel-item-info">
             <div class="panel-item-title">Market Trackers (SEC)</div>
             <div class="panel-item-desc">Congressional trades, Insiders, 13F Hedge Funds</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="calendar">
+          <div class="panel-item-icon" style="color: #fb7185;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Economic Calendar</div>
+            <div class="panel-item-desc">FOMC, CPI, NFP, GDP, Central Bank releases</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="compare">
+          <div class="panel-item-icon" style="color: #38bdf8;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Compare & Overlay</div>
+            <div class="panel-item-desc">Multi-symbol return % overlay & benchmarks</div>
           </div>
         </button>
 

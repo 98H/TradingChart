@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { getCandles, get24hTicker } from './dataFeed.js';
 import { searchSymbols, getSymbolMeta } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
+import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
 import { globalRelay } from './tradeRelay.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,6 +101,18 @@ app.get('/api/market-trackers', (req, res) => {
     insiderTrades: kind === 'all' || kind === 'insider' ? INSIDER_TRADES : [],
     hedgeFund13F: kind === 'all' || kind === '13f' ? HEDGE_FUND_13F : [],
     finraShortVolume: kind === 'all' || kind === 'short_vol' ? FINRA_SHORT_VOLUME : []
+  });
+});
+
+// 6b. Institutional Economic Calendar (FOMC, CPI, NFP, GDP, Central Banks)
+app.get('/api/economic-calendar', (req, res) => {
+  const impact = req.query.impact || 'all';
+  const country = req.query.country || 'all';
+  const category = req.query.category || 'all';
+  const events = getEconomicEvents({ impact, country, category });
+  res.json({
+    total: events.length,
+    events
   });
 });
 

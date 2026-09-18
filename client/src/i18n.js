@@ -18,6 +18,7 @@ export const translations = {
     tabPropsim: 'Prop-Firm Simulator',
     tabJournal: 'Trade Journal',
     tabTrackers: 'Market Trackers (SEC)',
+    tabCalendar: 'Economic Calendar',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'Workspace Panels & Tools',
@@ -37,6 +38,10 @@ export const translations = {
     journalDesc: 'Monthly P&L calendar, edge score, analytics',
     trackersTitle: 'Market Trackers (SEC)',
     trackersDesc: 'Congressional trades, Insiders, 13F Hedge Funds',
+    calendarTitle: 'Economic Calendar',
+    calendarDesc: 'FOMC, CPI, NFP, GDP, Central Bank releases',
+    compareTitle: 'Compare & Overlay',
+    compareDesc: 'Multi-symbol return % overlay & benchmarks',
     templatesTitle: 'Indicator Templates',
     templatesDesc: '1-click curated indicator setups',
     workspacesTitle: 'Workspaces',
@@ -108,6 +113,7 @@ export const translations = {
     tabPropsim: 'شبیه‌ساز پراپ‌فرم',
     tabJournal: 'ژورنال معاملات',
     tabTrackers: 'شفافیت بازار و نهنگ‌ها',
+    tabCalendar: 'تقویم اقتصادی',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'پنل‌ها و ابزارهای تحلیلی فضای کاری',
@@ -127,6 +133,10 @@ export const translations = {
     journalDesc: 'تقویم حرارتی سود/زیان، امتیاز مهارت و تحلیل عملکرد',
     trackersTitle: 'شفافیت بازار و نهنگ‌ها (SEC Trackers)',
     trackersDesc: 'معاملات نمایندگان کنگره، اینسایدرها و صندوق‌های ۱۳F',
+    calendarTitle: 'تقویم اقتصادی (Economic Calendar)',
+    calendarDesc: 'رویدادهای ماکرو، FOMC، تورم و تصمیمات بانک‌های مرکزی',
+    compareTitle: 'مقایسه و همپوشانی (Compare & Overlay)',
+    compareDesc: 'مقایسه همبستگی و بازدهی درصدی چند نماد',
     templatesTitle: 'قالب‌های منتخب اندیکاتور',
     templatesDesc: 'اعمال با یک کلیک ستاپ‌های تحلیل تکنیکال و اسمارت مانی',
     workspacesTitle: 'فضاهای کاری و چیدمان (Workspaces)',
@@ -247,6 +257,8 @@ export function applyTranslationsToDOM() {
     { panel: 'propsim', title: dict.propsimTitle, desc: dict.propsimDesc },
     { panel: 'journal', title: dict.journalTitle, desc: dict.journalDesc },
     { panel: 'trackers', title: dict.trackersTitle, desc: dict.trackersDesc },
+    { panel: 'calendar', title: dict.calendarTitle, desc: dict.calendarDesc },
+    { panel: 'compare', title: dict.compareTitle, desc: dict.compareDesc },
     { panel: 'templates', title: dict.templatesTitle, desc: dict.templatesDesc },
     { panel: 'workspaces', title: dict.workspacesTitle, desc: dict.workspacesDesc }
   ];
@@ -260,6 +272,18 @@ export function applyTranslationsToDOM() {
       if (descEl) descEl.innerText = item.desc;
     }
   }
+
+  const tabCal = document.querySelector('#tab-label-calendar');
+  if (tabCal) tabCal.innerText = dict.tabCalendar;
+
+  const compareLabel = document.querySelector('#topbar-compare-label');
+  if (compareLabel) compareLabel.innerText = currentLang === 'fa' ? 'مقایسه' : 'Compare';
+
+  const exportLabel = document.querySelector('#topbar-export-label');
+  if (exportLabel) exportLabel.innerText = currentLang === 'fa' ? 'خروجی' : 'Export';
+
+  const railCal = document.querySelector('#desktop-side-rail .rail-btn[data-panel="calendar"]');
+  if (railCal) railCal.title = dict.tabCalendar;
 
   // 4. Symbol Search Modal
   const symTitle = document.querySelector('#symbol-search-modal-title');
