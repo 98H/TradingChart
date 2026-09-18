@@ -554,6 +554,16 @@ class TradingChartApp {
       qtWidget?.classList.add('minimized');
     }
 
+    this.minimizeQuickTrade = () => {
+      qtWidget?.classList.add('minimized');
+    };
+
+    this.restoreQuickTrade = () => {
+      if (window.innerWidth > 768) {
+        qtWidget?.classList.remove('minimized');
+      }
+    };
+
     document.querySelector('#qt-toggle-btn')?.addEventListener('click', () => {
       qtWidget?.classList.toggle('minimized');
     });

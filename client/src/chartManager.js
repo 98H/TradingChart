@@ -46,9 +46,9 @@ export class ChartManager {
         drawingToolbar: true,
         timeframes: ['1s', '1', '3', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'],
         timeframeFavorites: ['1', '5', '15', '60', '240', 'D', 'W'],
-        // Clean declarative topbar: symbols, timeframes, styles, layout, indicators on left; undo/redo, alerts, screenshot on right
+        // Clean declarative topbar: symbols, timeframes, styles, indicators on left; undo/redo, screenshot, panels on right
         topbar: {
-          left: ['symbol', 'timeframes', 'style', 'layout', 'indicators'],
+          left: ['symbol', 'timeframes', 'style', 'indicators'],
           right: ['undo-redo', 'screenshot', 'panels']
         },
         theme: {

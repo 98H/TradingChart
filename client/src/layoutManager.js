@@ -234,11 +234,18 @@ export class LayoutManager {
     if (this.app?.chartManager) {
       this.app.chartManager.setLayout(layoutId);
 
+      if (layoutId !== '1') {
+        this.app?.minimizeQuickTrade?.();
+      } else {
+        this.app?.restoreQuickTrade?.();
+      }
+
       // Intelligent multi-cell diversification
       if (layoutId === '4') {
         setTimeout(() => {
-          const cells = this.app.chartManager.workspace?.grid?.cells || [];
-          const defaultSymbols = ['universal:BTCUSDT', 'universal:ETHUSDT', 'universal:SOLUSDT', 'universal:XAUUSD'];
+          const ws = this.app.chartManager.workspace;
+          const cells = Array.from(ws?.cellsById?.values() || []);
+          const defaultSymbols = ['universal:BTCUSDT', 'universal:ETHUSDT', 'universal:SOLUSDT', 'universal:BNBUSDT'];
           cells.forEach((cell, idx) => {
             if (idx > 0 && defaultSymbols[idx] && cell.setSymbol) {
               cell.setSymbol(defaultSymbols[idx]);
@@ -247,8 +254,9 @@ export class LayoutManager {
         }, 300);
       } else if (layoutId === '2h' || layoutId === '2v') {
         setTimeout(() => {
-          const cells = this.app.chartManager.workspace?.grid?.cells || [];
-          if (cells.length > 1 && cells[1].setSymbol) {
+          const ws = this.app.chartManager.workspace;
+          const cells = Array.from(ws?.cellsById?.values() || []);
+          if (cells.length > 1 && cells[1]?.setSymbol) {
             cells[1].setSymbol('universal:ETHUSDT');
           }
         }, 300);
