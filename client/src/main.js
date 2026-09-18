@@ -14,6 +14,10 @@ import { IndicatorsModal } from './indicatorsModal.js';
 import { SettingsModal } from './settingsModal.js';
 import { BarReplay } from './barReplay.js';
 import { ShortcutsModal } from './shortcutsModal.js';
+import { LayoutManager } from './layoutManager.js';
+import { UserProfileModal } from './userProfileModal.js';
+import { TradeJournalModal } from './tradeJournalModal.js';
+import { ScreenshotModal } from './screenshotModal.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
 
 class TradingChartApp {
@@ -104,6 +108,12 @@ class TradingChartApp {
 
     // 5. Initialize Full-Page Trade Journal View
     this.initFullPageJournal();
+
+    // 5b. Initialize TradingView Layout Studio & Auxiliary Modals
+    this.layoutManager = new LayoutManager(this);
+    this.userProfileModal = new UserProfileModal(this);
+    this.tradeJournalModal = new TradeJournalModal(this);
+    this.screenshotModal = new ScreenshotModal(this);
 
     // 6. Wire Top App Header & Modals
     this.bindEvents();
@@ -496,7 +506,12 @@ class TradingChartApp {
       }
     });
 
-    // 4. Keyboard Shortcuts Reference & Language Switcher (FA / EN)
+    // 4. User Profile Modal Trigger on Avatar
+    document.querySelector('.user-avatar-badge')?.addEventListener('click', () => {
+      this.userProfileModal?.open();
+    });
+
+    // 4b. Keyboard Shortcuts Reference & Language Switcher (FA / EN)
     document.querySelector('#btn-shortcuts-help')?.addEventListener('click', () => {
       this.shortcutsModal?.open();
     });
@@ -631,6 +646,27 @@ class TradingChartApp {
         e.stopPropagation();
         e.preventDefault();
         this.openSymbolSearch();
+        return;
+      }
+      const layoutBtn = e.target.closest('#vela-topbar-layout, .vela-widget-topbar button[aria-label*="Layout"], #btn-layout-manager');
+      if (layoutBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.layoutManager?.openLayoutStudio();
+        return;
+      }
+      const cameraBtn = e.target.closest('.vela-widget-screenshot, [aria-label*="screenshot"], [aria-label*="Screenshot"]');
+      if (cameraBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.screenshotModal?.open();
+        return;
+      }
+      const logTradeBtn = e.target.closest('#btn-journal-add');
+      if (logTradeBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.tradeJournalModal?.open();
         return;
       }
     }, true);

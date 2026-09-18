@@ -79,6 +79,8 @@ export const translations = {
     qtBuy: 'BUY',
     qtTrade: 'Trade',
     qtQty: 'Quantity',
+    layoutSave: 'Save',
+    topbarReplay: 'Replay',
 
     // Mobile More Drawer
     moreUndo: 'Undo',
@@ -167,6 +169,8 @@ export const translations = {
     qtBuy: 'خرید',
     qtTrade: 'معامله',
     qtQty: 'حجم',
+    layoutSave: 'ذخیره',
+    topbarReplay: 'بازپخش',
 
     // Mobile More Drawer
     moreUndo: 'واگرد',
@@ -323,10 +327,17 @@ export function applyTranslationsToDOM() {
   const qtPill = document.querySelector('#qt-pill-label');
   if (qtPill) qtPill.innerText = dict.qtTrade || 'Trade';
 
-  // 10. Localize MoreDrawer if open
+  // 10. Topbar Layout & Replay Labels
+  const saveLabel = document.querySelector('#layout-save-label');
+  if (saveLabel) saveLabel.innerText = dict.layoutSave || 'Save';
+  const replayLabel = document.querySelector('#topbar-replay-label');
+  if (replayLabel) replayLabel.innerText = dict.topbarReplay || 'Replay';
+  if (window.app?.layoutManager) window.app.layoutManager.updateTopbarLabel();
+
+  // 11. Localize MoreDrawer if open
   localizeMoreDrawer();
 
-  // 11. Trigger sub-component re-renders if active
+  // 12. Trigger sub-component re-renders if active
   if (window.app?.paperTrading) window.app.paperTrading.render();
   if (window.app?.alertsManager) window.app.alertsManager.render();
   if (window.app?.marketTrackers) window.app.marketTrackers.render();

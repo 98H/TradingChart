@@ -257,6 +257,59 @@ input[type="number"],
   font-weight: 700;
 }
 
+/* ── TradingView Multi-Chart Layout Suite ────────────────────────────── */
+.top-nav-layout-suite {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+body.persian-mode .top-nav-layout-suite {
+  margin-left: 0;
+  margin-right: 6px;
+  padding-left: 0;
+  padding-right: 6px;
+  border-left: none;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.nav-layout-btn,
+.nav-save-btn,
+.nav-replay-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: 6px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-layout-btn:hover,
+.nav-save-btn:hover,
+.nav-replay-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nav-replay-btn.active {
+  background: rgba(0, 242, 176, 0.15);
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
 /* Mobile-only button (hidden on desktop) */
 .mobile-only-btn {
   display: none !important;
@@ -1086,6 +1139,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   #nav-btn-journal,
   #nav-btn-panels,
   #btn-shortcuts-help,
+  .top-nav-layout-suite,
   .latency-badge {
     display: none !important;
   }
