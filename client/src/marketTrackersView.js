@@ -45,7 +45,7 @@ export class MarketTrackersView {
           <button class="subtab-btn ${this.activeSubTab === 'short_vol' ? 'active' : ''}" data-sub="short_vol" style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: ${this.activeSubTab === 'short_vol' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; cursor: pointer; border-radius: 4px;">
             ${isFa ? 'حجم معاملات شورت FINRA' : 'FINRA Short Sale Volume'}
           </button>
-          <input type="text" id="tracker-filter-input" placeholder="${isFa ? 'جستجوی نماد یا نام شخص...' : 'Search ticker or name...'}" style="margin-left: auto; height: 26px; padding: 2px 8px; font-size: 11px; width: 180px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff;" />
+          <input type="text" id="tracker-filter-input" placeholder="${isFa ? 'جستجوی نماد یا نام شخص...' : 'Search ticker or name...'}" style="margin-inline-start: auto; height: 26px; padding: 2px 8px; font-size: 11px; width: 180px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff;" />
         </div>
 
         <!-- Body Area -->
