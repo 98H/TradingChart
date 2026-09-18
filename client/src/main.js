@@ -25,6 +25,10 @@ import { DataExportModal } from './dataExport.js';
 import { IndicatorSettingsModal } from './indicatorSettingsModal.js';
 import { TimeframeManager } from './timeframeManager.js';
 import { TemplateManager } from './templateManager.js';
+import { TechnicalScreenerView } from './technicalScreener.js';
+import { DepthOfMarketView } from './depthOfMarket.js';
+import { FloatingDrawingToolbar } from './floatingDrawingToolbar.js';
+import { ChartAlertsOverlay } from './chartAlertsOverlay.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
 
 class TradingChartApp {
@@ -44,6 +48,10 @@ class TradingChartApp {
     this.fullPageJournal = null;
     this.marketTrackers = null;
     this.economicCalendar = null;
+    this.technicalScreener = null;
+    this.depthOfMarket = null;
+    this.floatingToolbar = null;
+    this.chartAlertsOverlay = null;
     this.indicatorsModal = null;
     this.settingsModal = null;
     this.barReplay = null;
@@ -59,6 +67,7 @@ class TradingChartApp {
 
   async init() {
     console.log('[TradingChart] Initializing LuxAlgo Quant Workspace...');
+    window.__TRADING_APP__ = this;
 
     // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
     this.chartManager = new ChartManager({
@@ -90,9 +99,10 @@ class TradingChartApp {
 
     this.shortcutsModal = new ShortcutsModal();
 
-    // 3. Initialize Bar Replay
+    // 3. Initialize Bar Replay with Interactive Simulated Execution
     this.barReplay = new BarReplay({
       container: document.querySelector('#replay-bar'),
+      app: this,
       onBarStep: (idx) => {
         if (this.activeBars && this.activeBars.length > 0) {
           const slice = this.activeBars.slice(0, idx + 1);
@@ -102,6 +112,7 @@ class TradingChartApp {
           }
           if (slice.length > 0) {
             const currentClose = slice[slice.length - 1].close;
+            this.barReplay?.setPrice(currentClose);
             this.paperTrading?.setMarket(this.currentSymbol, currentClose);
           }
         }
@@ -116,13 +127,17 @@ class TradingChartApp {
       }
     });
 
-    // 4. Initialize Desktop Bottom Suite
+    // 4. Initialize Floating Drawing Toolbar & Canvas Alert Overlay (TradingView Parity)
+    this.floatingToolbar = new FloatingDrawingToolbar(this);
+    this.chartAlertsOverlay = new ChartAlertsOverlay(this);
+
+    // 5. Initialize Desktop Bottom Suite
     this.initDesktopBottomSuite();
 
-    // 5. Initialize Full-Page Trade Journal View
+    // 5b. Initialize Full-Page Trade Journal View
     this.initFullPageJournal();
 
-    // 5b. Initialize TradingView Layout Studio & Auxiliary Modals
+    // 5c. Initialize TradingView Layout Studio & Auxiliary Modals
     this.layoutManager = new LayoutManager(this);
     this.userProfileModal = new UserProfileModal(this);
     this.tradeJournalModal = new TradeJournalModal(this);
@@ -198,6 +213,14 @@ class TradingChartApp {
     if (calendarEl) {
       this.economicCalendar = new EconomicCalendarView({
         container: calendarEl
+      });
+    }
+
+    const screenerEl = document.querySelector('#view-screener');
+    if (screenerEl) {
+      this.technicalScreener = new TechnicalScreenerView({
+        container: screenerEl,
+        app: this
       });
     }
   }
@@ -287,6 +310,21 @@ class TradingChartApp {
     });
   }
 
+  mountTechnicalScreener(body) {
+    new TechnicalScreenerView({
+      container: body,
+      app: this
+    });
+  }
+
+  mountDepthOfMarket(body) {
+    this.depthOfMarket = new DepthOfMarketView({
+      container: body,
+      app: this
+    });
+    this.depthOfMarket.setSymbol(this.currentSymbol);
+  }
+
   mountWorkspaces(body) {
     body.innerHTML = `
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
@@ -358,7 +396,9 @@ class TradingChartApp {
         if (this.activeBars.length > 0) {
           const lastBar = this.activeBars[this.activeBars.length - 1];
           this.paperTrading?.setMarket(this.currentSymbol, lastBar.close);
+          this.alertsManager?.setMarket(this.currentSymbol, lastBar.close);
           this.updateQuickTradePrices(lastBar);
+          this.chartAlertsOverlay?.updateAlerts(this.alertsManager?.alerts, this.currentSymbol, lastBar.close);
         }
       }
     } catch (e) {
@@ -370,11 +410,14 @@ class TradingChartApp {
     const clean = sym.replace(/^.*:/, '').toUpperCase();
     this.currentSymbol = clean;
     this.chartManager.setSymbol(clean);
+    this.depthOfMarket?.setSymbol(clean);
     this.loadActiveCandles();
   }
 
   handleSymbolChange(sym) {
-    this.currentSymbol = sym;
+    const clean = sym.replace(/^.*:/, '').toUpperCase();
+    this.currentSymbol = clean;
+    this.depthOfMarket?.setSymbol(clean);
     this.loadActiveCandles();
   }
 
@@ -976,6 +1019,11 @@ class TradingChartApp {
     document.querySelectorAll('.panel-view').forEach(view => {
       view.classList.toggle('active', view.id === `view-${viewName}`);
     });
+    if (viewName === 'screener') {
+      this.technicalScreener?.fetchData();
+    } else if (viewName === 'calendar') {
+      this.economicCalendar?.fetchEvents();
+    }
     this.isBottomPanelCollapsed = false;
     document.querySelector('#bottom-panel')?.classList.remove('collapsed');
     window.dispatchEvent(new Event('resize'));

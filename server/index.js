@@ -11,6 +11,8 @@ import { getCandles, get24hTicker } from './dataFeed.js';
 import { searchSymbols, getSymbolMeta } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
 import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
+import { getScreenerData } from './technicalScreener.js';
+import { getOrderBookDepth } from './depthFeed.js';
 import { globalRelay } from './tradeRelay.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -116,6 +118,36 @@ app.get('/api/economic-calendar', (req, res) => {
   });
 });
 
+// 6c. Real-Time Technical Screener Engine (RSI-14, SMA-20/50 Cross, Technical Rating)
+app.get('/api/screener', async (req, res) => {
+  try {
+    const category = req.query.category || 'all';
+    const rating = req.query.rating || 'all';
+    const search = req.query.search || '';
+    const items = await getScreenerData({ category, rating, search });
+    res.json({
+      total: items.length,
+      items
+    });
+  } catch (error) {
+    console.error('[API /api/screener] Error:', error.message);
+    res.status(500).json({ error: error.message, items: [] });
+  }
+});
+
+// 6d. Level 2 Depth of Market (DOM) / Order Book Engine
+app.get('/api/depth', async (req, res) => {
+  try {
+    const symbol = req.query.symbol || 'BTCUSDT';
+    const levels = parseInt(req.query.levels, 10) || 15;
+    const depth = await getOrderBookDepth(symbol, levels);
+    res.json(depth);
+  } catch (error) {
+    console.error('[API /api/depth] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 7. Trade Relay Webhook & Account Management
 app.post('/api/webhook', (req, res) => {
   try {
@@ -205,4 +237,8 @@ setInterval(async () => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[TradingChart Server] Running on http://0.0.0.0:${PORT}`);
   console.log(`[TradingChart Server] WebSocket live stream on ws://0.0.0.0:${PORT}/ws/live`);
+  // Pre-warm technical screener and economic calendar cache on startup
+  setTimeout(() => {
+    getScreenerData().then(items => console.log(`[Screener Pre-Warmed] ${items.length} instruments ready`)).catch(() => {});
+  }, 200);
 });

@@ -13,28 +13,41 @@ export class AlertsManager {
       {
         id: 'alt-1',
         symbol: 'BTCUSDT',
-        condition: 'Price Crossing Above $78,000',
-        conditionFa: 'تقاطع قیمت به بالای ۷۸,۰۰۰ دلار',
-        targetPrice: 78000,
+        condition: 'Resistance Target Crossing Above $95,000',
+        conditionFa: 'تقاطع به بالای مقاومت کلیدی ۹۵,۰۰۰ دلار',
+        targetPrice: 95000,
         direction: 'above',
         channel: 'Sound & Popup',
         channelFa: 'صوتی و اعلان تصویری',
         active: true,
         triggered: false,
-        createdAt: '2026-09-17 12:00'
+        createdAt: '2026-09-18 10:00'
       },
       {
         id: 'alt-2',
+        symbol: 'BTCUSDT',
+        condition: 'Demand Zone Bounce Crossing Below $72,000',
+        conditionFa: 'برخورد به زون تقاضای ۷۲,۰۰۰ دلار',
+        targetPrice: 72000,
+        direction: 'below',
+        channel: 'Sound & Webhook',
+        channelFa: 'صوتی و وب‌هوک',
+        active: true,
+        triggered: false,
+        createdAt: '2026-09-18 10:30'
+      },
+      {
+        id: 'alt-3',
         symbol: 'XAUUSD',
-        condition: 'Price Crossing Above $2,725 (Resistance)',
-        conditionFa: 'شکست سطح مقاومت ۲,۷۲۵ دلار',
-        targetPrice: 2725,
+        condition: 'Price Crossing Above $2,750 (All-Time High)',
+        conditionFa: 'شکست سقف تاریخی ۲,۷۵۰ دلار طلا',
+        targetPrice: 2750,
         direction: 'above',
         channel: 'Webhook Relay (Auto-Order)',
         channelFa: 'رله وب‌هوک (سفارش خودکار)',
         active: true,
         triggered: false,
-        createdAt: '2026-09-17 13:15'
+        createdAt: '2026-09-18 11:00'
       }
     ];
     this.render();

@@ -13,7 +13,8 @@
     "test:indicators": "node tests/validate-all-indicators.js",
     "test:deep": "node tests/dogfood-deep-audit.js",
     "test:parity": "node tests/dogfood-tradingview-parity.cjs",
-    "test": "node tests/validate-all-indicators.js && node tests/dogfood-deep-audit.js && node tests/dogfood-tradingview-parity.cjs"
+    "test:ultimate": "node tests/dogfood-ultimate-tradingview.cjs",
+    "test": "node tests/validate-all-indicators.js && node tests/dogfood-ultimate-tradingview.cjs"
   },
   "keywords": [
     "tradingview",

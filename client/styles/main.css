@@ -1717,3 +1717,132 @@ body.persian-mode .nav-pill svg {
     left: 8px;
   }
 }
+
+/* ── Floating Favorite Drawing Tools Toolbar ──────────────────────── */
+.floating-drawing-toolbar {
+  position: absolute;
+  z-index: 150;
+  user-select: none;
+}
+
+.fav-toolbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(15, 20, 32, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 1px rgba(0, 242, 176, 0.3);
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.fav-tool-drag-handle {
+  cursor: grab;
+  color: var(--text-dim);
+  padding: 4px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-tool-drag-handle:active {
+  cursor: grabbing;
+}
+
+.fav-tool-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.fav-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.fav-tool-btn.active {
+  background: rgba(0, 242, 176, 0.18);
+  color: var(--accent-cyan);
+  border-color: rgba(0, 242, 176, 0.4);
+}
+
+.fav-tool-btn.trash:hover {
+  background: rgba(255, 77, 91, 0.18);
+  color: var(--accent-red);
+  border-color: rgba(255, 77, 91, 0.4);
+}
+
+.fav-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 3px;
+}
+
+.fav-minimize-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+}
+
+.fav-minimize-btn:hover {
+  color: #fff;
+}
+
+/* ── Chart Alerts Overlay ─────────────────────────────────────────── */
+.chart-alerts-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  overflow: hidden;
+}
+
+/* ── Technical Screener Styles ────────────────────────────────────── */
+.screener-cat-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.screener-cat-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.screener-cat-btn.active {
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 176, 0.15);
+  font-weight: 700;
+}
+
+.screener-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Depth of Market (DOM) Ladder ─────────────────────────────────── */
+.dom-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+

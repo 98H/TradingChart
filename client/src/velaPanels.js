@@ -1,6 +1,6 @@
 // client/src/velaPanels.js
 // Custom Side Panel & Icon Registrations for Vela WebGL2 Workspace
-// Matches LuxAlgo Quant architecture and official drawers (img_3b1b1cd23f2a.jpg)
+// Matches LuxAlgo Quant architecture and official drawers with full TradingView Parity
 
 import { registerSidePanel } from '@luxalgo/vela';
 import { registerIcon, svg16 } from '@luxalgo/vela/ui';
@@ -18,9 +18,10 @@ export function registerAllVelaPanels(app) {
   registerIcon('trackers', svg16('<circle cx="8" cy="8" r="6.5"/><line x1="1.5" y1="8" x2="14.5" y2="8"/><path d="M8 1.5a10 10 0 0 1 2.5 6.5 10 10 0 0 1-2.5 6.5 10 10 0 0 1-2.5-6.5A10 10 0 0 1 8 1.5z"/>'));
   registerIcon('calendar', svg16('<rect x="2" y="3" width="12" height="11" rx="1.5"/><line x1="11" y1="1.5" x2="11" y2="4"/><line x1="5" y1="1.5" x2="5" y2="4"/><line x1="2" y1="6.5" x2="14" y2="6.5"/>'));
   registerIcon('compare', svg16('<circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/>'));
+  registerIcon('screener', svg16('<path d="M2 3h12l-4.5 5.5v5l-3-1.5v-3.5L2 3z"/><line x1="10.5" y1="11.5" x2="14.5" y2="11.5"/><line x1="10.5" y1="13.5" x2="13.5" y2="13.5"/>'));
+  registerIcon('dom', svg16('<rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="6" y1="2" x2="6" y2="14"/><line x1="10" y1="2" x2="10" y2="14"/>'));
 
   // 2. Register Side Panels (Rendered in Vela's PanelDock on Desktop & MoreDrawer on Mobile)
-  // Matching LuxAlgo sequence from screenshot: Data window (10), Object tree (20), Pine editor (30), Indicator Templates (40), Workspaces (50)...
 
   // Pine Editor (Panel #3)
   registerSidePanel({
@@ -60,6 +61,19 @@ export function registerAllVelaPanels(app) {
     }
   });
 
+  // Technical Screener (Panel #5b - TradingView Parity)
+  registerSidePanel({
+    id: 'screener',
+    title: 'Technical Screener',
+    icon: 'screener',
+    order: 55,
+    width: 480,
+    resizable: true,
+    mount: (ctx, body, header) => {
+      app.mountTechnicalScreener(body);
+    }
+  });
+
   // Watchlist (Panel #6)
   registerSidePanel({
     id: 'watchlist',
@@ -83,6 +97,19 @@ export function registerAllVelaPanels(app) {
     resizable: true,
     mount: (ctx, body, header) => {
       app.mountPaperTrading(body);
+    }
+  });
+
+  // Depth of Market - DOM (Panel #7b - TradingView Parity)
+  registerSidePanel({
+    id: 'dom',
+    title: 'Depth of Market (DOM)',
+    icon: 'dom',
+    order: 75,
+    width: 340,
+    resizable: true,
+    mount: (ctx, body, header) => {
+      app.mountDepthOfMarket(body);
     }
   });
 
@@ -164,5 +191,5 @@ export function registerAllVelaPanels(app) {
     }
   });
 
-  console.log('[VelaPanels] All 10 custom panels and icons registered into Vela WebGL2 Workspace');
+  console.log('[VelaPanels] All 12 custom panels and icons registered into Vela WebGL2 Workspace');
 }

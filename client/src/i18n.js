@@ -19,6 +19,7 @@ export const translations = {
     tabJournal: 'Trade Journal',
     tabTrackers: 'Market Trackers (SEC)',
     tabCalendar: 'Economic Calendar',
+    tabScreener: 'Technical Screener',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'Workspace Panels & Tools',
@@ -40,6 +41,10 @@ export const translations = {
     trackersDesc: 'Congressional trades, Insiders, 13F Hedge Funds',
     calendarTitle: 'Economic Calendar',
     calendarDesc: 'FOMC, CPI, NFP, GDP, Central Bank releases',
+    screenerTitle: 'Technical Screener',
+    screenerDesc: 'Live multi-asset RSI, SMA crosses, ratings',
+    domTitle: 'Depth of Market (DOM)',
+    domDesc: 'Level-2 order book ladder & 1-click limits',
     compareTitle: 'Compare & Overlay',
     compareDesc: 'Multi-symbol return % overlay & benchmarks',
     templatesTitle: 'Indicator Templates',
@@ -114,6 +119,7 @@ export const translations = {
     tabJournal: 'ژورنال معاملات',
     tabTrackers: 'شفافیت بازار و نهنگ‌ها',
     tabCalendar: 'تقویم اقتصادی',
+    tabScreener: 'دیده‌بان تکنیکال',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'پنل‌ها و ابزارهای تحلیلی فضای کاری',
@@ -135,6 +141,10 @@ export const translations = {
     trackersDesc: 'معاملات نمایندگان کنگره، اینسایدرها و صندوق‌های ۱۳F',
     calendarTitle: 'تقویم اقتصادی (Economic Calendar)',
     calendarDesc: 'رویدادهای ماکرو، FOMC، تورم و تصمیمات بانک‌های مرکزی',
+    screenerTitle: 'دیده‌بان تکنیکال بازار (Screener)',
+    screenerDesc: 'پایش لایو اندیکاتورها، RSI، تقاطع میانگین‌ها و سیگنال‌ها',
+    domTitle: 'عمق بازار و دفتر سفارشات (DOM)',
+    domDesc: 'دفتر سفارشات لول ۲، اسپرد لایو و اردر لیمیت یک‌کلیکه',
     compareTitle: 'مقایسه و همپوشانی (Compare & Overlay)',
     compareDesc: 'مقایسه همبستگی و بازدهی درصدی چند نماد',
     templatesTitle: 'قالب‌های منتخب اندیکاتور',
@@ -276,6 +286,9 @@ export function applyTranslationsToDOM() {
   const tabCal = document.querySelector('#tab-label-calendar');
   if (tabCal) tabCal.innerText = dict.tabCalendar;
 
+  const tabScr = document.querySelector('#tab-label-screener');
+  if (tabScr) tabScr.innerText = dict.tabScreener;
+
   const compareLabel = document.querySelector('#topbar-compare-label');
   if (compareLabel) compareLabel.innerText = currentLang === 'fa' ? 'مقایسه' : 'Compare';
 
@@ -284,6 +297,12 @@ export function applyTranslationsToDOM() {
 
   const railCal = document.querySelector('#desktop-side-rail .rail-btn[data-panel="calendar"]');
   if (railCal) railCal.title = dict.tabCalendar;
+
+  const railScr = document.querySelector('#desktop-side-rail .rail-btn[data-panel="screener"]');
+  if (railScr) railScr.title = dict.tabScreener;
+
+  const railDom = document.querySelector('#desktop-side-rail .rail-btn[data-panel="dom"]');
+  if (railDom) railDom.title = currentLang === 'fa' ? 'عمق بازار (DOM)' : 'Depth of Market (DOM)';
 
   // 4. Symbol Search Modal
   const symTitle = document.querySelector('#symbol-search-modal-title');
