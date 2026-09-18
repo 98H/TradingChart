@@ -32,7 +32,7 @@ export class UserProfileModal {
               IP
             </div>
             <div>
-              <div style="font-weight: 800; font-size: 15px; color: #fff;">${isFa ? 'مدیر پورتفوی نهادی' : 'Institutional Portfolio Lead'}</div>
+              <h3 class="modal-title" style="margin: 0; font-weight: 800; font-size: 15px; color: #fff;">${isFa ? 'مدیر پورتفوی نهادی' : 'Institutional Portfolio Lead'}</h3>
               <div style="margin-top: 3px;">
                 <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.12); border: 1px solid rgba(0, 242, 176, 0.3); padding: 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
                   👑 ${isFa ? 'میز معاملات نهادی تاییدشده' : 'VERIFIED INSTITUTIONAL DESK'}

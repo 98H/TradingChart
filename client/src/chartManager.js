@@ -111,6 +111,37 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
 `, "LuxAlgo - Signals & Overlays");
       }, 1000);
 
+      // 5. Setup Side Panel Dock Observer & Layout Auto-clearance
+      const chartArea = document.querySelector('#chart-area');
+      if (chartArea) {
+        const updatePanelState = () => {
+          const hasOpenPanel = !!(this.workspace?.dock?.openId) || Array.from(document.querySelectorAll('.vela-panel')).some(p => {
+            const disp = window.getComputedStyle(p).display;
+            return disp !== 'none' && disp !== '';
+          });
+          if (hasOpenPanel) {
+            chartArea.classList.add('has-side-panel');
+            chartArea.style.setProperty('--dock-offset', '340px');
+          } else {
+            chartArea.classList.remove('has-side-panel');
+            chartArea.style.setProperty('--dock-offset', '0px');
+          }
+        };
+
+        const observer = new MutationObserver(() => {
+          updatePanelState();
+          // Ensure volume canvas opacity is clamped to 0.22
+          const r = this.workspace?.active?.chart?.orchestrator?.renderer;
+          if (r?.volumeCanvas && r.volumeCanvas.style.opacity !== '0.22') {
+            r.volumeCanvas.style.opacity = '0.22';
+          }
+        });
+
+        observer.observe(mountEl, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+        setInterval(updatePanelState, 200);
+        updatePanelState();
+      }
+
       console.log('[ChartManager] Vela WebGL2 Workspace mounted with native LuxAlgo controls');
     } catch (err) {
       console.error('[ChartManager] Error mounting VelaWorkspace:', err);
@@ -147,12 +178,27 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
   togglePanel(panelId, open) {
     if (this.workspace?.dock) {
       this.workspace.dock.toggle(panelId, open);
+      setTimeout(() => {
+        const chartArea = document.querySelector('#chart-area');
+        if (chartArea) {
+          const hasOpenPanel = !!document.querySelector('.vela-panel.is-open');
+          chartArea.classList.toggle('has-side-panel', hasOpenPanel);
+          chartArea.style.setProperty('--dock-offset', hasOpenPanel ? '340px' : '0px');
+        }
+      }, 50);
     }
   }
 
   closeActivePanel() {
     if (this.openPanelId && this.workspace?.dock) {
       this.workspace.dock.toggle(this.openPanelId, false);
+      setTimeout(() => {
+        const chartArea = document.querySelector('#chart-area');
+        if (chartArea) {
+          chartArea.classList.remove('has-side-panel');
+          chartArea.style.setProperty('--dock-offset', '0px');
+        }
+      }, 50);
     }
   }
 

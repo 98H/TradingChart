@@ -5,7 +5,7 @@ export const translations = {
   en: {
     // Header & Workspace
     navQuant: 'Quant',
-    navJournal: 'Journal',
+    navJournal: 'Journal Workspace',
     navPanels: 'Panels',
     liveLatency: 'Live 12ms',
     toggleSideDock: 'Toggle Side Dock / Panels',
@@ -17,7 +17,7 @@ export const translations = {
     tabStrategy: 'Strategy Tester',
     tabPropsim: 'Prop-Firm Simulator',
     tabJournal: 'Trade Journal',
-    tabTrackers: 'Trackers',
+    tabTrackers: 'Trackers (SEC)',
     tabCalendar: 'Economic Calendar',
     tabScreener: 'Technical Screener',
     tabNews: 'Market News',
@@ -110,7 +110,7 @@ export const translations = {
   fa: {
     // Header & Workspace
     navQuant: 'کوانت',
-    navJournal: 'ژورنال معاملات',
+    navJournal: 'دفترچه جامع معاملات',
     navPanels: '+ پنل‌ها',
     liveLatency: 'زنده ۱۲ میلی‌ثانیه',
     toggleSideDock: 'باز و بسته کردن پنل‌های کناری',
@@ -121,7 +121,7 @@ export const translations = {
     tabPine: 'ویرایشگر پاین',
     tabStrategy: 'بک‌تستر استراتژی',
     tabPropsim: 'شبیه‌ساز پراپ‌فرم',
-    tabJournal: 'ژورنال معاملات',
+    tabJournal: 'میز ژورنال معاملات',
     tabTrackers: 'پایش بازار (SEC)',
     tabCalendar: 'تقویم اقتصادی',
     tabScreener: 'دیده‌بان تکنیکال',

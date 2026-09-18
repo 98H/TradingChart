@@ -49,7 +49,7 @@ export class ChartAlertsOverlay {
         const clampedTop = Math.max(8, Math.min(92, topPct));
 
         return `
-          <div class="canvas-alert-line" style="position: absolute; left: 0; right: 65px; top: ${clampedTop}%; height: 1px; border-top: 1px dashed var(--accent-gold); pointer-events: auto; z-index: 10;">
+          <div class="canvas-alert-line" style="position: absolute; left: 0; right: 56px; top: ${clampedTop}%; height: 1px; border-top: 1px dashed var(--accent-gold); pointer-events: auto; z-index: 10;">
             <div class="canvas-alert-badge" style="position: absolute; right: 0; top: -11px; background: var(--bg-card); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer;" title="${a.condition}">
               <span>🔔</span>
               <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
@@ -58,18 +58,18 @@ export class ChartAlertsOverlay {
           </div>
         `;
       } else if (a.targetPrice > curPrice) {
-        // Pinned Above Visible Range Dock Badge (Safe distance below quick-trade, next to Price Axis)
+        // Pinned Above Visible Range Axis Badge (Right rail, safe clearance below quick-trade execution bar)
         return `
-          <div class="canvas-alert-pinned-top" style="position: absolute; right: 76px; top: 96px; background: rgba(15,20,32,0.92); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
+          <div class="canvas-alert-pinned-top" style="position: absolute; right: 16px; top: 66px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
             <span>▲ 🔔</span>
             <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
             <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>
           </div>
         `;
       } else {
-        // Pinned Below Visible Range Dock Badge (Safe distance above scale dock and date axis)
+        // Pinned Below Visible Range Axis Badge (Right rail, safe clearance above scale dock and date axis)
         return `
-          <div class="canvas-alert-pinned-bottom" style="position: absolute; right: 76px; bottom: 62px; background: rgba(15,20,32,0.92); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
+          <div class="canvas-alert-pinned-bottom" style="position: absolute; right: 16px; bottom: 74px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
             <span>▼ 🔔</span>
             <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
             <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>

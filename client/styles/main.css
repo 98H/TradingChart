@@ -75,16 +75,17 @@ body.persian-mode .panel-tabs {
   flex-direction: row-reverse;
 }
 
+/* Persian mode natural RTL header alignment (row in RTL flows right-to-left) */
 body.persian-mode #top-app-header {
-  flex-direction: row-reverse;
+  direction: rtl;
 }
 
 body.persian-mode .top-nav-left {
-  flex-direction: row-reverse;
+  direction: rtl;
 }
 
 body.persian-mode .top-nav-right {
-  flex-direction: row-reverse;
+  direction: rtl;
 }
 
 body.persian-mode .vela-panel-header {
@@ -427,6 +428,11 @@ body.persian-mode .top-nav-layout-suite {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  --dock-offset: 0px;
+}
+
+#chart-area.has-side-panel {
+  --dock-offset: 340px;
 }
 
 #vela-workspace-mount {
@@ -509,7 +515,7 @@ body.persian-mode .top-nav-layout-suite {
 .quick-trade-widget {
   position: absolute;
   top: 12px;
-  right: 78px;
+  right: calc(var(--dock-offset, 0px) + 78px);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -521,7 +527,7 @@ body.persian-mode .top-nav-layout-suite {
   padding: 3px 6px;
   gap: 4px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, transform 0.2s ease;
   direction: ltr !important;
 }
 
@@ -553,7 +559,7 @@ body.persian-mode .top-nav-layout-suite {
 .qt-pill-trigger {
   position: absolute;
   top: 12px;
-  right: 78px;
+  right: calc(var(--dock-offset, 0px) + 78px);
   z-index: 39;
   display: none;
   align-items: center;
@@ -568,7 +574,7 @@ body.persian-mode .top-nav-layout-suite {
   color: var(--accent-cyan);
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.2s ease;
+  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1), all 0.2s ease;
   direction: ltr !important;
 }
 .qt-pill-trigger:hover {
@@ -1165,12 +1171,24 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* Numbers in LTR */
-.num-ltr {
+/* Numbers in LTR & Tabular Figures */
+.num-ltr,
+.dom-row,
+.screener-row,
+.qt-price,
+.scale-dock-btn {
   direction: ltr !important;
   display: inline-block;
   font-variant-numeric: tabular-nums;
+  -webkit-font-feature-settings: "tnum";
+  font-feature-settings: "tnum";
   font-family: var(--font-mono);
+}
+
+/* Subtle volume canvas opacity so price candles pop cleanly without clutter */
+.vela-workspace canvas[data-layer="volume"],
+canvas.volume-layer-canvas {
+  opacity: 0.22 !important;
 }
 
 /* ── Mobile Responsive Overrides (max-width: 768px) ─────────────────── */
@@ -1696,10 +1714,11 @@ body.persian-mode .nav-pill svg {
 .scale-controls-dock {
   position: absolute;
   bottom: 34px;
-  right: 56px;
+  right: calc(var(--dock-offset, 0px) + 56px);
   z-index: 18;
   pointer-events: auto;
   user-select: none;
+  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scale-dock-inner {
@@ -1924,10 +1943,14 @@ body.persian-mode .nav-pill svg {
 /* ── Chart Alerts Overlay ─────────────────────────────────────────── */
 .chart-alerts-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: var(--dock-offset, 0px);
   pointer-events: none;
   z-index: 40;
   overflow: hidden;
+  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Technical Screener Styles ────────────────────────────────────── */
