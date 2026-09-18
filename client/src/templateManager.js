@@ -208,7 +208,7 @@ export class TemplateManager {
       }
 
       if (scripts.length === 0) {
-        alert(getLanguage() === 'fa' ? 'هیچ اسکریپت یا اندیکاتوری روی چارت برای ذخیره وجود ندارد' : 'No active indicators on chart to save.');
+        window.__TRADING_APP__?.showToast?.(getLanguage() === 'fa' ? 'هیچ اسکریپت یا اندیکاتوری روی چارت برای ذخیره وجود ندارد' : 'No active indicators on chart to save.');
         return;
       }
 

@@ -1044,6 +1044,43 @@ class TradingChartApp {
     if (askEl) askEl.innerText = formatNum(ask);
   }
 
+  showToast(msg, type = 'info') {
+    let toast = document.querySelector('#tradingchart-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'tradingchart-toast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--accent-cyan);
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        font-size: 12px;
+        font-weight: 700;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = msg;
+    toast.style.display = 'flex';
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }, 2800);
+  }
+
   showExecutionToast(side, qty, symbol) {
     let toast = document.querySelector('#tradingchart-toast');
     if (!toast) {

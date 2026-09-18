@@ -1,0 +1,22 @@
+{
+  "defects": [
+    {
+      "id": "D8",
+      "severity": "High",
+      "desc": "Proper personal name detected in white-label user profile modal"
+    },
+    {
+      "id": "D13",
+      "severity": "Critical",
+      "desc": "Indicators library missing or less than 80 indicators (found 0)"
+    },
+    {
+      "id": "EXC",
+      "severity": "Critical",
+      "desc": "Protocol error (Page.captureScreenshot): Target closed"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": []
+}

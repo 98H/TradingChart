@@ -1,0 +1,162 @@
+[
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [cursor] missing in DOM",
+    "details": "[data-tool=\"cursor\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.640Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [trendline] missing in DOM",
+    "details": "[data-tool=\"trendline\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.653Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [ray] missing in DOM",
+    "details": "[data-tool=\"ray\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.656Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [horizontal] missing in DOM",
+    "details": "[data-tool=\"horizontal\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.658Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [fibonacci] missing in DOM",
+    "details": "[data-tool=\"fibonacci\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.660Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [rectangle] missing in DOM",
+    "details": "[data-tool=\"rectangle\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.662Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [position] missing in DOM",
+    "details": "[data-tool=\"position\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.666Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [measure] missing in DOM",
+    "details": "[data-tool=\"measure\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.669Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Drawing Toolbar",
+    "title": "Tool button [text] missing in DOM",
+    "details": "[data-tool=\"text\"]",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.675Z"
+  },
+  {
+    "severity": "LOW",
+    "category": "Drawing Toolbar",
+    "title": "Action button [magnet] missing on left toolbar",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.684Z"
+  },
+  {
+    "severity": "LOW",
+    "category": "Drawing Toolbar",
+    "title": "Action button [lock] missing on left toolbar",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.690Z"
+  },
+  {
+    "severity": "LOW",
+    "category": "Drawing Toolbar",
+    "title": "Action button [hide] missing on left toolbar",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.698Z"
+  },
+  {
+    "severity": "LOW",
+    "category": "Drawing Toolbar",
+    "title": "Action button [trash] missing on left toolbar",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.704Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [1m] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.708Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [5m] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.718Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [15m] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.727Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [1h] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.736Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [4h] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.739Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [1D] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.743Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Timeframe Bar",
+    "title": "Standard timeframe button [1W] missing in DOM",
+    "details": "",
+    "element": null,
+    "timestamp": "2026-09-18T22:10:19.746Z"
+  }
+]

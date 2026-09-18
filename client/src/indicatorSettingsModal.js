@@ -29,7 +29,7 @@ export class IndicatorSettingsModal {
     const handles = chart?.orchestrator?.handles;
 
     if (!handles || handles.size === 0) {
-      alert(getLanguage() === 'fa' ? 'هیچ اندیکاتور فعالی روی چارت وجود ندارد' : 'No active indicators on chart.');
+      this.app?.showToast?.(getLanguage() === 'fa' ? 'هیچ اندیکاتور فعالی روی چارت وجود ندارد' : 'No active indicators on chart.');
       return;
     }
 

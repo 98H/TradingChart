@@ -1,0 +1,114 @@
+[
+  {
+    "severity": "HIGH",
+    "category": "Interaction",
+    "title": "Chart Style Dropdown did not open",
+    "details": "Clicked #btn-topbar-chart-style",
+    "timestamp": "2026-09-18T21:36:14.511Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Interaction",
+    "title": "Layout dropdown failed to open",
+    "details": "Clicked #btn-layout-manager",
+    "timestamp": "2026-09-18T21:36:22.163Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Replay bar failed to activate",
+    "details": "Clicked #btn-topbar-replay",
+    "timestamp": "2026-09-18T21:36:23.096Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Feature",
+    "title": "Data Export modal failed to open",
+    "details": "Clicked #btn-topbar-export",
+    "timestamp": "2026-09-18T21:36:24.056Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Feature",
+    "title": "Shortcuts modal failed to open",
+    "details": "Clicked #btn-shortcuts-help",
+    "timestamp": "2026-09-18T21:36:24.886Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Feature",
+    "title": "User profile modal failed to open",
+    "details": "Clicked .user-avatar-badge",
+    "timestamp": "2026-09-18T21:36:26.218Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"strategy\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:13.639Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"propsim\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:17.047Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"journal\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:19.358Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"trackers\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:22.028Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"calendar\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:25.192Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"screener\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:28.451Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Feature",
+    "title": "Bottom view for \"news\" failed to display",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:31.583Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Data",
+    "title": "Indicators modal shows fewer than expected indicators",
+    "details": "Found 0",
+    "timestamp": "2026-09-18T21:37:37.621Z"
+  },
+  {
+    "severity": "MEDIUM",
+    "category": "Feature",
+    "title": "Settings modal failed to open from topbar",
+    "details": "",
+    "timestamp": "2026-09-18T21:37:38.807Z"
+  },
+  {
+    "severity": "HIGH",
+    "category": "Mobile Overflow",
+    "title": "Elements overflowing mobile viewport",
+    "details": "[{\"tag\":\"path\",\"id\":\"\",\"class\":{},\"right\":998.1741943359375,\"docWidth\":390}]",
+    "timestamp": "2026-09-18T21:37:49.939Z"
+  }
+]

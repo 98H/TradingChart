@@ -135,7 +135,7 @@ export class DataExportModal {
   executeExport() {
     const bars = this.app?.activeBars || [];
     if (bars.length === 0) {
-      alert('No candlestick data loaded to export.');
+      this.app?.showToast?.(getLanguage() === 'fa' ? 'هیچ داده کندلی برای خروجی یافت نشد' : 'No candlestick data loaded to export.');
       return;
     }
 

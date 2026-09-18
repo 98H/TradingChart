@@ -292,7 +292,7 @@ export class PaperTrading {
     const notional = execPrice * qty;
     const margin = notional / leverage;
     if (margin > this.balance) {
-      alert('Insufficient available paper balance');
+      window.__TRADING_APP__?.showToast?.(getLanguage() === 'fa' ? 'موجودی مارجین دمو ناکافی است' : 'Insufficient available paper balance');
       return;
     }
 
