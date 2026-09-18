@@ -9,7 +9,10 @@
     "build": "vite build",
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test:qa": "node tests/dogfood-test.js"
+    "test:qa": "node tests/dogfood-test.js",
+    "test:indicators": "node tests/validate-all-indicators.js",
+    "test:deep": "node tests/dogfood-deep-audit.js",
+    "test": "node tests/validate-all-indicators.js && node tests/dogfood-deep-audit.js"
   },
   "keywords": [
     "tradingview",

@@ -1,190 +1,189 @@
 // client/src/i18n.js
-// Internationalization & Full DOM Translation Engine for English & Persian
+// Complete Internationalization Engine for TradingChart (English & Formal Persian with strict ZWNJ)
 
 export const translations = {
   en: {
-    brandName: 'TradingChart',
-    brandTag: 'PRO',
-    symbolSearchPlaceholder: 'Search symbol (e.g. BTC, ETH, XAU, AAPL)...',
-    indicatorsBtn: 'Indicators (80+)',
-    layoutSingle: 'Single Chart (1x1)',
-    layout2h: 'Dual Horizontal (2x1)',
-    layout2v: 'Dual Vertical (1x2)',
-    layout4: 'Quad Grid (2x2)',
-    replayBtn: 'Replay',
-    undoTitle: 'Undo (Ctrl+Z)',
-    redoTitle: 'Redo (Ctrl+Y)',
-    screenshotTitle: 'Take High-Res Screenshot',
-    fullscreenTitle: 'Toggle Fullscreen',
-    settingsTitle: 'Settings',
-    sidebarTitle: 'Toggle Sidebar',
-    tabWatchlist: 'Watchlist',
-    tabTrade: 'Trade',
-    tabAlerts: 'Alerts',
+    // Header & Workspace
+    navQuant: 'Quant',
+    navJournal: 'Journal',
+    navPanels: 'Panels',
+    liveLatency: 'Live 12ms',
+    toggleSideDock: 'Toggle Side Dock / Panels',
+    langToggle: 'FA / EN',
+    userProfile: 'User Profile: Hussein Mohammadi',
+
+    // Bottom Suite Tabs
     tabPine: 'Pine Editor',
     tabStrategy: 'Strategy Tester',
     tabPropsim: 'Prop-Firm Simulator',
     tabJournal: 'Trade Journal',
     tabTrackers: 'Market Trackers (SEC)',
-    liveBadge: 'LIVE 12ms',
 
-    // Candle styles
-    styleCandles: 'Candles',
-    styleHollow: 'Hollow Candles',
-    styleBars: 'Bars',
-    styleLine: 'Line',
-    styleArea: 'Area',
-    styleHeikin: 'Heikin-Ashi',
+    // Panels Menu Drawer
+    panelsMenuTitle: 'Workspace Panels & Tools',
+    wlTitle: 'Watchlist',
+    wlDesc: 'Live quotes, multi-asset search, categories',
+    tradeTitle: 'Trade (Paper)',
+    tradeDesc: 'Virtual execution, market/limit orders, P&L',
+    alertsTitle: 'Alerts',
+    alertsDesc: 'Price cross triggers & webhook relays',
+    pineTitle: 'Pine Editor',
+    pineDesc: 'Pine Script v5/v6 IDE, live compiler',
+    strategyTitle: 'Strategy Tester',
+    strategyDesc: 'PineTS backtest engine, Sharpe, drawdowns',
+    propsimTitle: 'Prop-Firm Simulator',
+    propsimDesc: '10,000 Monte Carlo paths, pass odds',
+    journalTitle: 'Trade Journal',
+    journalDesc: 'Monthly P&L calendar, edge score, analytics',
+    trackersTitle: 'Market Trackers (SEC)',
+    trackersDesc: 'Congressional trades, Insiders, 13F Hedge Funds',
+    templatesTitle: 'Indicator Templates',
+    templatesDesc: '1-click curated indicator setups',
+    workspacesTitle: 'Workspaces',
+    workspacesDesc: 'Multi-chart grid layouts & sync switches',
 
-    // Modal Titles
-    indicatorsModalTitle: 'Indicators, Metrics & Strategies',
-    symbolModalTitle: 'Symbol Search (Universal Universe)',
+    // Symbol Search
+    symbolModalTitle: 'Symbol Search & Market Navigator',
+    symbolPlaceholder: 'Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)...',
+    instrumentsCount: '30+ Instruments',
+
+    // Indicators Modal
+    indicatorsModalTitle: 'Indicators, Metrics & Strategies (84+ Library)',
+    indicatorsSearchPlaceholder: 'Search 84+ technical indicators, metrics & scripts...',
+    indicatorsCountPrefix: 'Showing',
+    indicatorsCountSuffix: 'of 84 indicators',
+
+    // Settings Modal
     settingsModalTitle: 'Chart Settings & Preferences',
+    candleAppearance: 'Candlestick Appearance',
+    bullColor: 'Bullish Candle Color',
+    bearColor: 'Bearish Candle Color',
+    chartTimezone: 'Chart Timezone',
+    gridLines: 'Grid Lines',
+    colorTheme: 'Color Theme',
+    interfaceLang: 'Interface Language',
+    saveSettings: 'Save Settings',
+    cancel: 'Cancel',
 
-    // Watchlist
-    categoryCrypto: 'Crypto Top Assets',
-    categoryMetals: 'Metals & Commodities',
-    categoryForex: 'Forex Majors',
-    categoryEquities: 'Indices & US Tech',
-    categoryCustom: '★ Custom Watchlist',
-    addSymbolPlaceholder: '+ Add symbol...',
-    addBtn: 'Add',
+    // Tool Rail
+    railWatchlist: 'Watchlist',
+    railAlerts: 'Alerts',
+    railTrade: 'Trade / Paper Execution',
+    railDataWindow: 'Data Window',
+    railObjectTree: 'Object Tree',
+    railPine: 'Pine Editor',
+    railJournal: 'Trade Journal',
 
-    // Pine Studio
-    pineNewBtn: 'New',
-    pineSaveBtn: 'Save',
-    pineCompileBtn: 'Add to Chart',
-    pineBacktestBtn: 'Backtest Strategy',
-    pineDiagTitle: 'Diagnostics Console',
-    pineDiagReady: 'Ready. Click \'Add to Chart\' to compile Pine Script.',
+    // Quick Trade
+    qtSell: 'SELL',
+    qtBuy: 'BUY',
+    qtTrade: 'Trade',
+    qtQty: 'Quantity',
 
-    // Strategy Tester
-    metricNetProfit: 'Net Profit',
-    metricProfitFactor: 'Profit Factor',
-    metricWinRate: 'Win Rate',
-    metricMaxDrawdown: 'Max Drawdown',
-    exportPropSimBtn: 'Export to Prop-Sim →',
-    equityCurveTitle: 'Equity Curve ($)',
-    recentTradesTitle: 'Recent Closed Trades',
-
-    // Prop Firm
-    propPresetLabel: 'Firm Challenge Preset',
-    propWinRateLabel: 'Win Rate (%)',
-    propRRLabel: 'R:R Ratio (Avg Win R)',
-    propRiskLabel: 'Risk Per Trade (%)',
-    propTPDLabel: 'Trades Per Day',
-    propRunBtn: '⚡ Run Monte Carlo (500 Paths)',
-    propCardPassProb: 'Pass Probability',
-    propCardRuin: 'Risk of Ruin',
-    propCardEV: 'Expected Value (EV)',
-    propCardDays: 'Median Days to Funded',
-
-    // Trade Journal
-    journalMonthPnl: 'Monthly Realized P&L',
-    journalWinRate: 'Win Rate',
-    journalEdgeScore: 'Edge Score v2',
-    journalBestDay: 'Best Day',
-    journalHeatmapTitle: 'P&L Calendar Heatmap (September 2026)',
-    journalActiveDays: '25 Active Trading Days',
-
-    // Trackers Subtabs
-    trackersSubCongress: 'Congressional Stock Trades',
-    trackersSubInsider: 'SEC Form 4 Insider Trades',
-    trackersSub13f: 'Hedge Fund 13F Portfolios',
-    trackersSubShort: 'FINRA Short Sale Volume'
+    // Mobile More Drawer
+    moreUndo: 'Undo',
+    moreRedo: 'Redo',
+    moreScreenshot: 'Screenshot',
+    moreChartType: 'Chart type',
+    moreCandles: 'Candles',
+    moreLayout: 'Layout',
+    moreAlerts: 'Alerts',
+    moreClose: 'Close'
   },
   fa: {
-    brandName: 'تریدینگ‌چارت',
-    brandTag: 'حرفه‌ای',
-    symbolSearchPlaceholder: 'جستجوی نماد (مانند BTC، طلا، نفت، اپل)...',
-    indicatorsBtn: 'اندیکاتورها (۸۰+)',
-    layoutSingle: 'تک‌چارت (۱×۱)',
-    layout2h: 'دوچارت افقی (۲×۱)',
-    layout2v: 'دوچارت عمودی (۱×۲)',
-    layout4: 'چهارچارت (۲×۲)',
-    replayBtn: 'بازپخش کندل‌ها',
-    undoTitle: 'واگرد (Ctrl+Z)',
-    redoTitle: 'ازنو (Ctrl+Y)',
-    screenshotTitle: 'عکس از چارت با کیفیت بالا',
-    fullscreenTitle: 'تمام‌صفحه',
-    settingsTitle: 'تنظیمات چارت',
-    sidebarTitle: 'سایدبار دیده‌بان',
-    tabWatchlist: 'دیده‌بان',
-    tabTrade: 'معاملات دمو',
-    tabAlerts: 'هشدارها',
+    // Header & Workspace
+    navQuant: 'کوانت',
+    navJournal: 'ژورنال معاملات',
+    navPanels: '+ پنل‌ها',
+    liveLatency: 'زنده ۱۲ میلی‌ثانیه',
+    toggleSideDock: 'باز و بسته کردن پنل‌های کناری',
+    langToggle: 'EN / FA',
+    userProfile: 'پروفایل کاربر: حسین محمدی',
+
+    // Bottom Suite Tabs
     tabPine: 'ویرایشگر پاین',
     tabStrategy: 'بک‌تستر استراتژی',
     tabPropsim: 'شبیه‌ساز پراپ‌فرم',
     tabJournal: 'ژورنال معاملات',
     tabTrackers: 'شفافیت بازار و نهنگ‌ها',
-    liveBadge: 'زنده ۱۲ میلی‌ثانیه',
 
-    // Candle styles
-    styleCandles: 'کندل‌استیک',
-    styleHollow: 'کندل‌های توخالی',
-    styleBars: 'نمودار میله‌ای',
-    styleLine: 'نمودار خطی',
-    styleArea: 'نمودار ناحیه‌ای',
-    styleHeikin: 'هیکن‌آشی',
+    // Panels Menu Drawer
+    panelsMenuTitle: 'پنل‌ها و ابزارهای تحلیلی فضای کاری',
+    wlTitle: 'دیده‌بان دارایی‌ها (Watchlist)',
+    wlDesc: 'نرخ لحظه‌ای، جستجوی چندبازاره و دسته‌بندی‌ها',
+    tradeTitle: 'معاملات مجازی (Paper Trading)',
+    tradeDesc: 'اجرای سفارش‌های مارکت و لیمیت، مدیریت مارجین و سود/زیان',
+    alertsTitle: 'سیستم هشدار قیمت (Alerts)',
+    alertsDesc: 'تریگرهای تقاطع قیمت و ارسال سیگنال وب‌هوک',
+    pineTitle: 'ویرایشگر پاین‌اسکریپت (Pine Editor)',
+    pineDesc: 'محیط توسعه IDE پاین نسخه ۵ و ۶ همراه کامپایلر زنده',
+    strategyTitle: 'بک‌تستر استراتژی (Strategy Tester)',
+    strategyDesc: 'موتور شبیه‌سازی پاین، محاسبه نسبت شارپ و افت سرمایه',
+    propsimTitle: 'شبیه‌ساز آزمون پراپ‌فرم (Prop-Firm Sim)',
+    propsimDesc: '۱۰،۰۰۰ مسیر شبیه‌سازی مونت‌کارلو و احتمال قبولی',
+    journalTitle: 'ژورنال معاملات (Trade Journal)',
+    journalDesc: 'تقویم حرارتی سود/زیان، امتیاز مهارت و تحلیل عملکرد',
+    trackersTitle: 'شفافیت بازار و نهنگ‌ها (SEC Trackers)',
+    trackersDesc: 'معاملات نمایندگان کنگره، اینسایدرها و صندوق‌های ۱۳F',
+    templatesTitle: 'قالب‌های منتخب اندیکاتور',
+    templatesDesc: 'اعمال با یک کلیک ستاپ‌های تحلیل تکنیکال و اسمارت مانی',
+    workspacesTitle: 'فضاهای کاری و چیدمان (Workspaces)',
+    workspacesDesc: 'گرید چندچارته و کلیدهای همگام‌سازی ابزارها',
 
-    // Modal Titles
-    indicatorsModalTitle: 'دایره‌المعارف اندیکاتورها و استراتژی‌ها',
-    symbolModalTitle: 'جستجوی نماد در تمام بازارها',
+    // Symbol Search
+    symbolModalTitle: 'جستجوی نماد در تمام بازارهای مالی',
+    symbolPlaceholder: 'نام یا نماد دارایی را تایپ کنید (مانند BTC، طلا، نفت، اپل)...',
+    instrumentsCount: 'بیش از ۳۰ نماد جهانی',
+
+    // Indicators Modal
+    indicatorsModalTitle: 'دایره‌المعارف اندیکاتورها و استراتژی‌ها (۸۴ ابزار تخصصی)',
+    indicatorsSearchPlaceholder: 'جستجو در بین ۸۴ اندیکاتور تکنیکال، اسمارت مانی و حجم...',
+    indicatorsCountPrefix: 'نمایش',
+    indicatorsCountSuffix: 'از ۸۴ اندیکاتور تحلیلی',
+
+    // Settings Modal
     settingsModalTitle: 'تنظیمات و سفارشی‌سازی چارت',
+    candleAppearance: 'ظاهر و رنگ‌بندی کندل‌ها',
+    bullColor: 'رنگ کندل‌های صعودی',
+    bearColor: 'رنگ کندل‌های نزولی',
+    chartTimezone: 'منطقه زمانی چارت',
+    gridLines: 'خطوط شبکه پس‌زمینه',
+    colorTheme: 'تم رنگی پلتفرم',
+    interfaceLang: 'زبان رابط کاربری',
+    saveSettings: 'ذخیره تنظیمات',
+    cancel: 'انصراف',
 
-    // Watchlist
-    categoryCrypto: 'ارزهای دیجیتال برتر',
-    categoryMetals: 'فلزات و کالاها (طلا و نفت)',
-    categoryForex: 'جفت‌ارزهای فارکس',
-    categoryEquities: 'شاخص‌ها و غول‌های فناوری',
-    categoryCustom: '★ دیده‌بان اختصاصی',
-    addSymbolPlaceholder: '+ افزودن نماد...',
-    addBtn: 'افزودن',
+    // Tool Rail
+    railWatchlist: 'دیده‌بان',
+    railAlerts: 'هشدارها',
+    railTrade: 'معاملات دمو',
+    railDataWindow: 'پنجره داده‌ها',
+    railObjectTree: 'درخت لایه‌ها و ابزارها',
+    railPine: 'ویرایشگر پاین',
+    railJournal: 'ژورنال معاملات',
 
-    // Pine Studio
-    pineNewBtn: 'اسکریپت جدید',
-    pineSaveBtn: 'ذخیره',
-    pineCompileBtn: 'افزودن به چارت',
-    pineBacktestBtn: 'بک‌تست استراتژی',
-    pineDiagTitle: 'کنسول عیب‌یابی و خطاها',
-    pineDiagReady: 'کنسول آماده است. برای کامپایل پاین روی «افزودن به چارت» کلیک کنید.',
+    // Quick Trade
+    qtSell: 'فروش',
+    qtBuy: 'خرید',
+    qtTrade: 'معامله',
+    qtQty: 'حجم',
 
-    // Strategy Tester
-    metricNetProfit: 'سود خالص کل',
-    metricProfitFactor: 'فاکتور سودآوری',
-    metricWinRate: 'نرخ برد (Win Rate)',
-    metricMaxDrawdown: 'حداکثر افت سرمایه',
-    exportPropSimBtn: 'انتقال به شبیه‌ساز پراپ →',
-    equityCurveTitle: 'نمودار رشد سرمایه (Equity Curve)',
-    recentTradesTitle: 'معاملات بسته‌شده اخیر',
-
-    // Prop Firm
-    propPresetLabel: 'قالب چالش شرکت پراپ',
-    propWinRateLabel: 'نرخ برد (%)',
-    propRRLabel: 'نسبت ریسک به ریوارد',
-    propRiskLabel: 'ریسک روی هر معامله (%)',
-    propTPDLabel: 'تعداد معامله در روز',
-    propRunBtn: '⚡ اجرای مونت‌کارلو (۵۰۰ مسیر)',
-    propCardPassProb: 'احتمال واقعی قبولی',
-    propCardRuin: 'ریسک سوختن حساب',
-    propCardEV: 'امید ریاضی سود نهایی',
-    propCardDays: 'میانه روزها تا دریافت سرمایه',
-
-    // Trade Journal
-    journalMonthPnl: 'سود و زیان محقق‌شده ماه',
-    journalWinRate: 'نرخ برد معاملات',
-    journalEdgeScore: 'امتیاز مهارت معاملاتی (Edge)',
-    journalBestDay: 'سودآورترین روز هفته',
-    journalHeatmapTitle: 'تقویم حرارتی ماهانه سود و زیان (سپتامبر ۲۰۲۶)',
-    journalActiveDays: '۲۵ روز معاملاتی فعال',
-
-    // Trackers Subtabs
-    trackersSubCongress: 'معاملات نمایندگان کنگره آمریکا',
-    trackersSubInsider: 'معاملات مدیران ارشد (SEC Form 4)',
-    trackersSub13f: 'پرتفوی صندوق‌های تامینی وال‌استریت',
-    trackersSubShort: 'آمار حجم معاملات شورت FINRA'
+    // Mobile More Drawer
+    moreUndo: 'واگرد',
+    moreRedo: 'ازنو',
+    moreScreenshot: 'عکس‌برداری',
+    moreChartType: 'نوع نمودار',
+    moreCandles: 'کندل‌استیک',
+    moreLayout: 'چیدمان',
+    moreAlerts: 'هشدارها',
+    moreClose: 'بستن'
   }
 };
+
+export function toPersianDigits(str) {
+  const farsiDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(str).replace(/[0-9]/g, w => farsiDigits[+w]);
+}
 
 let currentLang = 'en';
 
@@ -192,8 +191,10 @@ export function setLanguage(lang) {
   if (translations[lang]) {
     currentLang = lang;
     document.documentElement.lang = lang;
+    document.documentElement.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
     document.body.classList.toggle('persian-mode', lang === 'fa');
     applyTranslationsToDOM();
+    localizeMoreDrawer();
   }
 }
 
@@ -209,63 +210,277 @@ export function applyTranslationsToDOM() {
   const dict = translations[currentLang];
   if (!dict) return;
 
-  // Header Brand
-  const brandName = document.querySelector('#brand-logo-btn span:first-of-type');
-  if (brandName) brandName.innerText = dict.brandName;
-  const brandTag = document.querySelector('#brand-logo-btn .badge-tag');
-  if (brandTag) brandTag.innerText = dict.brandTag;
+  // 1. Header Navigation Pills
+  const qEl = document.querySelector('#nav-label-quant');
+  if (qEl) qEl.innerText = dict.navQuant;
+  const jEl = document.querySelector('#nav-label-journal');
+  if (jEl) jEl.innerText = dict.navJournal;
+  const pEl = document.querySelector('#nav-label-panels');
+  if (pEl) pEl.innerText = dict.navPanels;
 
-  // Indicators button
-  const btnInd = document.querySelector('#btn-open-indicators span');
-  if (btnInd) btnInd.innerText = dict.indicatorsBtn;
+  // 2. Bottom Suite Tabs
+  const tabPine = document.querySelector('#tab-label-pine');
+  if (tabPine) tabPine.innerText = dict.tabPine;
+  const tabStrat = document.querySelector('#tab-label-strategy');
+  if (tabStrat) tabStrat.innerText = dict.tabStrategy;
+  const tabProp = document.querySelector('#tab-label-propsim');
+  if (tabProp) tabProp.innerText = dict.tabPropsim;
+  const tabJour = document.querySelector('#tab-label-journal');
+  if (tabJour) tabJour.innerText = dict.tabJournal;
+  const tabTrack = document.querySelector('#tab-label-trackers');
+  if (tabTrack) tabTrack.innerText = dict.tabTrackers;
 
-  // Replay button
-  const btnReplay = document.querySelector('#btn-toggle-replay span');
-  if (btnReplay) btnReplay.innerText = dict.replayBtn;
+  // 3. Panels Menu Modal Titles & Descs
+  const panelsMenuTitle = document.querySelector('#panels-menu-title');
+  if (panelsMenuTitle) panelsMenuTitle.innerText = dict.panelsMenuTitle;
 
-  // Layout options
-  const selLayout = document.querySelector('#header-layout-select');
-  if (selLayout && selLayout.options.length >= 4) {
-    selLayout.options[0].text = dict.layoutSingle;
-    selLayout.options[1].text = dict.layout2h;
-    selLayout.options[2].text = dict.layout2v;
-    selLayout.options[3].text = dict.layout4;
+  const panelItems = [
+    { panel: 'watchlist', title: dict.wlTitle, desc: dict.wlDesc },
+    { panel: 'paper', title: dict.tradeTitle, desc: dict.tradeDesc },
+    { panel: 'alerts', title: dict.alertsTitle, desc: dict.alertsDesc },
+    { panel: 'pine', title: dict.pineTitle, desc: dict.pineDesc },
+    { panel: 'strategy', title: dict.strategyTitle, desc: dict.strategyDesc },
+    { panel: 'propsim', title: dict.propsimTitle, desc: dict.propsimDesc },
+    { panel: 'journal', title: dict.journalTitle, desc: dict.journalDesc },
+    { panel: 'trackers', title: dict.trackersTitle, desc: dict.trackersDesc },
+    { panel: 'templates', title: dict.templatesTitle, desc: dict.templatesDesc },
+    { panel: 'workspaces', title: dict.workspacesTitle, desc: dict.workspacesDesc }
+  ];
+
+  for (const item of panelItems) {
+    const card = document.querySelector(`.panel-menu-item[data-panel="${item.panel}"]`);
+    if (card) {
+      const titleEl = card.querySelector('.panel-item-title');
+      const descEl = card.querySelector('.panel-item-desc');
+      if (titleEl) titleEl.innerText = item.title;
+      if (descEl) descEl.innerText = item.desc;
+    }
   }
 
-  // Style options
-  const selStyle = document.querySelector('#header-style-select');
-  if (selStyle && selStyle.options.length >= 6) {
-    selStyle.options[0].text = dict.styleCandles;
-    selStyle.options[1].text = dict.styleHollow;
-    selStyle.options[2].text = dict.styleBars;
-    selStyle.options[3].text = dict.styleLine;
-    selStyle.options[4].text = dict.styleArea;
-    selStyle.options[5].text = dict.styleHeikin;
+  // 4. Symbol Search Modal
+  const symTitle = document.querySelector('#symbol-search-modal-title');
+  if (symTitle) symTitle.innerText = dict.symbolModalTitle;
+  const symInput = document.querySelector('#symbol-search-input');
+  if (symInput) symInput.placeholder = dict.symbolPlaceholder;
+
+  // 5. Indicators Modal
+  const indTitle = document.querySelector('#ind-modal-title');
+  if (indTitle) indTitle.innerText = dict.indicatorsModalTitle;
+  const indSearch = document.querySelector('#ind-search-input');
+  if (indSearch) indSearch.placeholder = dict.indicatorsSearchPlaceholder;
+
+  // 6. Right Tool Rail Tooltips
+  const railWl = document.querySelector('#desktop-side-rail .rail-btn[data-panel="watchlist"]');
+  if (railWl) railWl.title = dict.railWatchlist;
+  const railAlerts = document.querySelector('#desktop-side-rail .rail-btn[data-panel="alerts"]');
+  if (railAlerts) railAlerts.title = dict.railAlerts;
+  const railTrade = document.querySelector('#desktop-side-rail .rail-btn[data-panel="paper"]');
+  if (railTrade) railTrade.title = dict.railTrade;
+  const railData = document.querySelector('#desktop-side-rail .rail-btn[data-panel="dataWindow"]');
+  if (railData) railData.title = dict.railDataWindow;
+  const railObj = document.querySelector('#desktop-side-rail .rail-btn[data-panel="objects"]');
+  if (railObj) railObj.title = dict.railObjectTree;
+  const railPine = document.querySelector('#desktop-side-rail .rail-btn[data-panel="pine"]');
+  if (railPine) railPine.title = dict.railPine;
+  const railJour = document.querySelector('#desktop-side-rail .rail-btn[data-panel="journal"]');
+  if (railJour) railJour.title = dict.railJournal;
+
+  // 7. Vela topbar Indicators button translation
+  const velaIndBtn = document.querySelector('.vela-widget-indicators');
+  if (velaIndBtn) {
+    const textNode = Array.from(velaIndBtn.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+    if (textNode) {
+      textNode.nodeValue = currentLang === 'fa' ? ' اندیکاتورها' : ' Indicators';
+    }
   }
 
-  // Sidebar Tabs
-  const tabWl = document.querySelector('.sidebar-tab-btn[data-tab="watchlist"]');
-  if (tabWl) tabWl.childNodes[tabWl.childNodes.length - 1].textContent = ` ${dict.tabWatchlist}`;
-  const tabPaper = document.querySelector('.sidebar-tab-btn[data-tab="paper"]');
-  if (tabPaper) tabPaper.childNodes[tabPaper.childNodes.length - 1].textContent = ` ${dict.tabTrade}`;
-  const tabAlerts = document.querySelector('.sidebar-tab-btn[data-tab="alerts"]');
-  if (tabAlerts) tabAlerts.childNodes[tabAlerts.childNodes.length - 1].textContent = ` ${dict.tabAlerts}`;
+  // 8. Vela side panel dock header titles translation
+  const panelTitlesMap = {
+    alerts: currentLang === 'fa' ? 'سیستم هشدارها' : 'Alerts',
+    watchlist: currentLang === 'fa' ? 'دیده‌بان دارایی‌ها' : 'Watchlist',
+    paper: currentLang === 'fa' ? 'معاملات مجازی' : 'Trade',
+    pine: currentLang === 'fa' ? 'ویرایشگر پاین' : 'Pine Editor',
+    strategy: currentLang === 'fa' ? 'بک‌تستر استراتژی' : 'Strategy Tester',
+    propsim: currentLang === 'fa' ? 'شبیه‌ساز پراپ‌فرم' : 'Prop-Firm Simulator',
+    journal: currentLang === 'fa' ? 'ژورنال معاملات' : 'Trade Journal',
+    trackers: currentLang === 'fa' ? 'شفافیت بازار و نهنگ‌ها' : 'Market Trackers',
+    templates: currentLang === 'fa' ? 'قالب‌های اندیکاتور' : 'Indicator Templates',
+    workspaces: currentLang === 'fa' ? 'فضاهای کاری' : 'Workspaces',
+    dataWindow: currentLang === 'fa' ? 'پنجره داده‌ها' : 'Data window',
+    objects: currentLang === 'fa' ? 'درخت لایه‌ها' : 'Object tree'
+  };
 
-  // Bottom Panel Tabs
-  const pTabPine = document.querySelector('.panel-tab[data-view="pine"]');
-  if (pTabPine) pTabPine.childNodes[pTabPine.childNodes.length - 1].textContent = ` ${dict.tabPine}`;
-  const pTabStrategy = document.querySelector('.panel-tab[data-view="strategy"]');
-  if (pTabStrategy) pTabStrategy.childNodes[pTabStrategy.childNodes.length - 1].textContent = ` ${dict.tabStrategy}`;
-  const pTabPropsim = document.querySelector('.panel-tab[data-view="propsim"]');
-  if (pTabPropsim) pTabPropsim.childNodes[pTabPropsim.childNodes.length - 1].textContent = ` ${dict.tabPropsim}`;
-  const pTabJournal = document.querySelector('.panel-tab[data-view="journal"]');
-  if (pTabJournal) pTabJournal.childNodes[pTabJournal.childNodes.length - 1].textContent = ` ${dict.tabJournal}`;
-  const pTabTrackers = document.querySelector('.panel-tab[data-view="trackers"]');
-  if (pTabTrackers) pTabTrackers.childNodes[pTabTrackers.childNodes.length - 1].textContent = ` ${dict.tabTrackers}`;
+  for (const [id, title] of Object.entries(panelTitlesMap)) {
+    const el = document.querySelector(`.vela-panel-${id} .vela-panel-title`);
+    if (el) el.textContent = title;
+  }
 
-  // Modals & inputs
-  const inputSearch = document.querySelector('#symbol-search-input');
-  if (inputSearch) inputSearch.placeholder = dict.symbolSearchPlaceholder;
-  const inputWlAdd = document.querySelector('#wl-add-input');
-  if (inputWlAdd) inputWlAdd.placeholder = dict.addSymbolPlaceholder;
+  // 9. Quick Trade Labels
+  const qtSell = document.querySelector('#qt-sell-label');
+  if (qtSell) qtSell.innerText = dict.qtSell || 'SELL';
+  const qtBuy = document.querySelector('#qt-buy-label');
+  if (qtBuy) qtBuy.innerText = dict.qtBuy || 'BUY';
+  const qtPill = document.querySelector('#qt-pill-label');
+  if (qtPill) qtPill.innerText = dict.qtTrade || 'Trade';
+
+  // 10. Localize MoreDrawer if open
+  localizeMoreDrawer();
+
+  // 11. Trigger sub-component re-renders if active
+  if (window.app?.paperTrading) window.app.paperTrading.render();
+  if (window.app?.alertsManager) window.app.alertsManager.render();
+  if (window.app?.marketTrackers) window.app.marketTrackers.render();
+  if (window.app?.shortcutsModal) window.app.shortcutsModal.render();
+  if (window.app?.tradeJournal) window.app.tradeJournal.render();
+  if (window.app?.fullPageJournal) window.app.fullPageJournal.render();
+}
+
+let isLocalizingDrawer = false;
+
+export function localizeMoreDrawer() {
+  if (isLocalizingDrawer) return;
+  const drawer = document.querySelector('.vela-drawer');
+  if (!drawer) return;
+  const isFa = currentLang === 'fa';
+
+  if (drawer.dataset.localizedLang === currentLang) return;
+  isLocalizingDrawer = true;
+
+  try {
+    drawer.dataset.localizedLang = currentLang;
+
+    // Actions: Undo, Redo, Screenshot
+    const actionMap = {
+      'Undo': isFa ? 'واگرد' : 'Undo',
+      'Redo': isFa ? 'ازنو' : 'Redo',
+      'Screenshot': isFa ? 'عکس‌برداری' : 'Screenshot',
+      'واگرد': isFa ? 'واگرد' : 'Undo',
+      'ازنو': isFa ? 'ازنو' : 'Redo',
+      'عکس‌برداری': isFa ? 'عکس‌برداری' : 'Screenshot'
+    };
+
+    drawer.querySelectorAll('.vela-md-action').forEach(btn => {
+      for (const [k, v] of Object.entries(actionMap)) {
+        if (btn.innerText.includes(k)) {
+          const textNode = Array.from(btn.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+          if (textNode) textNode.nodeValue = v;
+        }
+      }
+    });
+
+    // Rows: labels and values
+    const rowLabelsMap = {
+      'Chart type': isFa ? 'نوع نمودار' : 'Chart type',
+      'Layout': isFa ? 'چیدمان' : 'Layout',
+      'Data window': isFa ? 'پنجره داده‌ها' : 'Data window',
+      'Object tree': isFa ? 'درخت لایه‌ها' : 'Object tree',
+      'Pine editor': isFa ? 'ویرایشگر پاین' : 'Pine editor',
+      'Indicator Templates': isFa ? 'قالب‌های اندیکاتور' : 'Indicator Templates',
+      'Workspaces': isFa ? 'فضاهای کاری' : 'Workspaces',
+      'Watchlist': isFa ? 'دیده‌بان دارایی‌ها' : 'Watchlist',
+      'Trade': isFa ? 'معاملات مجازی' : 'Trade',
+      'Alerts': isFa ? 'سیستم هشدارها' : 'Alerts',
+      'Strategy Tester': isFa ? 'بک‌تستر استراتژی' : 'Strategy Tester',
+      'Prop-Firm Simulator': isFa ? 'شبیه‌ساز پراپ‌فرم' : 'Prop-Firm Simulator',
+      'Trade Journal': isFa ? 'ژورنال معاملات' : 'Trade Journal',
+      'Market Trackers (SEC)': isFa ? 'شفافیت بازار و نهنگ‌ها' : 'Market Trackers (SEC)',
+      'نوع نمودار': isFa ? 'نوع نمودار' : 'Chart type',
+      'چیدمان': isFa ? 'چیدمان' : 'Layout',
+      'پنجره داده‌ها': isFa ? 'پنجره داده‌ها' : 'Data window',
+      'درخت لایه‌ها': isFa ? 'درخت لایه‌ها' : 'Object tree',
+      'ویرایشگر پاین': isFa ? 'ویرایشگر پاین' : 'Pine editor',
+      'قالب‌های اندیکاتور': isFa ? 'قالب‌های اندیکاتور' : 'Indicator Templates',
+      'فضاهای کاری': isFa ? 'فضاهای کاری' : 'Workspaces',
+      'دیده‌بان دارایی‌ها': isFa ? 'دیده‌بان دارایی‌ها' : 'Watchlist',
+      'معاملات مجازی': isFa ? 'معاملات مجازی' : 'Trade',
+      'سیستم هشدارها': isFa ? 'سیستم هشدارها' : 'Alerts',
+      'بک‌تستر استراتژی': isFa ? 'بک‌تستر استراتژی' : 'Strategy Tester',
+      'شبیه‌ساز پراپ‌فرم': isFa ? 'شبیه‌ساز پراپ‌فرم' : 'Prop-Firm Simulator',
+      'ژورنال معاملات': isFa ? 'ژورنال معاملات' : 'Trade Journal',
+      'شفافیت بازار و نهنگ‌ها': isFa ? 'شفافیت بازار و نهنگ‌ها' : 'Market Trackers (SEC)'
+    };
+
+    drawer.querySelectorAll('.vela-md-row').forEach(row => {
+      const labelEl = row.querySelector('.vela-md-row-label');
+      const valEl = row.querySelector('.vela-md-row-value');
+      if (labelEl) {
+        const cur = labelEl.innerText.trim();
+        if (rowLabelsMap[cur]) {
+          labelEl.innerText = rowLabelsMap[cur];
+        }
+        if (cur === 'Alerts' || cur === 'سیستم هشدارها') {
+          if (!valEl) {
+            const badge = document.createElement('span');
+            badge.className = 'vela-md-row-value num-ltr';
+            badge.innerText = isFa ? '۲ فعال' : '2 Active';
+            labelEl.insertAdjacentElement('afterend', badge);
+          }
+        }
+      }
+      if (valEl) {
+        const vText = valEl.innerText.trim();
+        if (vText === 'Candles' || vText === 'کندل‌استیک') {
+          valEl.innerText = isFa ? 'کندل‌استیک' : 'Candles';
+        } else if (vText === '1 × 1' || vText === '۱ × ۱') {
+          valEl.innerText = isFa ? '۱ × ۱' : '1 × 1';
+        }
+      }
+    });
+
+    // Ensure close button exists in drawer title area
+    const titleEl = drawer.querySelector('.vela-drawer-title');
+    if (titleEl && !titleEl.querySelector('.vela-drawer-close-custom')) {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'vela-drawer-close-custom';
+      closeBtn.innerHTML = '✕';
+      closeBtn.title = isFa ? 'بستن' : 'Close';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        ${isFa ? 'left: 14px;' : 'right: 14px;'}
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #cbd5e1;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        z-index: 5;
+      `;
+      closeBtn.addEventListener('click', () => {
+        window.app?.chartManager?.workspace?.moreDrawer?.close();
+      });
+      titleEl.appendChild(closeBtn);
+    }
+  } finally {
+    isLocalizingDrawer = false;
+  }
+}
+
+let drawerObserverInitialized = false;
+export function initDrawerObserver() {
+  if (drawerObserverInitialized || typeof MutationObserver === 'undefined') return;
+  drawerObserverInitialized = true;
+  const observer = new MutationObserver(() => {
+    if (isLocalizingDrawer) return;
+    const drawer = document.querySelector('.vela-drawer[data-state="open"]');
+    if (drawer && drawer.dataset.localizedLang !== currentLang) {
+      localizeMoreDrawer();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state', 'class'] });
+}
+
+// Auto-initialize observer in browser
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => initDrawerObserver());
+  } else {
+    initDrawerObserver();
+  }
 }

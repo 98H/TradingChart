@@ -3,4 +3,5 @@ dist
 .DS_Store
 *.log
 screenshots/*.png
+screenshots/*/*.png
 screenshots/audit_report.json

@@ -107,6 +107,17 @@ export class StrategyTester {
     const avgLoss = lossTrades.length > 0 ? grossLoss / lossTrades.length : 1;
     const rMultiple = avgLoss > 0 ? avgWin / avgLoss : 1.5;
 
+    // Advanced quant risk metrics
+    const returns = trades.map(t => t.profitPct / 100);
+    const meanReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+    const stdDev = returns.length > 1 ? Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - meanReturn, 2), 0) / (returns.length - 1)) : 0.01;
+    const downsideReturns = returns.filter(r => r < 0);
+    const downsideStd = downsideReturns.length > 1 ? Math.sqrt(downsideReturns.reduce((a, b) => a + Math.pow(b, 2), 0) / (downsideReturns.length - 1)) : 0.01;
+
+    const sharpeRatio = stdDev > 0 ? (meanReturn / stdDev) * Math.sqrt(252) : 1.5;
+    const sortinoRatio = downsideStd > 0 ? (meanReturn / downsideStd) * Math.sqrt(252) : 2.0;
+    const expectancy = (winRate / 100 * avgWin) - ((1 - winRate / 100) * avgLoss);
+
     this.results = {
       initialCapital,
       finalEquity: equity,
@@ -121,6 +132,9 @@ export class StrategyTester {
       lossTradesCount: lossTrades.length,
       maxDrawdown: maxDd,
       maxDrawdownPct: maxDdPct,
+      sharpeRatio: Number(sharpeRatio.toFixed(2)),
+      sortinoRatio: Number(sortinoRatio.toFixed(2)),
+      expectancy: Number(expectancy.toFixed(2)),
       trades,
       avgWinR: Number(rMultiple.toFixed(2)),
       tradesPerDay: Number((trades.length / Math.max(1, bars.length / 24)).toFixed(1)) || 2.5
@@ -172,9 +186,16 @@ export class StrategyTester {
             <div style="font-size: 11px; color: var(--text-dim);">Max Drawdown</div>
             <div style="font-size: 15px; font-weight: 800; color: var(--accent-red);" class="num-ltr">-${r.maxDrawdownPct.toFixed(2)}% ($${r.maxDrawdown.toLocaleString(undefined, { maximumFractionDigits: 0 })})</div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
-            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 10px; width: 100%;">
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
+            <div style="font-size: 11px; color: var(--text-dim);">Sharpe / Expectancy</div>
+            <div style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
+          </div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center;">
+            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%;">
               Export to Prop-Sim →
+            </button>
+            <button id="btn-export-csv" class="btn-secondary" style="font-size: 10px; padding: 3px 6px; width: 100%;">
+              Download CSV Ledger
             </button>
           </div>
         </div>
@@ -239,6 +260,21 @@ export class StrategyTester {
           avgWinR: r.avgWinR,
           tradesPerDay: r.tradesPerDay
         });
+      });
+    }
+
+    const btnCsv = this.container.querySelector('#btn-export-csv');
+    if (btnCsv) {
+      btnCsv.addEventListener('click', () => {
+        const header = 'Trade ID,Side,Entry Time,Entry Price,Exit Time,Exit Price,Size,P&L ($),P&L (%)\n';
+        const rows = r.trades.map(t => `${t.id},${t.side.toUpperCase()},${new Date(t.entryTime).toISOString()},${t.entryPrice},${new Date(t.exitTime).toISOString()},${t.exitPrice},${t.qty},${t.profit},${t.profitPct}%`).join('\n');
+        const blob = new Blob([header + rows], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tradingchart_strategy_trades.csv';
+        a.click();
+        URL.revokeObjectURL(url);
       });
     }
   }

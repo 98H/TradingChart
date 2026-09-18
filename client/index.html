@@ -2,199 +2,188 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>TradingChart — Ultra-Complete TradingView Alternative</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>TradingChart — Powered by LuxAlgo Open Ecosystem</title>
   <link rel="stylesheet" href="./styles/main.css" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2'><path d='M3 3v18h18'/><path d='m19 9-5 5-4-4-3 3'/></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300F2B0' stroke-width='2.2'><path d='M3 3v18h18'/><path d='m19 9-5 5-4-4-3 3'/></svg>" />
 </head>
 <body>
   <div id="app-container">
-    <!-- Top Header Navigation -->
-    <header id="top-header">
-      <div class="header-left">
-        <div class="brand-badge" id="brand-logo-btn">
-          <svg class="logo-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+    <!-- Top Application Bar (LuxAlgo Quant Architecture) -->
+    <header id="top-app-header">
+      <div class="top-nav-left">
+        <!-- Sidebar / Panels Dock Toggle Button -->
+        <button id="btn-toggle-panels-dock" class="nav-icon-btn" title="Toggle Side Dock / Panels" aria-label="Toggle Side Dock">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
           </svg>
-          <span>TradingChart</span>
-          <span class="badge-tag">PRO</span>
-        </div>
-
-        <div class="divider-vertical"></div>
-
-        <!-- Symbol Selector Button -->
-        <button id="btn-symbol-search" class="btn-header" style="font-weight: 700; color: #fff;">
-          <span id="header-symbol-label">BTCUSDT</span>
-          <span id="header-price-badge" style="font-size: 11px; background: rgba(14,203,129,0.15); color: var(--accent-green); padding: 1px 6px; border-radius: 4px;" class="num-ltr">...</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
 
-        <div class="divider-vertical"></div>
-
-        <!-- Timeframe Ribbon -->
-        <div class="tf-group" id="header-tf-group">
-          <button class="tf-chip" data-tf="1s">1s</button>
-          <button class="tf-chip" data-tf="1">1m</button>
-          <button class="tf-chip" data-tf="5">5m</button>
-          <button class="tf-chip" data-tf="15">15m</button>
-          <button class="tf-chip active" data-tf="60">1h</button>
-          <button class="tf-chip" data-tf="240">4h</button>
-          <button class="tf-chip" data-tf="D">1D</button>
-          <button class="tf-chip" data-tf="W">1W</button>
-        </div>
-
-        <div class="divider-vertical"></div>
-
-        <!-- Price Style Selector -->
-        <select id="header-style-select" style="padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px;">
-          <option value="candles">Candles</option>
-          <option value="hollow">Hollow Candles</option>
-          <option value="bars">Bars</option>
-          <option value="line">Line</option>
-          <option value="area">Area</option>
-          <option value="heikin-ashi">Heikin-Ashi</option>
-        </select>
-
-        <!-- Indicators Modal Button -->
-        <button id="btn-open-indicators" class="btn-header">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-          <span>Indicators (80+)</span>
-        </button>
+        <!-- Mode Switcher Navigation Pills (Quant / Journal / + Panels) -->
+        <nav class="nav-module-pills" aria-label="Workspaces">
+          <button id="nav-btn-quant" class="nav-pill active" data-view="quant">
+            <span id="nav-label-quant">Quant</span>
+          </button>
+          <button id="nav-btn-journal" class="nav-pill" data-view="journal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            </svg>
+            <span id="nav-label-journal">Journal</span>
+          </button>
+          <button id="nav-btn-panels" class="nav-pill" data-view="panels">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="M12 5v14"/>
+            </svg>
+            <span id="nav-label-panels">Panels</span>
+          </button>
+        </nav>
       </div>
 
-      <!-- Center / Actions -->
-      <div class="header-center">
-        <!-- Layout Selector -->
-        <select id="header-layout-select" style="padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px;">
-          <option value="1">Single Chart (1x1)</option>
-          <option value="2h">Dual Horizontal (2x1)</option>
-          <option value="2v">Dual Vertical (1x2)</option>
-          <option value="4">Quad Grid (2x2)</option>
-        </select>
-
-        <!-- Replay Mode Button -->
-        <button id="btn-toggle-replay" class="btn-header">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Replay</span>
-        </button>
-
-        <div class="divider-vertical"></div>
-
-        <button id="btn-undo" class="btn-header btn-icon-only" title="Undo (Ctrl+Z)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-        </button>
-        <button id="btn-redo" class="btn-header btn-icon-only" title="Redo (Ctrl+Y)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
-        </button>
-      </div>
-
-      <!-- Header Right -->
-      <div class="header-right">
-        <!-- Live Radar Connectivity -->
-        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); font-weight: 600; padding: 0 4px;">
-          <span class="radar-dot"></span>
-          <span>LIVE 12ms</span>
+      <div class="top-nav-right">
+        <!-- Live Market Feed Latency Telemetry -->
+        <div class="latency-badge" title="Live Data Stream Latency">
+          <span class="pulse-dot"></span>
+          <span id="latency-val" class="num-ltr">12ms</span>
         </div>
 
-        <div class="divider-vertical"></div>
-
-        <!-- Screenshot Button -->
-        <button id="btn-screenshot" class="btn-header btn-icon-only" title="Take High-Res Screenshot">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <!-- Mobile Fullscreen / Rotate Button -->
+        <button id="btn-mobile-fullscreen" class="mobile-only-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
         </button>
 
-        <!-- Fullscreen Button -->
-        <button id="btn-fullscreen" class="btn-header btn-icon-only" title="Toggle Fullscreen">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <!-- Keyboard Shortcuts Reference Trigger -->
+        <button id="btn-shortcuts-help" class="nav-icon-btn" title="Keyboard Shortcuts (?)" aria-label="Keyboard Shortcuts">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
         </button>
 
-        <!-- Language Switcher -->
-        <button id="btn-toggle-lang" class="btn-header" style="font-weight: 700; font-size: 11px; padding: 4px 8px;">
+        <!-- Language Switcher (FA / EN with Vazirmatn font) -->
+        <button id="btn-toggle-lang" class="nav-text-btn" title="Toggle English / Persian">
           FA / EN
         </button>
 
-        <!-- Settings Button -->
-        <button id="btn-open-settings" class="btn-header btn-icon-only" title="Settings">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-
-        <!-- Toggle Right Sidebar Button -->
-        <button id="btn-toggle-sidebar" class="btn-header btn-icon-only active" title="Toggle Sidebar">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-        </button>
+        <!-- User Profile Avatar (Official LuxAlgo Aesthetic) -->
+        <div class="user-avatar-badge" title="User Profile: Hussein Mohammadi">
+          <div class="avatar-circle">H</div>
+          <span class="user-status-dot"></span>
+        </div>
       </div>
     </header>
 
     <!-- Main Viewport -->
     <main id="main-viewport">
-      <!-- Center Chart Canvas with Vela's native drawing toolbar -->
-      <section id="chart-area">
-        <!-- Floating Bar Replay Bar -->
+      <!-- 1. Quant Chart Workspace View -->
+      <section id="chart-area" class="active-workspace-view">
+        <!-- Floating Bar Replay Controls -->
         <div id="replay-bar"></div>
 
-        <!-- Mount point for Vela WebGL2 Workspace -->
+        <!-- Floating Instant Order Entry Widget (Institutional TradingView signature) -->
+        <div id="chart-quick-trade" class="quick-trade-widget" title="1-Click Instant Market Execution">
+          <button id="qt-toggle-btn" class="qt-minimize-btn" title="Minimize Quick Trade" aria-label="Minimize Quick Trade">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="qt-content">
+            <button id="quick-trade-sell-btn" class="qt-btn qt-sell" title="Sell / Short at Market">
+              <span class="qt-action" id="qt-sell-label">SELL</span>
+              <span class="qt-price num-ltr" id="quick-sell-price">...</span>
+            </button>
+            <div class="qt-qty-wrap">
+              <button id="qt-qty-dec" class="qt-step-btn" title="Decrease size">−</button>
+              <input type="number" id="quick-trade-qty" value="0.1" step="0.05" min="0.01" class="num-ltr" title="Order Quantity (BTC)" />
+              <button id="qt-qty-inc" class="qt-step-btn" title="Increase size">+</button>
+              <span class="qt-unit">BTC</span>
+            </div>
+            <button id="quick-trade-buy-btn" class="qt-btn qt-buy" title="Buy / Long at Market">
+              <span class="qt-action" id="qt-buy-label">BUY</span>
+              <span class="qt-price num-ltr" id="quick-buy-price">...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating Collapsed Quick-Trade Trigger Pill -->
+        <button id="qt-collapsed-trigger" class="qt-pill-trigger" title="Open 1-Click Execution">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span id="qt-pill-label">Trade</span>
+        </button>
+
+        <!-- Mount point for Vela WebGL2 Workspace (Native topbar, left toolbar, canvas, dock, mobilebar) -->
         <div id="vela-workspace-mount"></div>
       </section>
 
-      <!-- Right Sidebar Dock -->
-      <aside id="right-sidebar">
-        <div class="sidebar-tab-strip">
-          <button class="sidebar-tab-btn active" data-tab="watchlist">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            Watchlist
-          </button>
-          <button class="sidebar-tab-btn" data-tab="paper">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            Trade
-          </button>
-          <button class="sidebar-tab-btn" data-tab="alerts">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            Alerts
-          </button>
-        </div>
-
-        <!-- Sidebar Content Views -->
-        <div id="sidebar-tab-watchlist" class="sidebar-content-body" style="padding: 0;"></div>
-        <div id="sidebar-tab-paper" class="sidebar-content-body" style="display: none; padding: 0;"></div>
-        <div id="sidebar-tab-alerts" class="sidebar-content-body" style="display: none; padding: 0;"></div>
+      <!-- Desktop Right-Hand Vertical Tool Rail (TradingView Signature Feature) -->
+      <aside id="desktop-side-rail" class="desktop-only-rail" aria-label="Tool Rail">
+        <button class="rail-btn" data-panel="watchlist" title="Watchlist">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="alerts" title="Alerts">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="paper" title="Trade / Paper Execution">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="dataWindow" title="Data Window">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="objects" title="Object Tree">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="pine" title="Pine Editor">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="journal" title="Trade Journal">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
       </aside>
+
+      <!-- 2. Full-Page Trade Journal Workspace View -->
+      <section id="journal-workspace-view" style="display: none;">
+        <!-- Dynamically mounted -->
+      </section>
     </main>
 
-    <!-- Bottom Collapsible Suite Panel -->
-    <footer id="bottom-panel">
-      <!-- Panel Header Strip -->
+    <!-- Desktop Collapsible Bottom Suite (starts collapsed for maximum chart canvas) -->
+    <footer id="bottom-panel" class="desktop-only-bottom collapsed">
       <div class="panel-header-strip">
         <div class="panel-tabs">
           <button class="panel-tab active" data-view="pine">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            Pine Editor
+            <span id="tab-label-pine">Pine Editor</span>
           </button>
           <button class="panel-tab" data-view="strategy">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Strategy Tester
+            <span id="tab-label-strategy">Strategy Tester</span>
           </button>
           <button class="panel-tab" data-view="propsim">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Prop-Firm Simulator
+            <span id="tab-label-propsim">Prop-Firm Simulator</span>
           </button>
           <button class="panel-tab" data-view="journal">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Trade Journal
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="tab-label-journal">Trade Journal</span>
           </button>
           <button class="panel-tab" data-view="trackers">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            Market Trackers (SEC)
+            <span id="tab-label-trackers">Market Trackers (SEC)</span>
           </button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 4px;">
+          <button id="btn-maximize-bottom-panel" class="btn-header btn-icon-only" title="Maximize / Restore Panel">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          </button>
           <button id="btn-toggle-bottom-panel" class="btn-header btn-icon-only" title="Collapse / Expand Panel">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
       </div>
 
-      <!-- Panel Content Views -->
       <div class="panel-body-area">
         <div id="view-pine" class="panel-view active"></div>
         <div id="view-strategy" class="panel-view"></div>
@@ -205,8 +194,126 @@
     </footer>
   </div>
 
-  <!-- Modals -->
+  <!-- + Panels Quick Picker Drawer / Menu -->
+  <div id="modal-panels-menu" class="modal-overlay">
+    <div class="modal-box panels-menu-box">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <span id="panels-menu-title">Workspace Panels & Tools</span>
+        </h3>
+        <button class="modal-close-btn" id="modal-close-panels-menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="panels-grid-menu">
+        <button class="panel-menu-item" data-panel="watchlist">
+          <div class="panel-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Watchlist</div>
+            <div class="panel-item-desc">Live quotes, multi-asset search, categories</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="paper">
+          <div class="panel-item-icon" style="color: var(--accent-green);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Trade (Paper)</div>
+            <div class="panel-item-desc">Virtual execution, market/limit orders, P&L</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="alerts">
+          <div class="panel-item-icon" style="color: var(--accent-gold);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Alerts</div>
+            <div class="panel-item-desc">Price cross triggers & webhook relays</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="pine">
+          <div class="panel-item-icon" style="color: var(--accent-cyan);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Pine Editor</div>
+            <div class="panel-item-desc">Pine Script v5/v6 IDE, live compiler</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="strategy">
+          <div class="panel-item-icon" style="color: #60a5fa;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Strategy Tester</div>
+            <div class="panel-item-desc">PineTS backtest engine, Sharpe, drawdowns</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="propsim">
+          <div class="panel-item-icon" style="color: #c084fc;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Prop-Firm Simulator</div>
+            <div class="panel-item-desc">10,000 Monte Carlo paths, pass odds</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="journal">
+          <div class="panel-item-icon" style="color: var(--accent-green);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Trade Journal</div>
+            <div class="panel-item-desc">Monthly P&L calendar, edge score, analytics</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="trackers">
+          <div class="panel-item-icon" style="color: #f87171;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Market Trackers (SEC)</div>
+            <div class="panel-item-desc">Congressional trades, Insiders, 13F Hedge Funds</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="templates">
+          <div class="panel-item-icon" style="color: var(--accent-gold);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Indicator Templates</div>
+            <div class="panel-item-desc">1-click curated indicator setups</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="workspaces">
+          <div class="panel-item-icon" style="color: var(--accent-cyan);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Workspaces</div>
+            <div class="panel-item-desc">Multi-chart grid layouts & sync switches</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Indicators Modal (84+ Library) -->
   <div id="modal-indicators" class="modal-overlay"></div>
+
+  <!-- Settings Modal -->
   <div id="modal-settings" class="modal-overlay"></div>
 
   <!-- Symbol Search Modal -->
@@ -215,14 +322,13 @@
       <div class="modal-header">
         <h3>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Symbol Search & Market Navigator
+          <span id="symbol-search-modal-title">Symbol Search & Market Navigator</span>
         </h3>
         <button class="modal-close-btn" id="modal-close-symbol">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
-      <!-- Search Input Row -->
       <div style="padding: 12px 20px 8px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: center;">
         <div style="flex: 1; position: relative; display: flex; align-items: center;">
           <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)..." style="width: 100%; height: 36px; padding: 6px 32px 6px 12px; font-size: 13px;" />
@@ -230,24 +336,22 @@
         </div>
       </div>
 
-      <!-- Quick Filter Categories Bar -->
       <div style="display: flex; gap: 4px; padding: 6px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); overflow-x: auto;">
-        <button class="sym-cat-btn active" data-cat="all" style="padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 4px; border: 1px solid transparent; background: var(--accent-cyan-dim); color: var(--accent-cyan); cursor: pointer;">All</button>
-        <button class="sym-cat-btn" data-cat="crypto" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Crypto</button>
-        <button class="sym-cat-btn" data-cat="metals" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Metals</button>
-        <button class="sym-cat-btn" data-cat="commodities" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Commodities</button>
-        <button class="sym-cat-btn" data-cat="forex" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Forex</button>
-        <button class="sym-cat-btn" data-cat="indices" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Indices</button>
-        <button class="sym-cat-btn" data-cat="stocks" style="padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer;">Stocks</button>
+        <button class="sym-cat-btn active" data-cat="all">All</button>
+        <button class="sym-cat-btn" data-cat="crypto">Crypto</button>
+        <button class="sym-cat-btn" data-cat="metals">Metals</button>
+        <button class="sym-cat-btn" data-cat="commodities">Commodities</button>
+        <button class="sym-cat-btn" data-cat="forex">Forex</button>
+        <button class="sym-cat-btn" data-cat="indices">Indices</button>
+        <button class="sym-cat-btn" data-cat="stocks">Stocks</button>
       </div>
 
       <div class="modal-content" id="symbol-results-list" style="flex: 1; max-height: 400px; padding: 10px 20px; overflow-y: auto;">
         <!-- Populated dynamically -->
       </div>
 
-      <!-- Modal Footer with Keyboard Navigation Hints -->
       <div style="padding: 8px 20px; font-size: 11px; color: var(--text-dim); background: var(--bg-darkest); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-        <span><kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↑</kbd> <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↓</kbd> Navigate &nbsp;·&nbsp; <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">↵</kbd> Select &nbsp;·&nbsp; <kbd style="background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono);">ESC</kbd> Close</span>
+        <span><kbd>↑</kbd> <kbd>↓</kbd> Navigate &nbsp;·&nbsp; <kbd>↵</kbd> Select &nbsp;·&nbsp; <kbd>ESC</kbd> Close</span>
         <span id="sym-count-badge" style="color: var(--accent-cyan); font-weight: 600;">30+ Instruments</span>
       </div>
     </div>

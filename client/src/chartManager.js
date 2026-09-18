@@ -1,13 +1,18 @@
 // client/src/chartManager.js
 // Manager for Vela WebGL2 Workspace, Pine Script Engine, and multi-asset providers
+// Upgraded to official LuxAlgo Quant architecture (Vela v0.7.5 + PineTS v0.9.33)
 
 import { VelaWorkspace } from '@luxalgo/vela/workspace';
 import { PineEngine } from '@luxalgo/vela-pinets';
+import { BinanceProvider } from '@luxalgo/vela/providers/binance';
+import { HyperliquidProvider } from '@luxalgo/vela/providers/hyperliquid';
+import { registerAllVelaPanels } from './velaPanels.js';
 import { UniversalMarketProvider } from './universalProvider.js';
 
 export class ChartManager {
   constructor(options = {}) {
     this.mountId = options.mountId || '#vela-workspace-mount';
+    this.app = options.app || null;
     this.onSymbolChange = options.onSymbolChange || (() => {});
     this.onPriceTick = options.onPriceTick || (() => {});
     this.workspace = null;
@@ -24,15 +29,48 @@ export class ChartManager {
     }
 
     try {
+      // 1. Register all side panels & custom SVG icons into Vela's native registry
+      if (this.app) {
+        registerAllVelaPanels(this.app);
+      }
+
+      // 2. Instantiate Vela WebGL2 Multi-Chart Workspace with full native capabilities
       this.workspace = new VelaWorkspace(this.mountId, {
-        layout: false, // Single chart by default
+        layout: '1', // Single chart default, allows dynamic setLayout ('2h', '2v', '4')
         symbol: 'universal:BTCUSDT',
         timeframe: '60',
         live: true,
-        theme: 'dark',
+        watermark: true,
+        statusline: true,
+        bottombar: true,
+        drawingToolbar: true,
+        timeframes: ['1s', '1', '3', '5', '15', '30', '60', '120', '240', 'D', 'W', 'M'],
+        timeframeFavorites: ['1', '5', '15', '60', '240', 'D', 'W'],
+        // Clean declarative topbar: symbols, timeframes, styles, layout, indicators on left; undo/redo, alerts, screenshot on right
+        topbar: {
+          left: ['symbol', 'timeframes', 'style', 'layout', 'indicators'],
+          right: ['undo-redo', 'screenshot', 'panels']
+        },
+        theme: {
+          background: '#0b0e14',
+          textColor: '#b2b5be',
+          gridColor: '#161922',
+          borderColor: '#1e222d',
+          upColor: '#00F2B0',
+          downColor: '#FF4D5B',
+          fontFamily: 'Inter, var(--font-vazirmatn), sans-serif'
+        },
+        sync: {
+          symbol: false,
+          timeframe: false,
+          crosshair: true,
+          style: false,
+          drawings: false
+        },
         providers: {
           universal: () => new UniversalMarketProvider('universal', 'TradingChart Multi-Asset'),
-          binance: () => new UniversalMarketProvider('binance', 'Binance Proxied Feed')
+          binance: () => new UniversalMarketProvider('binance', 'Binance Proxied Market Feed'),
+          hyperliquid: () => new UniversalMarketProvider('hyperliquid', 'Hyperliquid DEX Feed')
         },
         engines: {
           pine: () => new PineEngine()
@@ -40,7 +78,7 @@ export class ChartManager {
         persist: true
       });
 
-      // Listen to workspace events
+      // 3. Listen to workspace events
       this.workspace.events?.on('market:changed', (e) => {
         if (e && e.symbol) {
           const clean = e.symbol.replace(/^.*:/, '').toUpperCase();
@@ -49,7 +87,31 @@ export class ChartManager {
         }
       });
 
-      console.log('[ChartManager] Vela WebGL2 Workspace mounted successfully');
+      // 4. Pre-load official LuxAlgo Signals & Overlays on initial chart (clean non-clipping signals)
+      setTimeout(() => {
+        this.addPineIndicator(`//@version=5
+indicator("LuxAlgo - Signals & Overlays", overlay=true)
+len = 16
+[st, dir] = ta.supertrend(3.6, len)
+plot(st, "Smart Trail", color = dir < 0 ? color.rgb(0, 242, 176) : color.rgb(255, 77, 91), linewidth=2)
+var int lastSignal = 0
+var int barsCount = 0
+barsCount := barsCount + 1
+validBar = bar_index > 15 and barsCount >= 10
+buySig = validBar and dir < 0 and lastSignal != 1
+sellSig = validBar and dir > 0 and lastSignal != -1
+if buySig
+    lastSignal := 1
+    barsCount := 0
+if sellSig
+    lastSignal := -1
+    barsCount := 0
+plotshape(buySig, "Buy Signal", shape.triangleup, location.belowbar, color.rgb(0, 242, 176), size=size.small)
+plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.rgb(255, 77, 91), size=size.small)
+`, "LuxAlgo - Signals & Overlays");
+      }, 1000);
+
+      console.log('[ChartManager] Vela WebGL2 Workspace mounted with native LuxAlgo controls');
     } catch (err) {
       console.error('[ChartManager] Error mounting VelaWorkspace:', err);
     }
@@ -82,6 +144,16 @@ export class ChartManager {
     }
   }
 
+  togglePanel(panelId, open) {
+    if (this.workspace?.dock) {
+      this.workspace.dock.toggle(panelId, open);
+    }
+  }
+
+  get openPanelId() {
+    return this.workspace?.dock?.openId || null;
+  }
+
   armDrawingTool(toolType) {
     if (this.workspace?.active?.chart?.drawings) {
       this.workspace.globalTool = toolType;
@@ -96,11 +168,12 @@ export class ChartManager {
     }
   }
 
-  addPineIndicator(scriptSource) {
+  addPineIndicator(scriptSource, title = 'Custom Indicator') {
     if (this.workspace?.active?.chart) {
       try {
-        this.workspace.active.chart.addIndicator(scriptSource, { engine: 'pine' });
-        return { success: true };
+        const sanitized = scriptSource.replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)');
+        const handle = this.workspace.active.chart.addIndicator(sanitized, { language: 'pine', title });
+        return { success: true, handleId: handle?.id };
       } catch (e) {
         console.error('[ChartManager] Add Pine Indicator failed:', e);
         return { success: false, error: e.message };
@@ -112,6 +185,19 @@ export class ChartManager {
   takeScreenshot() {
     if (this.workspace) {
       this.workspace.downloadScreenshot();
+    }
+  }
+
+  applySettings(cfg) {
+    if (!this.workspace) return;
+    if (cfg.timezone) {
+      try { this.workspace.setTimezone(cfg.timezone); } catch (e) {}
+    }
+    if (cfg.theme && (cfg.theme === 'dark' || cfg.theme === 'light')) {
+      try { this.workspace.setTheme(cfg.theme); } catch (e) {}
+    }
+    if (this.workspace.active && typeof cfg.watermark === 'boolean') {
+      try { this.workspace.active.setWatermarkVisible(cfg.watermark); } catch (e) {}
     }
   }
 

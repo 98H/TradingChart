@@ -111,8 +111,8 @@ export class PropFirmSimulator {
           </div>
         </div>
 
-        <!-- Output Cards Grid -->
-        <div id="propsim-results-area" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+        <!-- Output Area: Split into KPIs (Left) & Monte Carlo Canvas (Right) -->
+        <div id="propsim-results-area" style="display: flex; gap: 12px; flex: 1; min-height: 0; flex-wrap: wrap;">
           <!-- Will be populated by runSimulation() -->
         </div>
       </div>
@@ -165,29 +165,95 @@ export class PropFirmSimulator {
       const daysToFunded = res.journey?.daysToFunded?.p50 || 12;
       const passColor = passProb >= 0.7 ? 'var(--accent-green)' : passProb >= 0.4 ? 'var(--accent-gold)' : 'var(--accent-red)';
 
+      // Generate 35 sample Monte Carlo trajectory curves
+      const stepsCount = 40;
+      const targetPct = (spec.steps?.[0]?.profitTargetPct || 10) / 100;
+      const maxLossPct = (spec.maxLoss?.pct || 10) / 100;
+      const initial = spec.accountSize || 100000;
+      const targetEq = initial * (1 + targetPct);
+      const ruinEq = initial * (1 - maxLossPct);
+
+      const paths = [];
+      for (let p = 0; p < 35; p++) {
+        const path = [initial];
+        let cur = initial;
+        for (let s = 1; s <= stepsCount; s++) {
+          if (cur >= targetEq || cur <= ruinEq) {
+            path.push(cur);
+            continue;
+          }
+          const isWin = Math.random() < this.winRate;
+          const delta = isWin ? (cur * (this.riskPct / 100) * this.avgWinR) : -(cur * (this.riskPct / 100));
+          cur += delta;
+          path.push(cur);
+        }
+        paths.push(path);
+      }
+
+      const svgW = 600;
+      const svgH = 120;
+      const minVal = ruinEq * 0.98;
+      const maxVal = targetEq * 1.02;
+      const valRange = maxVal - minVal;
+
+      const pathSvgs = paths.map(pts => {
+        const coords = pts.map((val, idx) => {
+          const x = (idx / stepsCount) * svgW;
+          const y = svgH - ((val - minVal) / valRange) * (svgH - 20) - 10;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        });
+        const passed = pts[pts.length - 1] >= targetEq;
+        const color = passed ? 'rgba(14, 203, 129, 0.4)' : 'rgba(246, 70, 93, 0.3)';
+        return `<polyline points="${coords.join(' ')}" fill="none" stroke="${color}" stroke-width="1.2" />`;
+      }).join('');
+
+      const targetY = svgH - ((targetEq - minVal) / valRange) * (svgH - 20) - 10;
+      const ruinY = svgH - ((ruinEq - minVal) / valRange) * (svgH - 20) - 10;
+
       area.innerHTML = `
-        <div style="background: var(--bg-card); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid ${passColor};">
-          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Pass Probability</div>
-          <div style="font-size: 24px; font-weight: 800; color: ${passColor}; margin: 4px 0;" class="num-ltr">${passPct}%</div>
-          <div style="font-size: 11px; color: var(--text-muted);">95% Wilson CI: [${((res.perAttempt?.passProbabilityCi?.low || 0)*100).toFixed(1)}% - ${((res.perAttempt?.passProbabilityCi?.high || 0)*100).toFixed(1)}%]</div>
+        <!-- Left: 4 KPI Cards (2x2 Grid) -->
+        <div style="width: 40%; min-width: 310px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid ${passColor};">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Pass Probability</div>
+            <div style="font-size: 18px; font-weight: 800; color: ${passColor}; margin: 2px 0;" class="num-ltr">${passPct}%</div>
+            <div style="font-size: 9px; color: var(--text-muted);">95% CI: [${((res.perAttempt?.passProbabilityCi?.low || 0)*100).toFixed(1)}% - ${((res.perAttempt?.passProbabilityCi?.high || 0)*100).toFixed(1)}%]</div>
+          </div>
+
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-red);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Risk of Ruin</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--accent-red); margin: 2px 0;" class="num-ltr">${ruinPct}%</div>
+            <div style="font-size: 9px; color: var(--text-muted);">Chance of drawdown limit</div>
+          </div>
+
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Expected Value (EV)</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--accent-cyan); margin: 2px 0;" class="num-ltr">+$${Math.round(evNet).toLocaleString()}</div>
+            <div style="font-size: 9px; color: var(--text-muted);">Net expectancy after fees</div>
+          </div>
+
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-purple);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Median Days to Funded</div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff; margin: 2px 0;" class="num-ltr">${daysToFunded} Days</div>
+            <div style="font-size: 9px; color: var(--text-muted);">P90 worst-case: ${Math.round(res.journey?.daysToFunded?.p90 || 24)}d</div>
+          </div>
         </div>
 
-        <div style="background: var(--bg-card); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-red);">
-          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Risk of Ruin</div>
-          <div style="font-size: 24px; font-weight: 800; color: var(--accent-red); margin: 4px 0;" class="num-ltr">${ruinPct}%</div>
-          <div style="font-size: 11px; color: var(--text-muted);">Chance of breaching drawdown limit</div>
-        </div>
-
-        <div style="background: var(--bg-card); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
-          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Expected Value (EV)</div>
-          <div style="font-size: 24px; font-weight: 800; color: var(--accent-cyan); margin: 4px 0;" class="num-ltr">+$${Math.round(evNet).toLocaleString()}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">Net mathematical expectancy after fees</div>
-        </div>
-
-        <div style="background: var(--bg-card); padding: 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-purple);">
-          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Median Days to Funded</div>
-          <div style="font-size: 24px; font-weight: 800; color: #fff; margin: 4px 0;" class="num-ltr">${daysToFunded} Days</div>
-          <div style="font-size: 11px; color: var(--text-muted);">P90 worst-case: ${Math.round(res.journey?.daysToFunded?.p90 || 24)} days</div>
+        <!-- Right: Monte Carlo Trajectory Curves -->
+        <div style="flex: 1; min-width: 360px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Monte Carlo Equity Trajectories (35 Sample Simulation Paths)</span>
+            <div style="display: flex; gap: 12px; font-size: 10px;">
+              <span style="color: var(--accent-green);">— Target (+$${Math.round(initial * targetPct).toLocaleString()})</span>
+              <span style="color: var(--accent-red);">— Drawdown (-$${Math.round(initial * maxLossPct).toLocaleString()})</span>
+            </div>
+          </div>
+          <div style="flex: 1; width: 100%; min-height: 100px; max-height: 125px; position: relative;">
+            <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+              <line x1="0" y1="${targetY}" x2="${svgW}" y2="${targetY}" stroke="rgba(14, 203, 129, 0.6)" stroke-width="1.5" stroke-dasharray="4 4" />
+              <line x1="0" y1="${ruinY}" x2="${svgW}" y2="${ruinY}" stroke="rgba(246, 70, 93, 0.6)" stroke-width="1.5" stroke-dasharray="4 4" />
+              ${pathSvgs}
+            </svg>
+          </div>
         </div>
       `;
     } catch (e) {

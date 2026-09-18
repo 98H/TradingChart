@@ -1,5 +1,5 @@
 // client/src/main.js
-// Master Application Coordinator for TradingChart
+// Master Application Coordinator for TradingChart (LuxAlgo Quant Architecture)
 
 import { ChartManager } from './chartManager.js';
 import { WatchlistManager } from './watchlistManager.js';
@@ -13,13 +13,15 @@ import { MarketTrackersView } from './marketTrackersView.js';
 import { IndicatorsModal } from './indicatorsModal.js';
 import { SettingsModal } from './settingsModal.js';
 import { BarReplay } from './barReplay.js';
-import { setLanguage, getLanguage, t } from './i18n.js';
+import { ShortcutsModal } from './shortcutsModal.js';
+import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
 
 class TradingChartApp {
   constructor() {
     this.currentSymbol = 'BTCUSDT';
     this.currentTimeframe = '60';
     this.activeBars = [];
+    this.activeWorkspaceView = 'quant'; // 'quant' or 'journal'
     this.chartManager = null;
     this.watchlist = null;
     this.paperTrading = null;
@@ -28,127 +30,355 @@ class TradingChartApp {
     this.strategyTester = null;
     this.propFirmSim = null;
     this.tradeJournal = null;
+    this.fullPageJournal = null;
     this.marketTrackers = null;
     this.indicatorsModal = null;
     this.settingsModal = null;
     this.barReplay = null;
-    this.isBottomPanelCollapsed = false;
-    this.isSidebarCollapsed = false;
+    this.isBottomPanelCollapsed = true;
 
     this.init();
   }
 
   async init() {
-    console.log('[TradingChart] Initializing application...');
+    console.log('[TradingChart] Initializing LuxAlgo Quant Workspace...');
 
-    // 1. Initialize Chart Canvas Workspace
+    // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
     this.chartManager = new ChartManager({
+      app: this,
       mountId: '#vela-workspace-mount',
       onSymbolChange: (sym) => this.handleSymbolChange(sym)
     });
 
-    // 2. Initialize Watchlist (Right Sidebar Tab 1)
-    this.watchlist = new WatchlistManager({
-      container: document.querySelector('#sidebar-tab-watchlist'),
-      onSelectSymbol: (sym) => this.switchSymbol(sym)
-    });
-
-    // 3. Initialize Paper Trading (Right Sidebar Tab 2)
-    this.paperTrading = new PaperTrading({
-      container: document.querySelector('#sidebar-tab-paper')
-    });
-
-    // 4. Initialize Alerts Manager (Right Sidebar Tab 3)
-    this.alertsManager = new AlertsManager({
-      container: document.querySelector('#sidebar-tab-alerts')
-    });
-
-    // 5. Initialize Pine Studio (Bottom Panel View 1)
-    this.pineStudio = new PineStudio({
-      container: document.querySelector('#view-pine'),
-      onAddToChart: (code) => {
-        const res = this.chartManager.addPineIndicator(code);
-        if (res.success) {
-          console.log('[TradingChart] Pine Indicator successfully mounted onto chart');
-        }
-      },
-      onBacktest: (code) => {
-        this.switchBottomView('strategy');
-        this.strategyTester.runSimulation(code, this.activeBars);
-      }
-    });
-
-    // 6. Initialize Strategy Tester (Bottom Panel View 2)
-    this.strategyTester = new StrategyTester({
-      container: document.querySelector('#view-strategy'),
-      onExportToPropSim: (profile) => {
-        this.switchBottomView('propsim');
-        this.propFirmSim.setProfileParams(profile);
-      }
-    });
-
-    // 7. Initialize Prop-Firm Simulator (Bottom Panel View 3)
-    this.propFirmSim = new PropFirmSimulator({
-      container: document.querySelector('#view-propsim')
-    });
-
-    // 8. Initialize Trade Journal (Bottom Panel View 4)
-    this.tradeJournal = new TradeJournal({
-      container: document.querySelector('#view-journal')
-    });
-
-    // 9. Initialize Market Trackers (Bottom Panel View 5)
-    this.marketTrackers = new MarketTrackersView({
-      container: document.querySelector('#view-trackers')
-    });
-
-    // 10. Initialize Indicators Library Modal
+    // 2. Initialize Modals
     this.indicatorsModal = new IndicatorsModal({
       modalEl: document.querySelector('#modal-indicators'),
       onAddIndicator: (item) => {
         if (item.script) {
-          this.chartManager.addPineIndicator(item.script);
-        } else {
-          console.log('[TradingChart] Adding native indicator:', item.id);
+          const res = this.chartManager.addPineIndicator(item.script, item.name);
+          return res;
         }
       }
     });
 
-    // 11. Initialize Settings Modal
     this.settingsModal = new SettingsModal({
       modalEl: document.querySelector('#modal-settings'),
       onApplySettings: (cfg) => {
+        this.chartManager.applySettings(cfg);
         if (cfg.language && cfg.language !== getLanguage()) {
           this.switchLanguage(cfg.language);
         }
       }
     });
 
-    // 12. Initialize Bar Replay
+    this.shortcutsModal = new ShortcutsModal();
+
+    // 3. Initialize Bar Replay
     this.barReplay = new BarReplay({
       container: document.querySelector('#replay-bar'),
       onBarStep: (idx) => {
-        console.log('[BarReplay] Stepping to bar index:', idx);
+        if (this.activeBars && this.activeBars.length > 0) {
+          const slice = this.activeBars.slice(0, idx + 1);
+          const chart = this.chartManager.workspace?.active?.chart;
+          if (chart?.orchestrator) {
+            chart.orchestrator.setBarSeries(slice, { preserveView: true });
+          }
+          if (slice.length > 0) {
+            const currentClose = slice[slice.length - 1].close;
+            this.paperTrading?.setMarket(this.currentSymbol, currentClose);
+          }
+        }
       },
       onExit: () => {
-        console.log('[BarReplay] Exited replay mode');
+        const chart = this.chartManager.workspace?.active?.chart;
+        if (chart?.orchestrator && this.activeBars && this.activeBars.length > 0) {
+          chart.orchestrator.setBarSeries(this.activeBars, { preserveView: true });
+          const currentClose = this.activeBars[this.activeBars.length - 1].close;
+          this.paperTrading?.setMarket(this.currentSymbol, currentClose);
+        }
       }
     });
 
-    // 13. Wire DOM event listeners
+    // 4. Initialize Desktop Bottom Suite
+    this.initDesktopBottomSuite();
+
+    // 5. Initialize Full-Page Trade Journal View
+    this.initFullPageJournal();
+
+    // 6. Wire Top App Header & Modals
     this.bindEvents();
 
-    // 14. Responsive Initial State
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      this.isSidebarCollapsed = true;
-      this.isBottomPanelCollapsed = true;
-      document.querySelector('#right-sidebar')?.classList.add('collapsed');
-      document.querySelector('#bottom-panel')?.classList.add('collapsed');
-    }
+    // 7. Start live latency ping
+    this.startLatencyPing();
 
-    // 15. Initial Data Load
+    // 8. Initial Data Load
     this.loadActiveCandles();
   }
+
+  initDesktopBottomSuite() {
+    // Only populated when viewed on desktop
+    const pineEl = document.querySelector('#view-pine');
+    if (pineEl) {
+      this.pineStudio = new PineStudio({
+        container: pineEl,
+        onAddToChart: (code) => {
+          const res = this.chartManager.addPineIndicator(code);
+          if (res.success) {
+            console.log('[TradingChart] Pine Indicator successfully mounted onto chart');
+          }
+        },
+        onBacktest: (code) => {
+          this.switchBottomView('strategy');
+          this.strategyTester?.runSimulation(code, this.activeBars);
+        }
+      });
+    }
+
+    const stratEl = document.querySelector('#view-strategy');
+    if (stratEl) {
+      this.strategyTester = new StrategyTester({
+        container: stratEl,
+        onExportToPropSim: (profile) => {
+          this.switchBottomView('propsim');
+          this.propFirmSim?.setProfileParams(profile);
+        }
+      });
+    }
+
+    const propEl = document.querySelector('#view-propsim');
+    if (propEl) {
+      this.propFirmSim = new PropFirmSimulator({
+        container: propEl
+      });
+    }
+
+    const journalEl = document.querySelector('#view-journal');
+    if (journalEl) {
+      this.tradeJournal = new TradeJournal({
+        container: journalEl
+      });
+    }
+
+    const trackersEl = document.querySelector('#view-trackers');
+    if (trackersEl) {
+      this.marketTrackers = new MarketTrackersView({
+        container: trackersEl
+      });
+    }
+  }
+
+  initFullPageJournal() {
+    const journalView = document.querySelector('#journal-workspace-view');
+    if (journalView) {
+      this.fullPageJournal = new TradeJournal({
+        container: journalView
+      });
+    }
+  }
+
+  // ── Vela Native Side Panel Mount Handlers ──────────────────────────
+
+  mountWatchlist(body) {
+    this.watchlist = new WatchlistManager({
+      container: body,
+      onSelectSymbol: (sym) => this.switchSymbol(sym)
+    });
+  }
+
+  mountPaperTrading(body) {
+    this.paperTrading = new PaperTrading({
+      container: body
+    });
+    if (this.activeBars.length > 0) {
+      this.paperTrading.setMarket(this.currentSymbol, this.activeBars[this.activeBars.length - 1].close);
+    }
+  }
+
+  mountAlerts(body) {
+    this.alertsManager = new AlertsManager({
+      container: body
+    });
+  }
+
+  mountPineEditor(body) {
+    new PineStudio({
+      container: body,
+      onAddToChart: (code) => {
+        this.chartManager.addPineIndicator(code);
+      },
+      onBacktest: (code) => {
+        this.chartManager.togglePanel('strategy', true);
+        this.strategyTester?.runSimulation(code, this.activeBars);
+      }
+    });
+  }
+
+  mountStrategyTester(body) {
+    const st = new StrategyTester({
+      container: body,
+      onExportToPropSim: (profile) => {
+        this.chartManager.togglePanel('propsim', true);
+        this.propFirmSim?.setProfileParams(profile);
+      }
+    });
+    st.setCandles(this.activeBars);
+  }
+
+  mountPropFirmSim(body) {
+    new PropFirmSimulator({
+      container: body
+    });
+  }
+
+  mountTradeJournal(body) {
+    new TradeJournal({
+      container: body
+    });
+  }
+
+  mountMarketTrackers(body) {
+    new MarketTrackersView({
+      container: body
+    });
+  }
+
+  mountIndicatorTemplates(body) {
+    const templates = [
+      {
+        id: 'smc',
+        name: 'Smart Money Concepts (SMC)',
+        category: 'SMC/ICT',
+        color: '#00F2B0',
+        description: 'Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, and structural breaks.',
+        scripts: [
+          `//@version=5\nindicator("SMC Order Blocks & FVG", overlay=true)\nplot(ta.highest(high, 20), "BSL Liquidity", color=color.rgb(255, 77, 91))\nplot(ta.lowest(low, 20), "SSL Liquidity", color=color.rgb(0, 242, 176))`
+        ]
+      },
+      {
+        id: 'trend',
+        name: 'LuxAlgo Trend Confirmation',
+        category: 'TREND',
+        color: '#60a5fa',
+        description: 'Supertrend ATR baseline with fast EMA ribbon and MACD momentum filter.',
+        scripts: [
+          `//@version=5\nindicator("LuxAlgo Supertrend ATR", overlay=true)\n[st, dir] = ta.supertrend(3.0, 10)\nplot(st, "Supertrend", color = dir == 1 ? color.rgb(0, 242, 176) : color.rgb(255, 77, 91), linewidth=2)`
+        ]
+      },
+      {
+        id: 'scalper',
+        name: 'Institutional Scalper Pro',
+        category: 'VOLATILITY',
+        color: '#f59e0b',
+        description: 'Bollinger Bands mean-reversion channels with Stochastic RSI momentum filter.',
+        scripts: [
+          `//@version=5\nindicator("Scalper Pro Bands", overlay=true)\n[mid, up, low] = ta.bb(close, 20, 2.0)\nplot(mid, "Basis", color=color.orange)\np1 = plot(up, "Upper", color=color.rgb(0, 242, 176))\np2 = plot(low, "Lower", color=color.rgb(255, 77, 91))\nfill(p1, p2, color=color.new(color.blue, 90))`
+        ]
+      },
+      {
+        id: 'reversal',
+        name: 'Reversal & Volume Absorption',
+        category: 'VOLUME',
+        color: '#c084fc',
+        description: 'Volume spike absorption detector paired with high-volume rejection levels.',
+        scripts: [
+          `//@version=5\nindicator("Volume Absorption Spike", overlay=false)\nvolSma = ta.sma(volume, 20)\nisSpike = volume > volSma * 2.0\nplot(volume, "Volume", color = isSpike ? color.rgb(245, 158, 11) : (close >= open ? color.rgb(0, 242, 176) : color.rgb(255, 77, 91)), style=plot.style_columns)`
+        ]
+      }
+    ];
+
+    body.innerHTML = `
+      <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 2px;">Apply 1-click curated indicator setups:</div>
+        ${templates.map(t => `
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-weight: 700; font-size: 13px; color: #fff;">${t.name}</div>
+              <span style="font-size: 9px; font-weight: 800; background: rgba(255,255,255,0.06); color: ${t.color}; padding: 1px 6px; border-radius: 3px;">${t.category}</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4;">${t.description}</div>
+            <button class="btn-apply-template btn-primary" data-id="${t.id}" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px 12px;">
+              ✓ Apply Setup to Chart
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    body.querySelectorAll('.btn-apply-template').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const t = templates.find(x => x.id === id);
+        if (t) {
+          for (const s of t.scripts) {
+            this.chartManager.addPineIndicator(s, t.name);
+          }
+          btn.innerText = '✓ Applied to Canvas!';
+          btn.style.background = '#089981';
+          setTimeout(() => { btn.innerText = '✓ Apply Setup to Chart'; btn.style.background = 'var(--accent-cyan)'; }, 2000);
+        }
+      });
+    });
+  }
+
+  mountWorkspaces(body) {
+    body.innerHTML = `
+      <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Multi-Chart Layout Grid</div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
+            <button class="btn-ws-layout btn-secondary" data-layout="1" style="justify-content: center; font-size: 12px; padding: 8px;">Single (1×1)</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="2h" style="justify-content: center; font-size: 12px; padding: 8px;">Dual H (2×1)</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="2v" style="justify-content: center; font-size: 12px; padding: 8px;">Dual V (1×2)</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="4" style="justify-content: center; font-size: 12px; padding: 8px;">Quad (2×2)</button>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Chart Synchronization</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <span>Sync Symbol</span>
+              <input type="checkbox" id="sync-symbol-check" style="cursor: pointer;" />
+            </label>
+            <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <span>Sync Timeframe</span>
+              <input type="checkbox" id="sync-tf-check" style="cursor: pointer;" />
+            </label>
+            <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <span>Sync Crosshair</span>
+              <input type="checkbox" id="sync-cross-check" checked style="cursor: pointer;" />
+            </label>
+            <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <span>Sync Drawings</span>
+              <input type="checkbox" id="sync-drawings-check" style="cursor: pointer;" />
+            </label>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Saved Workspaces</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+            <span>Default Master Layout</span>
+            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 700;">ACTIVE</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    body.querySelectorAll('.btn-ws-layout').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lay = btn.getAttribute('data-layout');
+        this.chartManager.setLayout(lay);
+      });
+    });
+
+    body.querySelector('#sync-symbol-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('symbol', e.target.checked));
+    body.querySelector('#sync-tf-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('timeframe', e.target.checked));
+    body.querySelector('#sync-cross-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('crosshair', e.target.checked));
+    body.querySelector('#sync-drawings-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('drawings', e.target.checked));
+  }
+
+  // ── Data Loading & Symbol Navigation ───────────────────────────────
 
   async loadActiveCandles() {
     try {
@@ -156,12 +386,12 @@ class TradingChartApp {
       if (res.ok) {
         const data = await res.json();
         this.activeBars = data.candles || [];
-        this.strategyTester.setCandles(this.activeBars);
+        this.strategyTester?.setCandles(this.activeBars);
 
         if (this.activeBars.length > 0) {
           const lastBar = this.activeBars[this.activeBars.length - 1];
-          this.paperTrading.setMarket(this.currentSymbol, lastBar.close);
-          this.updateHeaderPrice(lastBar.close);
+          this.paperTrading?.setMarket(this.currentSymbol, lastBar.close);
+          this.updateQuickTradePrices(lastBar);
         }
       }
     } catch (e) {
@@ -172,114 +402,182 @@ class TradingChartApp {
   switchSymbol(sym) {
     const clean = sym.replace(/^.*:/, '').toUpperCase();
     this.currentSymbol = clean;
-    document.querySelector('#header-symbol-label').innerText = clean;
     this.chartManager.setSymbol(clean);
     this.loadActiveCandles();
   }
 
   handleSymbolChange(sym) {
     this.currentSymbol = sym;
-    document.querySelector('#header-symbol-label').innerText = sym;
     this.loadActiveCandles();
   }
 
-  updateHeaderPrice(price) {
-    const badge = document.querySelector('#header-price-badge');
-    if (badge) {
-      badge.innerText = `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // ── Workspace Mode Switching (Quant vs Journal) ────────────────────
+
+  switchWorkspace(mode) {
+    this.activeWorkspaceView = mode;
+    const quantBtn = document.querySelector('#nav-btn-quant');
+    const journalBtn = document.querySelector('#nav-btn-journal');
+    const chartArea = document.querySelector('#chart-area');
+    const journalView = document.querySelector('#journal-workspace-view');
+
+    if (mode === 'quant') {
+      quantBtn?.classList.add('active');
+      journalBtn?.classList.remove('active');
+      if (chartArea) chartArea.style.display = 'flex';
+      if (journalView) journalView.style.display = 'none';
+      window.dispatchEvent(new Event('resize'));
+    } else if (mode === 'journal') {
+      quantBtn?.classList.remove('active');
+      journalBtn?.classList.add('active');
+      if (chartArea) chartArea.style.display = 'none';
+      if (journalView) {
+        journalView.style.display = 'flex';
+        this.fullPageJournal?.render();
+      }
     }
   }
 
+  // ── Event Bindings ─────────────────────────────────────────────────
+
   bindEvents() {
-    // Symbol Search Modal
-    const btnSymbol = document.querySelector('#btn-symbol-search');
-    const modalSymbol = document.querySelector('#modal-symbol-search');
-    const closeSymbol = document.querySelector('#modal-close-symbol');
-    const inputSymbol = document.querySelector('#symbol-search-input');
-    const clearSymbol = document.querySelector('#symbol-clear-search');
+    // 1. Workspace Pill Switching (Quant / Journal / + Panels)
+    document.querySelector('#nav-btn-quant')?.addEventListener('click', () => {
+      this.switchWorkspace('quant');
+    });
 
-    if (btnSymbol && modalSymbol) {
-      btnSymbol.addEventListener('click', () => {
-        modalSymbol.classList.add('open');
-        if (inputSymbol) {
-          inputSymbol.value = '';
-          inputSymbol.focus();
+    document.querySelector('#nav-btn-journal')?.addEventListener('click', () => {
+      this.switchWorkspace('journal');
+    });
+
+    // 2. + Panels Menu Drawer Toggle
+    const modalPanelsMenu = document.querySelector('#modal-panels-menu');
+    const btnOpenPanels = document.querySelector('#nav-btn-panels');
+    const btnClosePanels = document.querySelector('#modal-close-panels-menu');
+
+    btnOpenPanels?.addEventListener('click', () => {
+      modalPanelsMenu?.classList.add('open');
+    });
+
+    btnClosePanels?.addEventListener('click', () => {
+      modalPanelsMenu?.classList.remove('open');
+    });
+
+    modalPanelsMenu?.addEventListener('click', (e) => {
+      if (e.target === modalPanelsMenu) modalPanelsMenu.classList.remove('open');
+    });
+
+    // Panel Menu Item Clicks
+    document.querySelectorAll('.panel-menu-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panelId = btn.getAttribute('data-panel');
+        modalPanelsMenu?.classList.remove('open');
+
+        if (panelId === 'journal' && this.activeWorkspaceView !== 'journal') {
+          this.switchWorkspace('journal');
+          return;
         }
-        this.populateSymbolSearch('', 'all');
+
+        if (this.activeWorkspaceView !== 'quant') {
+          this.switchWorkspace('quant');
+        }
+
+        // Toggle panel via Vela's native dock
+        this.chartManager.togglePanel(panelId, true);
       });
+    });
 
-      closeSymbol?.addEventListener('click', () => modalSymbol.classList.remove('open'));
-      modalSymbol.addEventListener('click', (e) => {
-        if (e.target === modalSymbol) modalSymbol.classList.remove('open');
-      });
+    // 3. Sidebar Dock Toggle Button [◫]
+    document.querySelector('#btn-toggle-panels-dock')?.addEventListener('click', () => {
+      const currentOpen = this.chartManager.openPanelId;
+      if (currentOpen) {
+        this.chartManager.togglePanel(currentOpen, false);
+      } else {
+        this.chartManager.togglePanel('watchlist', true);
+      }
+    });
 
-      const updateSymbolSearch = () => {
-        const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
-        const q = inputSymbol ? inputSymbol.value.trim() : '';
-        if (clearSymbol) clearSymbol.style.display = q ? 'block' : 'none';
-        this.populateSymbolSearch(q, activeCat);
-      };
+    // 4. Keyboard Shortcuts Reference & Language Switcher (FA / EN)
+    document.querySelector('#btn-shortcuts-help')?.addEventListener('click', () => {
+      this.shortcutsModal?.open();
+    });
 
-      inputSymbol?.addEventListener('input', updateSymbolSearch);
+    document.querySelector('#btn-toggle-lang')?.addEventListener('click', () => {
+      const next = getLanguage() === 'en' ? 'fa' : 'en';
+      this.switchLanguage(next);
+    });
 
-      clearSymbol?.addEventListener('click', () => {
-        if (inputSymbol) {
-          inputSymbol.value = '';
-          updateSymbolSearch();
-          inputSymbol.focus();
+    // 5. Desktop Bottom Panel Controls
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const view = tab.getAttribute('data-view');
+        const isCurrentActive = tab.classList.contains('active') && !this.isBottomPanelCollapsed;
+        if (isCurrentActive) {
+          this.toggleBottomPanel(true);
+        } else {
+          this.switchBottomView(view);
         }
       });
+    });
 
-      // Quick filter category buttons
-      document.querySelectorAll('.sym-cat-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.sym-cat-btn').forEach(b => {
-            b.classList.remove('active');
-            b.style.background = 'transparent';
-            b.style.color = 'var(--text-dim)';
-          });
-          btn.classList.add('active');
-          btn.style.background = 'var(--accent-cyan-dim)';
-          btn.style.color = 'var(--accent-cyan)';
-          updateSymbolSearch();
-        });
-      });
+    document.querySelector('#btn-maximize-bottom-panel')?.addEventListener('click', () => {
+      const panel = document.querySelector('#bottom-panel');
+      if (panel) {
+        panel.classList.remove('collapsed');
+        panel.classList.toggle('maximized');
+        this.isBottomPanelCollapsed = false;
+        window.dispatchEvent(new Event('resize'));
+      }
+    });
+
+    document.querySelector('#btn-toggle-bottom-panel')?.addEventListener('click', () => {
+      this.toggleBottomPanel();
+    });
+
+    // 5b. Quick Trade 1-Click Execution & Mobile Fullscreen
+    const qtWidget = document.querySelector('#chart-quick-trade');
+    if (window.innerWidth <= 768) {
+      qtWidget?.classList.add('minimized');
     }
 
-    // Timeframe Chips
-    document.querySelectorAll('#header-tf-group .tf-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#header-tf-group .tf-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        const tf = chip.getAttribute('data-tf');
-        this.currentTimeframe = tf;
-        this.chartManager.setTimeframe(tf);
-        this.loadActiveCandles();
-      });
+    document.querySelector('#qt-toggle-btn')?.addEventListener('click', () => {
+      qtWidget?.classList.toggle('minimized');
     });
 
-    // Style Select
-    document.querySelector('#header-style-select')?.addEventListener('change', (e) => {
-      this.chartManager.setPriceStyle(e.target.value);
+    document.querySelector('#qt-collapsed-trigger')?.addEventListener('click', () => {
+      qtWidget?.classList.remove('minimized');
     });
 
-    // Layout Select
-    document.querySelector('#header-layout-select')?.addEventListener('change', (e) => {
-      this.chartManager.setLayout(e.target.value);
+    document.querySelector('#qt-qty-dec')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const input = document.querySelector('#quick-trade-qty');
+      if (input) {
+        const val = Math.max(0.01, (parseFloat(input.value) || 0.1) - 0.05);
+        input.value = val.toFixed(2);
+      }
     });
 
-    // Indicators Modal
-    document.querySelector('#btn-open-indicators')?.addEventListener('click', () => {
-      this.indicatorsModal.open();
+    document.querySelector('#qt-qty-inc')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const input = document.querySelector('#quick-trade-qty');
+      if (input) {
+        const val = (parseFloat(input.value) || 0.1) + 0.05;
+        input.value = val.toFixed(2);
+      }
     });
 
-    // Settings Modal
-    document.querySelector('#btn-open-settings')?.addEventListener('click', () => {
-      this.settingsModal.open();
+    document.querySelector('#quick-trade-sell-btn')?.addEventListener('click', () => {
+      const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
+      this.paperTrading?.openPosition('short', qty, 10);
+      this.showExecutionToast('SELL', qty, this.currentSymbol);
     });
 
-    // Fullscreen
-    document.querySelector('#btn-fullscreen')?.addEventListener('click', () => {
+    document.querySelector('#quick-trade-buy-btn')?.addEventListener('click', () => {
+      const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
+      this.paperTrading?.openPosition('long', qty, 10);
+      this.showExecutionToast('BUY', qty, this.currentSymbol);
+    });
+
+    document.querySelector('#btn-mobile-fullscreen')?.addEventListener('click', () => {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       } else {
@@ -287,74 +585,200 @@ class TradingChartApp {
       }
     });
 
-    // Screenshot
-    document.querySelector('#btn-screenshot')?.addEventListener('click', () => {
-      this.chartManager.takeScreenshot();
-    });
+    // 6. Universal Symbol Search Modal
+    this.bindSymbolSearch();
 
-    // Undo / Redo
-    document.querySelector('#btn-undo')?.addEventListener('click', () => this.chartManager.undo());
-    document.querySelector('#btn-redo')?.addEventListener('click', () => this.chartManager.redo());
-
-    // Language Toggle
-    document.querySelector('#btn-toggle-lang')?.addEventListener('click', () => {
-      const next = getLanguage() === 'en' ? 'fa' : 'en';
-      this.switchLanguage(next);
-    });
-
-    // Replay Mode Toggle
-    document.querySelector('#btn-toggle-replay')?.addEventListener('click', () => {
-      this.barReplay.startReplay(this.activeBars.length);
-    });
-
-    // Sidebar Tabs
-    document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
+    // 7. Desktop Right-Hand Vertical Tool Rail (TradingView Signature Feature)
+    document.querySelectorAll('.rail-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.sidebar-tab-btn').forEach(b => b.classList.remove('active'));
+        const panelId = btn.getAttribute('data-panel');
+        const isAlreadyActive = btn.classList.contains('active') && this.chartManager.openPanelId === panelId;
+
+        document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+
+        if (isAlreadyActive) {
+          this.chartManager.togglePanel(panelId, false);
+        } else {
+          btn.classList.add('active');
+          this.chartManager.togglePanel(panelId, true);
+        }
+      });
+    });
+
+    // Keep rail buttons synchronized with Vela open panels
+    setInterval(() => {
+      const currentOpen = this.chartManager?.openPanelId;
+      document.querySelectorAll('.rail-btn').forEach(btn => {
+        const panelId = btn.getAttribute('data-panel');
+        btn.classList.toggle('active', !!currentOpen && currentOpen === panelId);
+      });
+    }, 400);
+
+    // 8. Time Range Bar active tracking
+    this.bindTimeRangeActive();
+
+    // 8. Capture topbar clicks for Indicators and Symbol Search
+    document.addEventListener('click', (e) => {
+      const indBtn = e.target.closest('.vela-widget-indicators');
+      if (indBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.indicatorsModal?.open();
+        return;
+      }
+      const symBtn = e.target.closest('.vela-widget-symbol');
+      if (symBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.openSymbolSearch();
+        return;
+      }
+    }, true);
+
+    // 8b. Ensure More Drawer is translated upon open
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.vela-mb-more')) {
+        setTimeout(() => {
+          const drawer = document.querySelector('.vela-drawer');
+          if (drawer) {
+            drawer.dataset.localizedLang = '';
+            localizeMoreDrawer();
+          }
+        }, 120);
+      }
+    });
+
+    // 9. Global TradingView Keyboard Shortcuts Engine
+    window.addEventListener('keydown', (e) => {
+      const tag = document.activeElement?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+        if (e.key === 'Escape') {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        this.shortcutsModal?.open();
+      } else if (e.key === '/' || (e.ctrlKey && e.key === 'k')) {
+        e.preventDefault();
+        this.openSymbolSearch();
+      } else if (e.altKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('trendline');
+      } else if (e.altKey && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('hline');
+      } else if (e.altKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('fibretracement');
+      } else if (e.altKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('box');
+      } else if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        this.chartManager?.armDrawingTool('position');
+      } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        this.chartManager?.takeScreenshot();
+      } else if (e.key === ' ' && !e.shiftKey) {
+        e.preventDefault();
+        this.stepNextWatchlistSymbol(1);
+      } else if (e.key === ' ' && e.shiftKey) {
+        e.preventDefault();
+        this.stepNextWatchlistSymbol(-1);
+      } else if (e.key === 'Escape') {
+        this.chartManager?.clearDrawingTool();
+        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+      }
+    });
+  }
+
+  openSymbolSearch() {
+    const modal = document.querySelector('#modal-symbol-search');
+    if (modal) {
+      modal.classList.add('open');
+      const input = document.querySelector('#symbol-search-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      this.populateSymbolSearch('', 'all');
+    }
+  }
+
+  stepNextWatchlistSymbol(direction = 1) {
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XAUUSD', 'EURUSD', 'SPX', 'NVDA', 'TSLA', 'AAPL'];
+    let idx = symbols.indexOf(this.currentSymbol);
+    if (idx === -1) idx = 0;
+    idx = (idx + direction + symbols.length) % symbols.length;
+    this.switchSymbol(symbols[idx]);
+  }
+
+  bindSymbolSearch() {
+    const modal = document.querySelector('#modal-symbol-search');
+    const closeBtn = document.querySelector('#modal-close-symbol');
+    const input = document.querySelector('#symbol-search-input');
+    const clearBtn = document.querySelector('#symbol-clear-search');
+
+    closeBtn?.addEventListener('click', () => modal?.classList.remove('open'));
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('open');
+    });
+
+    this.symbolSelectedIndex = -1;
+
+    input?.addEventListener('keydown', (e) => {
+      const rows = modal?.querySelectorAll('.sym-search-row') || [];
+      if (rows.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.symbolSelectedIndex = (this.symbolSelectedIndex + 1) % rows.length;
+        this.highlightSymbolRow(rows, this.symbolSelectedIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.symbolSelectedIndex = (this.symbolSelectedIndex - 1 + rows.length) % rows.length;
+        this.highlightSymbolRow(rows, this.symbolSelectedIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.symbolSelectedIndex >= 0 && this.symbolSelectedIndex < rows.length) {
+          rows[this.symbolSelectedIndex].click();
+        } else if (rows.length > 0) {
+          rows[0].click();
+        }
+      }
+    });
+
+    const updateSearch = () => {
+      const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
+      const q = input ? input.value.trim() : '';
+      if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+      this.populateSymbolSearch(q, activeCat);
+    };
+
+    input?.addEventListener('input', updateSearch);
+    clearBtn?.addEventListener('click', () => {
+      if (input) {
+        input.value = '';
+        updateSearch();
+        input.focus();
+      }
+    });
+
+    document.querySelectorAll('.sym-cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sym-cat-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'transparent';
+          b.style.color = 'var(--text-dim)';
+        });
         btn.classList.add('active');
-        const tab = btn.getAttribute('data-tab');
-        const tabWl = document.querySelector('#sidebar-tab-watchlist');
-        const tabPaper = document.querySelector('#sidebar-tab-paper');
-        const tabAlerts = document.querySelector('#sidebar-tab-alerts');
-        if (tabWl) tabWl.style.display = tab === 'watchlist' ? 'flex' : 'none';
-        if (tabPaper) tabPaper.style.display = tab === 'paper' ? 'flex' : 'none';
-        if (tabAlerts) tabAlerts.style.display = tab === 'alerts' ? 'flex' : 'none';
+        btn.style.background = 'var(--accent-cyan-dim)';
+        btn.style.color = 'var(--accent-cyan)';
+        updateSearch();
       });
-    });
-
-    // Toggle Sidebar
-    document.querySelector('#btn-toggle-sidebar')?.addEventListener('click', (e) => {
-      const sb = document.querySelector('#right-sidebar');
-      if (sb) {
-        if (window.innerWidth <= 768) {
-          sb.classList.toggle('mobile-open');
-        } else {
-          this.isSidebarCollapsed = !this.isSidebarCollapsed;
-          sb.classList.toggle('collapsed', this.isSidebarCollapsed);
-          e.currentTarget.classList.toggle('active', !this.isSidebarCollapsed);
-        }
-      }
-    });
-
-    // Bottom Panel Tabs
-    document.querySelectorAll('.panel-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const view = tab.getAttribute('data-view');
-        this.switchBottomView(view);
-      });
-    });
-
-    // Toggle Bottom Panel
-    document.querySelector('#btn-toggle-bottom-panel')?.addEventListener('click', () => {
-      const panel = document.querySelector('#bottom-panel');
-      if (panel) {
-        if (window.innerWidth <= 768) {
-          panel.classList.toggle('mobile-expanded');
-        } else {
-          this.isBottomPanelCollapsed = !this.isBottomPanelCollapsed;
-          panel.classList.toggle('collapsed', this.isBottomPanelCollapsed);
-        }
-      }
     });
   }
 
@@ -375,7 +799,7 @@ class TradingChartApp {
         }
 
         const CAT_COLORS = {
-          crypto: { bg: 'rgba(0, 229, 255, 0.12)', color: '#00e5ff' },
+          crypto: { bg: 'rgba(0, 242, 176, 0.12)', color: '#00F2B0' },
           metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
           commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
           forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
@@ -383,7 +807,7 @@ class TradingChartApp {
           stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }
         };
 
-        listCont.innerHTML = symbols.map((s, idx) => {
+        listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
           return `
             <div class="sym-search-row" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
@@ -425,10 +849,86 @@ class TradingChartApp {
             row.style.background = 'var(--bg-card)';
           });
         });
+        this.symbolSelectedIndex = 0;
+        this.highlightSymbolRow(listCont.querySelectorAll('.sym-search-row'), 0);
       }
     } catch (e) {
       listCont.innerHTML = `<div style="color: var(--accent-red); padding: 16px;">Error searching symbols</div>`;
     }
+  }
+
+  highlightSymbolRow(rows, idx) {
+    rows.forEach((row, i) => {
+      if (i === idx) {
+        row.style.borderColor = 'var(--accent-cyan)';
+        row.style.background = 'var(--bg-card-hover)';
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else {
+        row.style.borderColor = 'var(--border-subtle)';
+        row.style.background = 'var(--bg-card)';
+      }
+    });
+  }
+
+  updateQuickTradePrices(bar) {
+    if (!bar) return;
+    const bidEl = document.querySelector('#quick-sell-price');
+    const askEl = document.querySelector('#quick-buy-price');
+    const spread = bar.close > 1000 ? 5 : (bar.close > 10 ? 0.05 : 0.0005);
+    const bid = bar.close - spread / 2;
+    const ask = bar.close + spread / 2;
+    const digits = bar.close > 1000 ? 2 : 4;
+    const formatNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    if (bidEl) bidEl.innerText = formatNum(bid);
+    if (askEl) askEl.innerText = formatNum(ask);
+  }
+
+  showExecutionToast(side, qty, symbol) {
+    let toast = document.querySelector('#tradingchart-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'tradingchart-toast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--accent-cyan);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        font-size: 13px;
+        font-weight: 700;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+    const isBuy = side === 'BUY';
+    toast.innerHTML = `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ EXECUTED</span> ${side} ${qty} ${symbol} @ MARKET`;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+    }, 3000);
+  }
+
+  toggleBottomPanel(forceCollapse = null) {
+    const panel = document.querySelector('#bottom-panel');
+    if (!panel) return;
+    if (forceCollapse !== null) {
+      this.isBottomPanelCollapsed = forceCollapse;
+    } else {
+      this.isBottomPanelCollapsed = !this.isBottomPanelCollapsed;
+    }
+    panel.classList.remove('maximized');
+    panel.classList.toggle('collapsed', this.isBottomPanelCollapsed);
+    window.dispatchEvent(new Event('resize'));
   }
 
   switchBottomView(viewName) {
@@ -438,15 +938,65 @@ class TradingChartApp {
     document.querySelectorAll('.panel-view').forEach(view => {
       view.classList.toggle('active', view.id === `view-${viewName}`);
     });
-    if (this.isBottomPanelCollapsed) {
-      this.isBottomPanelCollapsed = false;
-      document.querySelector('#bottom-panel')?.classList.remove('collapsed');
-    }
+    this.isBottomPanelCollapsed = false;
+    document.querySelector('#bottom-panel')?.classList.remove('collapsed');
+    window.dispatchEvent(new Event('resize'));
   }
 
   switchLanguage(lang) {
     setLanguage(lang);
     console.log('[TradingChart] Language switched to:', lang);
+  }
+
+  bindTimeRangeActive() {
+    const checkInterval = setInterval(() => {
+      const rangeBtns = document.querySelectorAll('.vela-bb-range');
+      if (rangeBtns.length > 0) {
+        clearInterval(checkInterval);
+        rangeBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            rangeBtns.forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+          });
+        });
+        const defaultBtn = Array.from(rangeBtns).find(b => b.innerText.trim() === '1M') || rangeBtns[2];
+        if (defaultBtn && !document.querySelector('.vela-bb-range.is-active')) {
+          defaultBtn.classList.add('is-active');
+        }
+      }
+    }, 400);
+  }
+
+  startLatencyPing() {
+    setInterval(async () => {
+      const badge = document.querySelector('#latency-val');
+      const dot = document.querySelector('.pulse-dot');
+      if (!badge) return;
+      const start = performance.now();
+      try {
+        await fetch('/api/health');
+        const ms = Math.max(1, Math.round(performance.now() - start));
+        badge.innerText = `${ms}ms`;
+        if (dot) {
+          if (ms < 120) {
+            dot.style.background = '#00F2B0';
+            dot.style.boxShadow = '0 0 8px rgba(0, 242, 176, 0.6)';
+          } else if (ms < 300) {
+            dot.style.background = '#f59e0b';
+            dot.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.6)';
+          } else {
+            dot.style.background = '#ef4444';
+            dot.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.6)';
+          }
+        }
+      } catch (e) {
+        badge.innerText = 'OFFLINE';
+        if (dot) {
+          dot.style.background = '#ef4444';
+          dot.style.boxShadow = 'none';
+        }
+      }
+    }, 3000);
   }
 }
 

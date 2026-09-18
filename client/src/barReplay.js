@@ -16,10 +16,11 @@ export class BarReplay {
 
   startReplay(totalBars, startIndex) {
     this.totalBars = totalBars;
-    this.currentIndex = startIndex || Math.floor(totalBars * 0.7);
+    this.currentIndex = startIndex || Math.max(10, Math.floor(totalBars * 0.7));
     this.isPlaying = false;
     if (this.container) this.container.classList.add('visible');
     this.updateUI();
+    this.onBarStep(this.currentIndex);
   }
 
   stopReplay() {

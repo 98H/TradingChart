@@ -170,9 +170,7 @@ export class PineStudio {
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green);"></span>
               Diagnostics Console
             </div>
-            <div id="pine-diag-content" style="color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; line-height: 1.6; white-space: pre-wrap; direction: ltr !important; text-align: left !important; margin: 0; padding: 0;">
-              Ready. Click 'Add to Chart' to compile Pine Script.
-            </div>
+            <div id="pine-diag-content" style="color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; line-height: 1.6; word-break: break-word; direction: ltr !important; text-align: left !important; margin: 0; padding: 0;">Ready. Click 'Add to Chart' to compile Pine Script.</div>
           </div>
         </div>
       </div>

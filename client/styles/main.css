@@ -3,7 +3,7 @@
 
 :root {
   --bg-darkest: #07090e;
-  --bg-canvas: #0a0d14;
+  --bg-canvas: #0b0e14;
   --bg-surface: #0f1420;
   --bg-card: #151c2d;
   --bg-card-hover: #1b243b;
@@ -12,19 +12,19 @@
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
-  --accent-cyan: #00e5ff;
-  --accent-cyan-dim: rgba(0, 229, 255, 0.15);
-  --accent-green: #0ecb81;
-  --accent-green-dim: rgba(14, 203, 129, 0.15);
-  --accent-red: #f6465d;
-  --accent-red-dim: rgba(246, 70, 93, 0.15);
+  --accent-cyan: #00F2B0;
+  --accent-cyan-dim: rgba(0, 242, 176, 0.15);
+  --accent-green: #00F2B0;
+  --accent-green-dim: rgba(0, 242, 176, 0.15);
+  --accent-red: #FF4D5B;
+  --accent-red-dim: rgba(255, 77, 91, 0.15);
   --accent-gold: #f59e0b;
   --accent-purple: #a855f7;
   --radius-sm: 4px;
   --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
-  --shadow-popup: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 229, 255, 0.2);
+  --shadow-popup: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 1px rgba(0, 242, 176, 0.25);
 }
 
 html, body {
@@ -33,8 +33,9 @@ html, body {
   padding: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   max-width: 100vw;
-  max-height: 100vh;
+  max-height: 100dvh;
   overflow: hidden !important;
   user-select: none;
   -webkit-font-smoothing: antialiased;
@@ -49,15 +50,53 @@ body {
 }
 
 body.persian-mode {
-  font-family: var(--font-vazirmatn);
+  font-family: var(--font-vazirmatn), var(--font-sans);
 }
 
-/* Hide Vela internal topbar to keep our top navigation header as the single unified control bar */
-.vela-workspace .vela-widget-topbar {
-  display: none !important;
+body.persian-mode .modal-box,
+body.persian-mode .panels-menu-box,
+body.persian-mode .side-panel-content,
+body.persian-mode #journal-workspace-view,
+body.persian-mode .panel-body-area,
+body.persian-mode .vela-dock-panel {
+  direction: rtl;
+  text-align: right;
 }
 
-/* Strict LTR isolation for Code, Numbers, Formulas, and Financial Chart */
+body.persian-mode .modal-header {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode .panel-header-strip {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode .panel-tabs {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode #top-app-header {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode .top-nav-left {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode .top-nav-right {
+  flex-direction: row-reverse;
+}
+
+body.persian-mode .vela-panel-header {
+  flex-direction: row-reverse;
+}
+
+/* Persian Topbar Indicators Label */
+body.persian-mode .vela-widget-indicators {
+  font-family: var(--font-vazirmatn), var(--font-sans) !important;
+}
+
+/* Strict LTR isolation for Code, Numbers, Formulas, Price axes, and Financial Chart */
 #pine-code-editor,
 .code-editor,
 .num-ltr,
@@ -68,10 +107,39 @@ input[type="number"],
 .data-mono,
 #chart-area,
 .vela-workspace,
-#main-viewport {
+.vela-ws-main,
+.vela-ws-grid,
+.vela-widget-topbar,
+.vela-ws-toolbar,
+.vela-mobilebar,
+#desktop-side-rail,
+#replay-bar,
+#dom-ladder-wrap,
+.orderbook-ladder {
   direction: ltr !important;
   text-align: left !important;
   unicode-bidi: isolate !important;
+}
+
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.shortcut-row .keys kbd {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
 }
 
 /* Custom Scrollbars */
@@ -95,150 +163,217 @@ input[type="number"],
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   width: 100vw;
   background-color: var(--bg-darkest);
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
 }
 
-/* ── Topbar Navigation ──────────────────────────────────────────────── */
-#top-header {
-  height: 48px;
-  background-color: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+/* ── Top Application Bar (LuxAlgo Quant Header Architecture) ────────── */
+#top-app-header {
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  background-color: #0d1117;
+  border-bottom: 1px solid #1c263c;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
+  padding: 0 12px;
   z-index: 100;
   flex-shrink: 0;
   max-width: 100vw;
-  overflow-x: auto;
+  box-sizing: border-box;
 }
 
-.header-left, .header-center, .header-right {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.brand-badge {
+.top-nav-left, .top-nav-right {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: -0.5px;
+}
+
+/* Sidebar / Panels Dock Toggle Button (Split icon) */
+.nav-icon-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.nav-icon-btn:hover {
   color: #fff;
-  cursor: pointer;
-  padding: 3px 7px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, rgba(0,229,255,0.1) 0%, rgba(14,203,129,0.05) 100%);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.brand-badge .logo-icon {
-  color: var(--accent-cyan);
-}
-
-.brand-badge .badge-tag {
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 4px;
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
-  font-weight: 700;
-}
-
-.btn-header {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+/* Module Pills (Quant / Journal / + Panels) */
+.nav-module-pills {
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.15s ease;
 }
 
-.btn-header:hover {
-  background: var(--bg-card);
-  color: var(--text-main);
-  border-color: var(--border-subtle);
-}
-
-.btn-header.active {
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
-  border-color: rgba(0, 229, 255, 0.3);
-}
-
-.btn-icon-only {
-  padding: 6px;
-}
-
-.divider-vertical {
-  width: 1px;
-  height: 22px;
-  background: var(--border-subtle);
-  margin: 0 4px;
-}
-
-/* Timeframe Chips */
-.tf-group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--bg-canvas);
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-}
-
-.tf-chip {
-  padding: 4px 7px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+.nav-pill {
   background: transparent;
-  border: none;
-  border-radius: 3px;
+  color: #8c94a0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 28px;
+  box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.tf-chip:hover {
-  color: var(--text-main);
-  background: var(--bg-card);
+.nav-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.tf-chip.active {
-  background: var(--accent-cyan);
-  color: #07090e;
+.nav-pill.active {
+  background: #1e222d;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   font-weight: 700;
 }
 
-/* ── Main Viewport (Chart Workspace + Right Sidebar) ────────────────── */
+/* Mobile-only button (hidden on desktop) */
+.mobile-only-btn {
+  display: none !important;
+}
+
+/* Latency badge */
+.latency-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 0 6px;
+  height: 28px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+  animation: pulseLatency 2s infinite ease-in-out;
+}
+
+@keyframes pulseLatency {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0.7; }
+}
+
+/* Language switch button */
+.nav-text-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-text-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: var(--accent-cyan);
+}
+
+/* User Profile Avatar (matching official LuxAlgo screenshot) */
+.user-avatar-badge {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #242933;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.user-status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00F2B0;
+  border: 2px solid #0d1117;
+  box-shadow: 0 0 4px rgba(0, 242, 176, 0.5);
+}
+
+/* ── Main Viewport (Chart Workspace & Full Journal) ──────────────────── */
 #main-viewport {
   display: flex;
   flex: 1;
-  min-height: 0;
+  height: calc(100% - 42px);
+  width: 100%;
   position: relative;
   overflow: hidden;
   direction: ltr !important;
 }
 
-/* Center Workspace (Vela Chart Canvas with its built-in drawing toolbar) */
+/* Chart Canvas Workspace Area */
 #chart-area {
   flex: 1;
-  min-width: 0;
+  width: 100%;
+  height: 100%;
   position: relative;
   background: var(--bg-canvas);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 #vela-workspace-mount {
@@ -246,6 +381,289 @@ input[type="number"],
   height: 100%;
   position: absolute;
   inset: 0;
+}
+
+.vela-workspace {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Desktop Right-Hand Vertical Tool Rail (TradingView Signature Feature) */
+#desktop-side-rail {
+  width: 44px;
+  background: #0d1117;
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 6px;
+  z-index: 70;
+  flex-shrink: 0;
+}
+
+/* Hide individual panel icon buttons from the desktop topbar to avoid crowding,
+   since they are all dedicatedly hosted in the right-hand vertical tool rail */
+.vela-widget-topbar [class*="vela-widget-panel-"] {
+  display: none !important;
+}
+
+.rail-btn {
+  all: unset;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all 0.15s ease;
+}
+
+.rail-btn:hover {
+  background: var(--bg-surface);
+  color: #fff;
+}
+
+.rail-btn.active {
+  background: rgba(0, 242, 176, 0.15);
+  color: var(--accent-cyan);
+}
+
+/* Ensure Undo / Redo and chart tool icons meet WCAG AA contrast standards */
+.vela-widget-undo,
+.vela-widget-redo,
+.vela-widget-tool {
+  color: #94a3b8 !important;
+}
+
+.vela-widget-tool:hover {
+  color: #fff !important;
+}
+
+/* When bottom panel is collapsed, make the tab styling subtle so it doesn't look like an active open window */
+#bottom-panel.collapsed .panel-tab.active {
+  background: transparent !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--text-muted) !important;
+}
+#bottom-panel.collapsed .panel-tab:hover {
+  color: #fff !important;
+}
+
+/* ── Floating Quick Trade Widget (Institutional 1-Click Execution) ──── */
+.quick-trade-widget {
+  position: absolute;
+  top: 12px;
+  right: 78px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 3px 6px;
+  gap: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  direction: ltr !important;
+}
+
+.quick-trade-widget.minimized {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9) translateY(-10px);
+}
+
+.qt-minimize-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 20px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.qt-minimize-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.qt-pill-trigger {
+  position: absolute;
+  top: 12px;
+  right: 78px;
+  z-index: 39;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: rgba(13, 17, 23, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  direction: ltr !important;
+}
+.qt-pill-trigger:hover {
+  background: rgba(26, 34, 46, 0.95);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+.quick-trade-widget.minimized ~ .qt-pill-trigger,
+.quick-trade-widget.minimized + .qt-pill-trigger {
+  display: flex !important;
+}
+
+.qt-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qt-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 5px;
+  min-width: 72px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.qt-btn.qt-sell {
+  background: rgba(255, 77, 91, 0.12);
+  border: 1px solid rgba(255, 77, 91, 0.35);
+  color: #FF4D5B;
+}
+.qt-btn.qt-sell:hover {
+  background: rgba(255, 77, 91, 0.25);
+  border-color: #FF4D5B;
+  box-shadow: 0 0 10px rgba(255, 77, 91, 0.25);
+}
+.qt-btn.qt-sell:active {
+  background: #FF4D5B;
+  color: #fff;
+}
+
+.qt-btn.qt-buy {
+  background: rgba(0, 242, 176, 0.12);
+  border: 1px solid rgba(0, 242, 176, 0.35);
+  color: #00F2B0;
+}
+.qt-btn.qt-buy:hover {
+  background: rgba(0, 242, 176, 0.25);
+  border-color: #00F2B0;
+  box-shadow: 0 0 10px rgba(0, 242, 176, 0.25);
+}
+.qt-btn.qt-buy:active {
+  background: #00F2B0;
+  color: #07090e;
+}
+
+.qt-action {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.2;
+}
+
+.qt-price {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.qt-qty-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 1px 3px;
+  gap: 2px;
+}
+
+.qt-step-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 16px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 3px;
+  user-select: none;
+  transition: all 0.1s ease;
+  padding: 0;
+}
+.qt-step-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.qt-step-btn:active {
+  transform: scale(0.9);
+}
+
+.qt-qty-wrap input {
+  width: 40px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.qt-qty-wrap input:focus {
+  color: var(--accent-cyan);
+}
+
+.qt-unit {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-right: 3px;
+}
+
+/* Watermark subtlety to prevent signal collision */
+.vela-watermark {
+  opacity: 0.04 !important;
+}
+
+/* Attribution logo clearance above volume bars */
+.vela-attribution,
+.vela-attribution-custom,
+[data-vela-screenshot="1"] {
+  opacity: 0.4 !important;
+  bottom: 38px !important;
+  pointer-events: none !important;
 }
 
 /* Floating Replay Bar */
@@ -256,7 +674,7 @@ input[type="number"],
   transform: translateX(-50%);
   background: rgba(15, 20, 32, 0.95);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  border: 1px solid rgba(0, 242, 176, 0.3);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   border-radius: var(--radius-full);
   padding: 6px 16px;
@@ -270,72 +688,89 @@ input[type="number"],
   display: flex;
 }
 
-/* Right Sidebar Dock */
-#right-sidebar {
-  width: 320px;
-  background: var(--bg-surface);
-  border-left: 1px solid var(--border-subtle);
+/* ── Full-Page Trade Journal View (#journal-workspace-view) ─────────── */
+#journal-workspace-view {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #090c12;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  z-index: 40;
-  transition: width 0.2s ease;
+  padding: 16px 20px;
+  box-sizing: border-box;
 }
 
-#right-sidebar.collapsed {
-  width: 0 !important;
-  overflow: hidden;
-  border: none;
-  display: none;
+/* ── Panels Grid Menu (#modal-panels-menu) ──────────────────────────── */
+.panels-menu-box {
+  width: 580px;
+  max-width: 92vw;
+  max-height: 85vh;
 }
 
-.sidebar-tab-strip {
-  height: 40px;
+.panels-grid-menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+}
+
+.panel-menu-item {
   display: flex;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-darkest);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
 }
 
-.sidebar-tab-btn {
-  flex: 1;
+.panel-menu-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.panel-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.sidebar-tab-btn:hover {
-  color: var(--text-main);
-  background: var(--bg-surface);
-}
-
-.sidebar-tab-btn.active {
   color: var(--accent-cyan);
-  border-bottom-color: var(--accent-cyan);
-  background: var(--bg-surface);
+  flex-shrink: 0;
 }
 
-.sidebar-content-body {
+.panel-item-info {
   flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  min-width: 0;
 }
 
-/* ── Bottom Collapsible Panel (Pine Editor / Backtester / Prop-Sim / Journal / Trackers) */
+.panel-item-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.panel-item-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Desktop Collapsible Bottom Suite ───────────────────────────────── */
 #bottom-panel {
-  height: 280px;
-  background: var(--bg-surface);
+  height: 310px;
+  background: #0d1117;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -348,12 +783,16 @@ input[type="number"],
   height: 34px !important;
 }
 
+#bottom-panel.maximized {
+  height: calc(100vh - 42px) !important;
+}
+
 .panel-header-strip {
   height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-darkest);
+  background: #090c12;
   border-bottom: 1px solid var(--border-subtle);
   padding: 0 12px;
   direction: ltr !important;
@@ -393,6 +832,47 @@ input[type="number"],
   background: var(--accent-cyan-dim);
 }
 
+#btn-maximize-bottom-panel,
+#btn-toggle-bottom-panel {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-dim) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+#btn-maximize-bottom-panel:hover,
+#btn-toggle-bottom-panel:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Time Range Bar Active Range Button */
+.vela-bb-range {
+  transition: all 0.15s ease !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+}
+
+.vela-bb-range:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.vela-bb-range.is-active {
+  background: rgba(0, 242, 176, 0.15) !important;
+  color: #00F2B0 !important;
+  font-weight: 700 !important;
+}
+
 .panel-body-area {
   flex: 1;
   overflow: hidden;
@@ -429,7 +909,7 @@ input[type="number"],
 }
 
 .modal-box {
-  background: var(--bg-surface);
+  background: #0f1420;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-popup);
   border-radius: var(--radius-lg);
@@ -446,7 +926,7 @@ input[type="number"],
 }
 
 .modal-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -454,7 +934,7 @@ input[type="number"],
 }
 
 .modal-header h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   display: flex;
@@ -478,7 +958,7 @@ input[type="number"],
 }
 
 .modal-content {
-  padding: 20px;
+  padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
 }
@@ -516,7 +996,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
 
 .btn-primary:hover {
   filter: brightness(1.15);
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 242, 176, 0.4);
 }
 
 .btn-secondary {
@@ -565,22 +1045,6 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* Radar dot for live connectivity */
-.radar-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-green);
-  box-shadow: 0 0 8px var(--accent-green);
-  animation: pulseRadar 2s infinite ease-in-out;
-}
-
-@keyframes pulseRadar {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.8; }
-}
-
 /* Numbers in LTR */
 .num-ltr {
   direction: ltr !important;
@@ -591,79 +1055,438 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
 
 /* ── Mobile Responsive Overrides (max-width: 768px) ─────────────────── */
 @media (max-width: 768px) {
-  #top-header {
-    height: 42px;
-    padding: 0 6px;
-    gap: 4px;
-    overflow-x: hidden;
-  }
-
-  .brand-badge span {
-    display: none;
-  }
-
-  #btn-open-indicators span,
-  #btn-toggle-replay span {
+  /* Hide desktop side rail on mobile so chart gets 100% screen width */
+  #desktop-side-rail,
+  .desktop-only-rail {
     display: none !important;
   }
 
-  #btn-open-indicators,
-  #btn-toggle-replay {
-    padding: 4px 6px !important;
-  }
-
-  #header-tf-group,
-  #header-style-select,
-  #header-layout-select,
-  #btn-undo,
-  #btn-redo,
-  .divider-vertical,
-  .radar-dot,
-  #btn-fullscreen {
+  /* On mobile, hide the bottom panel completely to give 100% space to the chart */
+  #bottom-panel,
+  .desktop-only-bottom {
     display: none !important;
   }
 
-  /* Right sidebar acts as fixed full drawer on mobile */
-  #right-sidebar {
+  /* Ensure top header fits cleanly without wrapping and has generous touch targets */
+  #top-app-header {
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    padding: 0 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* Hide desktop-only navigation controls from mobile top header to prevent cutoffs */
+  #btn-toggle-panels-dock,
+  #nav-btn-journal,
+  #nav-btn-panels,
+  #btn-shortcuts-help,
+  .latency-badge {
+    display: none !important;
+  }
+
+  .top-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .top-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .nav-pill {
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 30px;
+  }
+
+  .nav-text-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    min-height: 30px;
+    border-radius: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .user-avatar-badge {
+    margin-right: 0;
+  }
+
+  /* Mobile Quick Trade widget: minimized by default, clean centered modal when opened */
+  .quick-trade-widget {
     position: fixed !important;
-    top: 42px;
-    bottom: 0;
-    right: 0;
-    width: 300px !important;
-    max-width: 85vw !important;
-    z-index: 150 !important;
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.9);
-    display: none;
+    top: 50px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    right: auto !important;
+    z-index: 125 !important;
+    width: calc(100% - 24px) !important;
+    max-width: 350px !important;
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+    padding: 6px 10px !important;
+  }
+  
+  .quick-trade-widget.minimized {
+    display: none !important;
   }
 
-  #right-sidebar.mobile-open {
+  .qt-pill-trigger {
+    position: absolute !important;
+    top: 8px !important;
+    right: 56px !important; /* Safely left of the dynamic Y-axis price badge */
+    z-index: 45 !important;
+    padding: 3px 8px !important;
+    font-size: 10px !important;
     display: flex !important;
   }
 
-  #right-sidebar.collapsed {
+  .quick-trade-widget:not(.minimized) ~ .qt-pill-trigger,
+  .quick-trade-widget:not(.minimized) + .qt-pill-trigger {
     display: none !important;
   }
 
-  /* Bottom panel starts collapsed on mobile */
-  #bottom-panel {
-    height: 34px !important;
+  /* Elevate drawers and bottom sheets above mobilebar with dynamic auto-height */
+  .vela-drawer-backdrop,
+  .vela-drawer-positioner {
+    z-index: 120 !important;
   }
 
-  #bottom-panel.mobile-expanded {
-    height: 60vh !important;
+  .vela-drawer {
+    height: auto !important;
+    max-height: 85dvh !important;
+    border-radius: 18px 18px 0 0 !important;
+    background: #0d1117 !important;
+    border-top: 1px solid #232b3e !important;
+    border-left: 1px solid #232b3e !important;
+    border-right: 1px solid #232b3e !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+    position: relative !important;
   }
 
-  /* Diagnostics pane collapses into code editor on mobile */
-  #pine-diagnostics-pane {
-    display: none !important;
+  .vela-drawer-grab {
+    width: 38px !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    margin: 8px auto 4px auto !important;
   }
 
-  #main-viewport {
+  .vela-drawer-body {
+    padding: 6px 14px calc(70px + env(safe-area-inset-bottom, 24px)) 14px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+  }
+
+  /* 3-column equal distribution for top actions in MoreDrawer */
+  .vela-md-actions {
+    display: flex !important;
+    gap: 8px !important;
+    padding: 6px 0 12px 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .vela-md-action {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 8px 4px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #f1f5f9 !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+  }
+
+  .vela-md-action:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .vela-md-action:disabled {
+    opacity: 0.45 !important;
+    color: #94a3b8 !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    cursor: not-allowed !important;
+  }
+
+  .vela-md-action .vela-icon {
+    font-size: 18px !important;
+  }
+
+  .vela-md-list {
+    padding: 2px 0 !important;
+  }
+
+  .vela-md-row {
+    padding: 9px 10px !important;
+    border-radius: 6px !important;
+    transition: background 0.15s ease !important;
+  }
+
+  .vela-md-row:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .vela-md-row-label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+  }
+
+  .vela-md-row-value {
+    font-size: 12px !important;
+    color: var(--accent-cyan) !important;
+    font-weight: 600 !important;
+  }
+
+  /* Date range row smooth horizontal scroll */
+  .vela-md-range,
+  .vela-range-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Side panels on mobile: full screen width overlay with clean back/close navigation and bottom sheet ergonomics */
+  .vela-panel {
     width: 100vw !important;
+    max-width: 100vw !important;
+    position: fixed !important;
+    top: 44px !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 130 !important;
+    background: #0e121a !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.7) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
-  #chart-area {
-    width: 100vw !important;
-    min-width: 100vw !important;
+  .vela-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.25);
+    margin: 8px auto 4px auto;
+    flex-shrink: 0;
   }
+
+  .vela-panel-header {
+    min-height: 48px !important;
+    padding: 0 16px !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0;
+  }
+
+  .vela-panel-header .vela-panel-title {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+  }
+
+  .vela-panel-close,
+  .vela-panel-header button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    cursor: pointer;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-dim) !important;
+    border-radius: 8px !important;
+  }
+
+  .vela-panel-close:active,
+  .vela-panel-header button:active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+  }
+
+  .vela-panel-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 14px !important;
+    padding-bottom: calc(75px + env(safe-area-inset-bottom, 20px)) !important;
+  }
+
+  .panels-grid-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .panels-menu-box {
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    max-height: 75vh;
+  }
+
+  /* Make sure Vela's mobilebar stays in flex column flow so chart canvas leaves room for the X-axis time scale */
+  [data-layout='mobile'] .vela-mobilebar {
+    display: flex !important;
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    background: #0b0e14 !important;
+    border-top: 1px solid #1c2230 !important;
+    padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 50;
+    flex: none !important;
+  }
+
+  .mobile-only-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mobile-only-btn:active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ── Persian RTL Mode Refinements ──────────────────────────────────── */
+html[dir="rtl"] body.persian-mode {
+  font-family: var(--font-vazirmatn), var(--font-sans) !important;
+}
+
+html[dir="rtl"] .vela-drawer,
+html[dir="rtl"] .vela-drawer-positioner,
+html[dir="rtl"] .vela-drawer-body,
+html[dir="rtl"] .vela-md-actions,
+html[dir="rtl"] .vela-md-list,
+html[dir="rtl"] .vela-md-row {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+html[dir="rtl"] .vela-md-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+html[dir="rtl"] .vela-md-row-label {
+  text-align: right !important;
+  flex: 1 1 auto !important;
+}
+
+html[dir="rtl"] .vela-md-row .vela-icon:last-child {
+  transform: rotate(180deg) !important;
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+html[dir="rtl"] .vela-drawer-title {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+html[dir="rtl"] .vela-drawer-close-custom {
+  left: 14px !important;
+  right: auto !important;
+}
+
+html[dir="rtl"] .vela-dw {
+  direction: rtl !important;
+  text-align: right !important;
+}
+html[dir="rtl"] .vela-dw .vela-panel-header {
+  flex-direction: row-reverse !important;
+}
+html[dir="rtl"] .vela-dw .vela-dw-row {
+  flex-direction: row-reverse !important;
+}
+
+body.persian-mode button,
+body.persian-mode .panel-tab,
+body.persian-mode .nav-pill {
+  flex-direction: row !important;
+}
+
+body.persian-mode .btn-header svg,
+body.persian-mode .panel-tab svg,
+body.persian-mode .nav-pill svg {
+  margin-left: 6px;
+  margin-right: 0;
+}
+
+/* Price Badge Occlusion & Contrast on Y-axis */
+.vela-axis-badge,
+[class*="vela-price-badge"],
+[class*="vela-scale-badge"] {
+  background: #00F2B0 !important;
+  color: #07090e !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+  z-index: 25 !important;
+}
+
+/* Statusline OHLC Contrast Enhancements (WCAG AA Compliance) */
+.vela-statusline,
+.vela-sl {
+  color: #cbd5e1 !important;
+}
+
+.vela-sl-dec,
+.vela-sl-down,
+.vela-sl [data-dir="down"],
+[class*="vela-sl-dec"] {
+  color: #ff5e6d !important;
+  font-weight: 700 !important;
+}
+
+.vela-sl-inc,
+.vela-sl-up,
+.vela-sl [data-dir="up"],
+[class*="vela-sl-inc"] {
+  color: #00F2B0 !important;
+  font-weight: 700 !important;
 }
