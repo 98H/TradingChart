@@ -39,16 +39,18 @@ export class ShortcutsModal {
   render() {
     const isFa = getLanguage() === 'fa';
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-          <h3>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
               <rect x="2" y="4" width="20" height="16" rx="2"/>
               <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/>
             </svg>
-            <span id="shortcuts-modal-title">${isFa ? 'کلیدهای میانبر صفحه‌کلید (TradingView)' : 'Keyboard Shortcuts Reference'}</span>
-          </h3>
-          <button class="modal-close-btn" id="modal-close-shortcuts">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #fff;">
+              <span id="shortcuts-modal-title">${isFa ? 'کلیدهای میانبر صفحه‌کلید' : 'Keyboard Shortcuts Reference'}</span>
+            </h3>
+          </div>
+          <button class="modal-close-btn" id="modal-close-shortcuts" style="${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

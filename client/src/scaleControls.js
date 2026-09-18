@@ -44,12 +44,6 @@ export class ScaleControls {
 
     this.container.innerHTML = `
       <div class="scale-dock-inner">
-        <!-- Live Candle Close Countdown Timer -->
-        <div id="candle-countdown-pill" class="scale-item-pill countdown-pill num-ltr" title="${isFa ? 'زمان باقی‌مانده تا بسته شدن کندل جاری' : 'Countdown to Bar Close'}">
-          <span class="countdown-dot"></span>
-          <span id="countdown-timer-val">--:--</span>
-        </div>
-
         <!-- Scale Mode: Auto Scale / Reset View -->
         <button id="btn-scale-auto" class="scale-dock-btn active" title="${isFa ? 'مقیاس خودکار قیمت (Auto Scale / Alt+R)' : 'Auto Scale / Fit Data (Alt+R)'}">
           <span>Auto</span>

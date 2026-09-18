@@ -150,6 +150,12 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     }
   }
 
+  closeActivePanel() {
+    if (this.openPanelId && this.workspace?.dock) {
+      this.workspace.dock.toggle(this.openPanelId, false);
+    }
+  }
+
   get openPanelId() {
     return this.workspace?.dock?.openId || null;
   }

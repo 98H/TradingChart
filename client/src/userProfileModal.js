@@ -24,9 +24,9 @@ export class UserProfileModal {
     const isProfit = netPnl >= 0;
 
     modal.innerHTML = `
-      <div class="modal-box user-profile-box" style="max-width: 440px; width: 92vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column;">
+      <div class="modal-box user-profile-box" style="max-width: 440px; width: 92vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Header -->
-        <div style="padding: 16px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'flex-direction: row; direction: rtl;' : 'direction: ltr;'}">
+        <div style="padding: 16px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: #1a2234; color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent-cyan); letter-spacing: 0.5px;">
               IP
@@ -40,7 +40,7 @@ export class UserProfileModal {
               </div>
             </div>
           </div>
-          <button id="btn-close-user-profile" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+          <button id="btn-close-user-profile" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; ${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

@@ -559,7 +559,18 @@ class TradingChartApp {
     });
 
     document.querySelector('#btn-topbar-replay')?.addEventListener('click', () => {
-      this.barReplay?.startReplay(this.activeBars.length || 500);
+      const replayBar = document.querySelector('#replay-bar');
+      const isVisible = replayBar?.classList.contains('visible');
+      const replayBtn = document.querySelector('#btn-topbar-replay');
+
+      if (isVisible) {
+        this.barReplay?.stopReplay();
+        replayBtn?.classList.remove('active');
+      } else {
+        const total = this.activeBars?.length || 500;
+        this.barReplay?.startReplay(total, Math.floor(total * 0.7));
+        replayBtn?.classList.add('active');
+      }
     });
 
     document.querySelector('#btn-toggle-lang')?.addEventListener('click', () => {
@@ -706,7 +717,7 @@ class TradingChartApp {
         this.openSymbolSearch();
         return;
       }
-      const layoutBtn = e.target.closest('#vela-topbar-layout, .vela-widget-topbar button[aria-label*="Layout"], #btn-layout-manager');
+      const layoutBtn = e.target.closest('#vela-topbar-layout, .vela-widget-topbar button[aria-label*="Layout"]');
       if (layoutBtn) {
         e.stopPropagation();
         e.preventDefault();
@@ -749,13 +760,35 @@ class TradingChartApp {
       }
     });
 
-    // 9. Global TradingView Keyboard Shortcuts Engine
+    // 9. Global TradingView Keyboard Shortcuts Engine & Universal Modal Dismiss
     window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay.active');
+        if (openModals.length > 0) {
+          e.preventDefault();
+          if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            document.activeElement.blur();
+          }
+          openModals.forEach(m => m.classList.remove('open', 'active'));
+          this.chartStylePicker?.close();
+          this.contextMenu?.close();
+          return;
+        }
+
+        const tag = document.activeElement?.tagName;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+          document.activeElement.blur();
+          return;
+        }
+
+        this.chartManager?.clearDrawingTool();
+        this.chartStylePicker?.close();
+        this.contextMenu?.close();
+        return;
+      }
+
       const tag = document.activeElement?.tagName;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
-        if (e.key === 'Escape') {
-          document.activeElement.blur();
-        }
         return;
       }
 
@@ -807,9 +840,13 @@ class TradingChartApp {
       } else if (e.key === ' ' && e.shiftKey) {
         e.preventDefault();
         this.stepNextWatchlistSymbol(-1);
-      } else if (e.key === 'Escape') {
-        this.chartManager?.clearDrawingTool();
-        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+      }
+    });
+
+    // 9b. Global Backdrop Click Dismiss for all Modals
+    document.addEventListener('click', (e) => {
+      if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('open', 'active');
       }
     });
   }
@@ -934,7 +971,7 @@ class TradingChartApp {
         listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
           return `
-            <div class="sym-search-row" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
+            <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
               <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
                   ${s.symbol.slice(0, 3)}

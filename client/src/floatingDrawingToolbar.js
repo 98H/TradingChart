@@ -13,7 +13,7 @@ export class FloatingDrawingToolbar {
     this.isLocked = false;
     this.isHidden = false;
     this.isMinimized = false;
-    this.pos = JSON.parse(localStorage.getItem('tradingchart_fav_toolbar_pos') || '{"top": 140, "left": 60}');
+    this.pos = JSON.parse(localStorage.getItem('tradingchart_fav_toolbar_pos') || '{"top": 460, "left": 60}');
 
     this.mount();
   }

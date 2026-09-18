@@ -255,8 +255,13 @@ export class CanvasContextMenu {
   }
 
   hideMenu() {
+    this.isOpen = false;
     if (this.menuEl) {
       this.menuEl.style.display = 'none';
     }
+  }
+
+  close() {
+    this.hideMenu();
   }
 }

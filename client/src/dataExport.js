@@ -45,17 +45,19 @@ export class DataExportModal {
     const barsCount = this.app?.activeBars?.length || 0;
 
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 520px; display: flex; flex-direction: column;">
-        <div class="modal-header">
-          <h3>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="modal-box" style="width: 520px; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-green);">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            <span id="export-modal-title">${isFa ? 'خروجی داده‌های کندلی چارت (Export Chart Data)' : 'Export Historical Chart Data'}</span>
-          </h3>
-          <button class="modal-close-btn" id="modal-close-export">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #fff;">
+              <span id="export-modal-title">${isFa ? 'خروجی داده‌های کندلی چارت' : 'Export Historical Chart Data'}</span>
+            </h3>
+          </div>
+          <button class="modal-close-btn" id="modal-close-export" style="${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -114,6 +116,9 @@ export class DataExportModal {
 
   bindEvents() {
     this.modalEl.querySelector('#modal-close-export')?.addEventListener('click', () => this.close());
+    this.modalEl.addEventListener('click', (e) => {
+      if (e.target === this.modalEl) this.close();
+    });
 
     this.modalEl.querySelectorAll('.btn-export-format').forEach(btn => {
       btn.addEventListener('click', () => {

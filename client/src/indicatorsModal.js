@@ -135,7 +135,7 @@ export class IndicatorsModal {
     cont.innerHTML = filtered.map(item => {
       const badge = CATEGORY_BADGES[item.category] || { label: item.category.toUpperCase(), bg: 'rgba(255,255,255,0.1)', color: '#fff' };
       return `
-        <div class="ind-card-row" data-id="${item.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
+        <div class="ind-card-row indicator-item ind-card" data-id="${item.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
           <div style="flex: 1; padding-right: 14px;">
             <div style="font-weight: 700; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
               ${item.name}

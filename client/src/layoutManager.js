@@ -167,11 +167,6 @@ export class LayoutManager {
     document.querySelector('#btn-layout-save')?.addEventListener('click', () => {
       this.quickSaveLayout();
     });
-
-    // Replay Button in Topbar
-    document.querySelector('#btn-topbar-replay')?.addEventListener('click', () => {
-      this.toggleReplay();
-    });
   }
 
   quickSaveLayout() {
@@ -293,14 +288,14 @@ export class LayoutManager {
     const isFa = getLanguage() === 'fa';
 
     modal.innerHTML = `
-      <div class="modal-box layout-studio-modal" style="max-width: 680px; width: 95vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column;">
+      <div class="modal-box layout-studio-modal" style="max-width: 680px; width: 95vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; ${isFa ? 'font-family: var(--font-persian), sans-serif;' : ''}">
         <!-- Modal Header with correct RTL/LTR symmetry -->
-        <div class="modal-header" style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'flex-direction: row; direction: rtl;' : 'direction: ltr;'}">
+        <div class="modal-header" style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #fff;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
             <span>${isFa ? 'استودیو و مدیریت چیدمان چندچارته' : 'TradingView Multi-Chart Layout Studio'}</span>
           </div>
-          <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+          <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; ${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

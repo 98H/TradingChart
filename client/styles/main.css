@@ -603,33 +603,33 @@ body.persian-mode .top-nav-layout-suite {
 }
 
 .qt-btn.qt-sell {
-  background: rgba(255, 77, 91, 0.12);
-  border: 1px solid rgba(255, 77, 91, 0.35);
-  color: #FF4D5B;
+  background: #f23645;
+  border: 1px solid #f23645;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(242, 54, 69, 0.25);
 }
 .qt-btn.qt-sell:hover {
-  background: rgba(255, 77, 91, 0.25);
-  border-color: #FF4D5B;
-  box-shadow: 0 0 10px rgba(255, 77, 91, 0.25);
+  background: #ff4757;
+  border-color: #ff4757;
+  box-shadow: 0 4px 12px rgba(242, 54, 69, 0.4);
 }
 .qt-btn.qt-sell:active {
-  background: #FF4D5B;
-  color: #fff;
+  background: #d62534;
 }
 
 .qt-btn.qt-buy {
-  background: rgba(0, 242, 176, 0.12);
-  border: 1px solid rgba(0, 242, 176, 0.35);
-  color: #00F2B0;
+  background: #089981;
+  border: 1px solid #089981;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(8, 153, 129, 0.25);
 }
 .qt-btn.qt-buy:hover {
-  background: rgba(0, 242, 176, 0.25);
-  border-color: #00F2B0;
-  box-shadow: 0 0 10px rgba(0, 242, 176, 0.25);
+  background: #00b090;
+  border-color: #00b090;
+  box-shadow: 0 4px 12px rgba(8, 153, 129, 0.4);
 }
 .qt-btn.qt-buy:active {
-  background: #00F2B0;
-  color: #07090e;
+  background: #067a67;
 }
 
 .qt-action {
@@ -637,6 +637,8 @@ body.persian-mode .top-nav-layout-suite {
   font-weight: 800;
   letter-spacing: 0.6px;
   line-height: 1.2;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .qt-price {
@@ -645,16 +647,64 @@ body.persian-mode .top-nav-layout-suite {
   font-family: var(--font-mono);
   line-height: 1.2;
   margin-top: 1px;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .qt-qty-wrap {
   display: flex;
   align-items: center;
+  justify-content: center;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 5px;
-  padding: 1px 3px;
+  padding: 2px 4px;
   gap: 2px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.qt-step-btn {
+  all: unset;
+  cursor: pointer;
+  width: 20px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.qt-step-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#quick-trade-qty {
+  width: 48px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  line-height: 22px;
+}
+
+.qt-unit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-right: 4px;
 }
 
 .qt-step-btn {
@@ -704,6 +754,21 @@ body.persian-mode .top-nav-layout-suite {
   font-weight: 700;
   color: var(--text-dim);
   padding-right: 3px;
+}
+
+/* Left drawing toolbar bottom collapse button */
+.vela-dtb-collapse {
+  background: rgba(15, 20, 32, 0.75) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 6px !important;
+  margin: 4px !important;
+  transition: all 0.15s ease !important;
+  color: var(--text-dim) !important;
+}
+.vela-dtb-collapse:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Watermark subtlety to prevent signal collision */
@@ -1122,17 +1187,29 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
     display: none !important;
   }
 
-  /* Ensure top header fits cleanly without wrapping and has generous touch targets */
+  /* Hide out-of-scale pinned alert badges on mobile to prevent occlusion of scale & wicks */
+  .canvas-alert-pinned-top,
+  .canvas-alert-pinned-bottom {
+    display: none !important;
+  }
+
+  /* Hide watermark attribution on mobile to eliminate horizontal overflow */
+  .vela-attribution,
+  .vela-attribution-custom {
+    display: none !important;
+  }
+
+  /* Ensure top header fits cleanly with iOS Safe Area insets and generous touch targets */
   #top-app-header {
-    height: 44px;
-    min-height: 44px;
-    max-height: 44px;
-    padding: 0 12px;
+    height: auto;
+    min-height: 48px;
+    padding: max(env(safe-area-inset-top), 4px) 12px 4px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-sizing: border-box;
     width: 100vw;
+    max-width: 100vw;
     overflow: hidden;
   }
 
@@ -1147,9 +1224,10 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
 
   #nav-btn-panels {
     display: inline-flex !important;
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 6px 10px;
+    font-size: 12px;
     font-weight: 700;
+    min-height: 34px;
   }
 
   .top-nav-left {
@@ -1167,24 +1245,51 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
   }
 
   .nav-pill {
-    padding: 5px 12px;
+    padding: 6px 14px;
     font-size: 13px;
     font-weight: 700;
-    min-height: 30px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-icon-btn,
+  .mobile-only-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .nav-text-btn {
-    padding: 4px 10px;
+    padding: 6px 12px;
     font-size: 11px;
     font-weight: 700;
-    min-height: 30px;
+    min-height: 34px;
     border-radius: 4px;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .user-avatar-badge {
     margin-right: 0;
+    cursor: pointer;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Mobile bottom bar iOS Safe Area Support */
+  .vela-mobilebar {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px) !important;
+    min-height: calc(52px + max(env(safe-area-inset-bottom), 0px)) !important;
+    box-sizing: border-box !important;
   }
 
   /* Mobile Quick Trade widget: minimized by default, clean centered modal when opened */

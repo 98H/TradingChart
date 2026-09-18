@@ -85,45 +85,47 @@ export class CompareModal {
     }
 
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-          <h3>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="16"/>
               <line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
-            <span id="compare-modal-title">${isFa ? 'مقایسه و افزودن نماد (Compare / Add Symbol)' : 'Compare or Add Symbol'}</span>
-          </h3>
-          <button class="modal-close-btn" id="modal-close-compare">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #fff;">
+              <span id="compare-modal-title">${isFa ? 'مقایسه یا افزودن نماد' : 'Compare or Add Symbol'}</span>
+            </h3>
+          </div>
+          <button class="modal-close-btn" id="modal-close-compare" style="${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
         <div style="padding: 12px 20px 8px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="text" id="compare-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجوی نماد مقایسه (مثلاً ETH, SOL, XAU, DXY, SPX)...' : 'Search comparison symbol (e.g. ETH, SOL, XAU, DXY)...'}" style="width: 100%; height: 36px; padding: 6px 12px; font-size: 13px;" />
+            <input type="text" id="compare-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجوی نماد مقایسه (مثلاً ETH، SOL، XAU، DXY)…' : 'Search comparison symbol (e.g. ETH, SOL, XAU, DXY)...'}" style="width: 100%; height: 36px; padding: 6px 12px; font-size: 13px; text-align: ${isFa ? 'right' : 'left'};" />
           </div>
 
           <!-- Comparison Mode Selector -->
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
-            <span style="color: var(--text-muted);">${isFa ? 'نوع مقیاس مقایسه:' : 'Comparison Mode:'}</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; ${isFa ? 'flex-direction: row;' : ''}">
+            <span style="color: var(--text-muted);">${isFa ? 'حالت مقایسه:' : 'Comparison Mode:'}</span>
             <div style="display: flex; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px; border-radius: 4px; border: 1px solid var(--border-subtle);">
               <button class="compare-mode-btn ${this.compareMode === 'percent' ? 'active' : ''}" data-mode="percent" style="font-size: 11px; padding: 3px 8px; border: none; border-radius: 3px; cursor: pointer; background: ${this.compareMode === 'percent' ? 'var(--accent-cyan)' : 'transparent'}; color: ${this.compareMode === 'percent' ? '#000' : 'var(--text-dim)'}; font-weight: 700;">
-                ${isFa ? 'مقیاس درصدی (%)' : 'Same % Scale'}
+                ${isFa ? 'مقیاس درصدی یکسان' : 'Same % Scale'}
               </button>
               <button class="compare-mode-btn ${this.compareMode === 'price' ? 'active' : ''}" data-mode="price" style="font-size: 11px; padding: 3px 8px; border: none; border-radius: 3px; cursor: pointer; background: ${this.compareMode === 'price' ? 'var(--accent-cyan)' : 'transparent'}; color: ${this.compareMode === 'price' ? '#000' : 'var(--text-dim)'}; font-weight: 700;">
-                ${isFa ? 'قیمت مستقل' : 'New Price Scale'}
+                ${isFa ? 'مقیاس قیمت جدید' : 'New Price Scale'}
               </button>
             </div>
           </div>
         </div>
 
         <!-- Category Filters -->
-        <div style="display: flex; gap: 4px; padding: 6px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); overflow-x: auto;">
+        <div style="display: flex; gap: 4px; padding: 6px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); overflow-x: auto; ${isFa ? 'direction: rtl;' : ''}">
           <button class="comp-cat-btn ${this.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">${isFa ? 'همه' : 'All'}</button>
-          <button class="comp-cat-btn ${this.selectedCategory === 'crypto' ? 'active' : ''}" data-cat="crypto">${isFa ? 'کریپتو' : 'Crypto'}</button>
-          <button class="comp-cat-btn ${this.selectedCategory === 'metals' ? 'active' : ''}" data-cat="metals">${isFa ? 'طلا و فلزات' : 'Metals'}</button>
+          <button class="comp-cat-btn ${this.selectedCategory === 'crypto' ? 'active' : ''}" data-cat="crypto">${isFa ? 'ارز دیجیتال' : 'Crypto'}</button>
+          <button class="comp-cat-btn ${this.selectedCategory === 'metals' ? 'active' : ''}" data-cat="metals">${isFa ? 'فلزات' : 'Metals'}</button>
           <button class="comp-cat-btn ${this.selectedCategory === 'indices' ? 'active' : ''}" data-cat="indices">${isFa ? 'شاخص‌ها' : 'Indices'}</button>
           <button class="comp-cat-btn ${this.selectedCategory === 'commodities' ? 'active' : ''}" data-cat="commodities">${isFa ? 'کالاها' : 'Commodities'}</button>
           <button class="comp-cat-btn ${this.selectedCategory === 'forex' ? 'active' : ''}" data-cat="forex">${isFa ? 'فارکس' : 'Forex'}</button>
@@ -132,16 +134,16 @@ export class CompareModal {
         <!-- Active Overlays Section -->
         ${this.overlays.size > 0 ? `
           <div style="padding: 10px 20px; background: rgba(0, 242, 176, 0.04); border-bottom: 1px solid var(--border-subtle);">
-            <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px; text-transform: uppercase;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">
               ${isFa ? 'نمادهای مقایسه‌ای فعال روی چارت' : 'Active Overlays On Chart'} (${this.overlays.size})
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
               ${Array.from(this.overlays.values()).map(o => `
                 <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid ${o.color}; padding: 3px 8px; border-radius: 4px; font-size: 11px;">
                   <span style="width: 8px; height: 8px; border-radius: 50%; background: ${o.color};"></span>
-                  <span style="font-weight: 700; color: #fff;">${o.symbol}</span>
-                  <span style="color: var(--text-dim); font-size: 10px;">(${o.mode === 'percent' ? '%' : '$'})</span>
-                  <button class="btn-remove-overlay" data-symbol="${o.symbol}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 11px;" title="Remove Overlay">✕</button>
+                  <span style="font-weight: 700; color: #fff;" class="num-ltr">${o.symbol}</span>
+                  <span style="color: var(--text-dim); font-size: 10px;" class="num-ltr">(${o.mode === 'percent' ? '%' : '$'})</span>
+                  <button class="btn-remove-overlay" data-symbol="${o.symbol}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 11px;" title="${isFa ? 'حذف مقایسه' : 'Remove Overlay'}">✕</button>
                 </div>
               `).join('')}
             </div>
@@ -154,22 +156,24 @@ export class CompareModal {
             ${filtered.map(b => {
               const isAdded = this.overlays.has(b.symbol);
               return `
-                <div class="compare-item-row" data-symbol="${b.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; transition: background 0.15s;">
+                <div class="compare-item-row" data-symbol="${b.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; transition: background 0.15s; ${isFa ? 'direction: rtl;' : ''}">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="width: 10px; height: 10px; border-radius: 50%; background: ${b.color};"></span>
                     <div>
-                      <div style="font-weight: 700; font-size: 13px; color: #fff;">${b.symbol}</div>
+                      <div style="font-weight: 700; font-size: 13px; color: #fff;" class="num-ltr">${b.symbol}</div>
                       <div style="font-size: 11px; color: var(--text-dim);">${b.name}</div>
                     </div>
                   </div>
                   <div>
                     ${isAdded ? `
-                      <button class="btn-toggle-overlay btn-secondary" data-symbol="${b.symbol}" style="font-size: 11px; padding: 4px 10px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.3);">
-                        ${isFa ? 'حذف مقایسه ✕' : 'Remove ✕'}
+                      <button class="btn-toggle-overlay btn-secondary" data-symbol="${b.symbol}" style="font-size: 11px; padding: 4px 10px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.3); display: inline-flex; align-items: center; gap: 4px;">
+                        <span>✕</span>
+                        <span>${isFa ? 'حذف' : 'Remove'}</span>
                       </button>
                     ` : `
-                      <button class="btn-add-overlay btn-primary" data-symbol="${b.symbol}" data-name="${b.name}" data-color="${b.color}" style="font-size: 11px; padding: 4px 12px;">
-                        ${isFa ? '+ افزودن به چارت' : '+ Compare'}
+                      <button class="btn-add-overlay btn-primary" data-symbol="${b.symbol}" data-name="${b.name}" data-color="${b.color}" style="font-size: 11px; padding: 4px 12px; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>${isFa ? 'مقایسه' : 'Compare'}</span>
                       </button>
                     `}
                   </div>
@@ -179,9 +183,11 @@ export class CompareModal {
           </div>
         </div>
 
-        <div style="padding: 8px 20px; font-size: 11px; color: var(--text-dim); background: var(--bg-darkest); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-          <span>${isFa ? 'مقایسه همبستگی چند دارایی با مقیاس درصدی خودکار' : 'Multi-Asset Correlation & Return Comparison'}</span>
-          <span style="color: var(--accent-cyan); font-weight: 600;">${this.overlays.size} ${isFa ? 'مقایسه فعال' : 'Active'}</span>
+        <div style="padding: 8px 20px; font-size: 11px; color: var(--text-dim); background: var(--bg-darkest); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : ''}">
+          <span>${isFa ? 'همبستگی چند دارایی و مقایسه بازدهی' : 'Multi-Asset Correlation & Return Comparison'}</span>
+          <span style="color: var(--accent-cyan); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+            ${isFa ? `<span class="num-ltr">${toPersianDigits(this.overlays.size)}</span> مورد فعال` : `<span class="num-ltr">${this.overlays.size}</span> Active`}
+          </span>
         </div>
       </div>
     `;
@@ -191,6 +197,9 @@ export class CompareModal {
 
   bindModalEvents() {
     this.modalEl.querySelector('#modal-close-compare')?.addEventListener('click', () => this.close());
+    this.modalEl.addEventListener('click', (e) => {
+      if (e.target === this.modalEl) this.close();
+    });
 
     // Search input
     const searchInput = this.modalEl.querySelector('#compare-search-input');

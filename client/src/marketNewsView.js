@@ -78,7 +78,7 @@ export class MarketNewsView {
         </div>
 
         <!-- News Feed List -->
-        <div id="news-items-container" style="flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div id="news-items-container" style="flex: 1; overflow-y: auto; padding: 10px 10px max(env(safe-area-inset-bottom), 34px) 10px; display: flex; flex-direction: column; gap: 8px;">
           <!-- Populated dynamically -->
         </div>
       </div>
