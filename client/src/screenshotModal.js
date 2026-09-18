@@ -85,17 +85,27 @@ export class ScreenshotModal {
     });
 
     modal.querySelector('#btn-copy-screenshot-link')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(window.location.href);
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(window.location.href).catch(() => {});
+        }
+      } catch (e) {}
       const btn = modal.querySelector('#btn-copy-screenshot-link');
       if (btn) btn.innerText = isFa ? 'کپی شد! ✓' : 'Copied! ✓';
+      this.app?.showToast?.(isFa ? 'لینک اشتراک‌گذاری کپی شد' : 'Share link copied to clipboard!');
       setTimeout(() => { if (btn) btn.innerText = isFa ? '📋 کپی لینک اشتراک' : '📋 Copy Link'; }, 2000);
     });
 
     modal.querySelector('#btn-copy-social-text')?.addEventListener('click', () => {
       const socialText = `📊 TradingChart Market Analysis: $${sym} (${tf})\nCurrent Price: $${Number(lastPrice).toLocaleString()}\nPowered by TradingChart Open Architecture\n#TradingChart #TechnicalAnalysis #${sym}`;
-      navigator.clipboard.writeText(socialText);
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(socialText).catch(() => {});
+        }
+      } catch (e) {}
       const btn = modal.querySelector('#btn-copy-social-text');
       if (btn) btn.innerText = isFa ? 'متن کپی شد! ✓' : 'Text Copied! ✓';
+      this.app?.showToast?.(isFa ? 'متن تحلیل کپی شد' : 'Analysis post text copied to clipboard!');
       setTimeout(() => { if (btn) btn.innerText = isFa ? '💬 کپی متن تحلیل' : '💬 Copy Post Text'; }, 2000);
     });
   }

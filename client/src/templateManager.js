@@ -234,6 +234,7 @@ export class TemplateManager {
             this.app.chartManager?.addPineIndicator(s, t.name);
           }
           btn.innerText = '✓ Applied to Canvas!';
+          this.app?.showToast?.(getLanguage() === 'fa' ? `قالب «${t.nameFa || t.name}» با موفقیت اعمال شد` : `Template "${t.name}" applied to chart!`);
           setTimeout(() => this.render(), 1500);
         }
       });
