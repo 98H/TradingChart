@@ -63,12 +63,16 @@ export class ShortcutsModal {
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
               <div class="shortcut-row">
+                <span>${isFa ? 'دایره‌المعارف اندیکاتورها' : 'Indicators & Metrics'}</span>
+                <span class="keys"><kbd>/</kbd></span>
+              </div>
+              <div class="shortcut-row">
                 <span>${isFa ? 'جستجوی نماد' : 'Symbol Search'}</span>
-                <span class="keys"><kbd>/</kbd> or <kbd>Ctrl+K</kbd></span>
+                <span class="keys"><kbd>Ctrl+K</kbd></span>
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'تغییر سریع تایم‌فریم' : 'Quick Timeframe'}</span>
-                <span class="keys"><kbd>,</kbd> or <kbd>1</kbd> <kbd>5</kbd> <kbd>15</kbd> <kbd>60</kbd> <kbd>D</kbd></span>
+                <span class="keys"><kbd>,</kbd> or <kbd>1</kbd> <kbd>5</kbd> <kbd>15</kbd> <kbd>60</kbd></span>
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'نماد بعدی دیده‌بان' : 'Next Watchlist Symbol'}</span>

@@ -795,7 +795,10 @@ class TradingChartApp {
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         this.shortcutsModal?.open();
-      } else if (e.key === '/' || (e.ctrlKey && e.key === 'k')) {
+      } else if (e.key === '/') {
+        e.preventDefault();
+        this.indicatorsModal?.open();
+      } else if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         this.openSymbolSearch();
       } else if (e.altKey && (e.key === 'a' || e.key === 'A')) {
@@ -833,7 +836,7 @@ class TradingChartApp {
         this.scaleControls?.container?.querySelector('#btn-scale-invert')?.click();
       } else if (e.altKey && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        this.chartManager?.takeScreenshot();
+        this.screenshotModal?.open();
       } else if (e.key === ' ' && !e.shiftKey) {
         e.preventDefault();
         this.stepNextWatchlistSymbol(1);
