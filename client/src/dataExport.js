@@ -146,10 +146,11 @@ export class DataExportModal {
 
     let blob;
     if (this.exportFormat === 'csv') {
-      let csv = 'Date_UTC,Timestamp,Open,High,Low,Close,Volume\n';
+      let csv = 'Date_UTC,Timestamp_ms,Open,High,Low,Close,Volume\n';
       for (const b of bars) {
-        const iso = new Date(b.time).toISOString();
-        csv += `${iso},${b.time},${b.open},${b.high},${b.low},${b.close},${b.volume || 0}\n`;
+        const timeMs = b.time > 1e11 ? b.time : b.time * 1000;
+        const iso = new Date(timeMs).toISOString();
+        csv += `${iso},${timeMs},${b.open},${b.high},${b.low},${b.close},${b.volume || 0}\n`;
       }
       blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     } else {
