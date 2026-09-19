@@ -58,18 +58,20 @@ export class ChartAlertsOverlay {
           </div>
         `;
       } else if (a.targetPrice > curPrice) {
-        // Pinned Above Visible Range Axis Badge (Right rail, safe clearance below quick-trade execution bar)
+        // Pinned Above Visible Range: dock directly at top-right scale axis header (right: 4px; top: 8px)
         return `
-          <div class="canvas-alert-pinned-top" style="position: absolute; right: 16px; top: 66px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
+          <div class="canvas-alert-line-pinned-top" style="position: absolute; left: 0; right: 54px; top: 22px; height: 1px; border-top: 1px dashed rgba(245,158,11,0.3); pointer-events: none; z-index: 15;"></div>
+          <div class="canvas-alert-pinned-top" style="position: absolute; right: 4px; top: 8px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
             <span>▲ 🔔</span>
             <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
             <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>
           </div>
         `;
       } else {
-        // Pinned Below Visible Range Axis Badge (Right rail, safe clearance above scale dock and date axis)
+        // Pinned Below Visible Range: dock directly at bottom-right scale axis footer (right: 4px; bottom: 32px)
         return `
-          <div class="canvas-alert-pinned-bottom" style="position: absolute; right: 16px; bottom: 74px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
+          <div class="canvas-alert-line-pinned-bottom" style="position: absolute; left: 0; right: 54px; bottom: 46px; height: 1px; border-top: 1px dashed rgba(245,158,11,0.3); pointer-events: none; z-index: 15;"></div>
+          <div class="canvas-alert-pinned-bottom" style="position: absolute; right: 4px; bottom: 32px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
             <span>▼ 🔔</span>
             <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
             <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>

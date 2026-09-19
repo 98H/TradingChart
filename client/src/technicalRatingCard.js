@@ -223,9 +223,11 @@ export class TechnicalRatingCard {
       chgEl.innerText = `${isUp ? '+' : ''}${chg.toFixed(2)}% (${isUp ? '+' : ''}$${Math.abs(this.tickerData.priceChange || 0).toFixed(2)})`;
     }
 
-    // Day Range
-    const high = this.tickerData?.highPrice || (m.price * 1.02);
-    const low = this.tickerData?.lowPrice || (m.price * 0.98);
+    // Day Range (Guaranteed mathematical consistency with current live traded price)
+    let high = Math.max(Number(this.tickerData?.highPrice) || 0, m.price);
+    let low = Math.min(Number(this.tickerData?.lowPrice) || Infinity, m.price);
+    if (low === Infinity || low <= 0) low = m.price * 0.98;
+    if (high <= 0 || high < low) high = m.price * 1.02;
     const dayRatio = Math.min(100, Math.max(0, Math.round(((m.price - low) / (high - low || 1)) * 100)));
 
     const dayFill = this.container.querySelector('#trc-day-fill');

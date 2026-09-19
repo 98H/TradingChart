@@ -19,9 +19,9 @@ export class FloatingDrawingToolbar {
     } catch (e) {
       savedPos = null;
     }
-    // Prevent old default colliding with lower candles
-    if (!savedPos || savedPos.top >= 300) {
-      savedPos = { top: 68, left: 75 };
+    // Prevent colliding with top statusline / indicator legend (y: 50-135, x: 50-320)
+    if (!savedPos || (savedPos.top < 135 && savedPos.left < 320) || savedPos.top >= 500) {
+      savedPos = { top: 145, left: 65 };
     }
     this.pos = savedPos;
 

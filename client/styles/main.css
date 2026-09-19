@@ -596,16 +596,64 @@ body.persian-mode .top-nav-layout-suite {
 .qt-btn {
   all: unset;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 2px;
   padding: 4px 10px;
   border-radius: 5px;
   min-width: 72px;
   transition: all 0.15s ease;
   user-select: none;
+  direction: ltr !important;
+}
+
+.qt-middle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.qt-spread-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  min-width: 54px;
+}
+
+.qt-spread-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+.qt-spread-val {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.quick-trade-widget.latency-warning {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+.latency-badge.is-high-latency {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
 }
 
 .qt-btn.qt-sell {
@@ -1631,7 +1679,7 @@ html[dir="rtl"] .vela-dw .vela-dw-row {
   flex-direction: row-reverse !important;
 }
 
-body.persian-mode button,
+body.persian-mode button:not(.qt-btn):not(.qt-step-btn):not(.btn-icon-only):not(.nav-icon-btn),
 body.persian-mode .panel-tab,
 body.persian-mode .nav-pill {
   flex-direction: row !important;
@@ -1639,9 +1687,14 @@ body.persian-mode .nav-pill {
 
 body.persian-mode .btn-header svg,
 body.persian-mode .panel-tab svg,
-body.persian-mode .nav-pill svg {
-  margin-left: 6px;
-  margin-right: 0;
+body.persian-mode .nav-pill svg,
+body.persian-mode .nav-style-btn svg,
+body.persian-mode .nav-compare-btn svg,
+body.persian-mode .nav-save-btn svg,
+body.persian-mode .nav-replay-btn svg,
+body.persian-mode .nav-export-btn svg {
+  margin-inline-end: 6px !important;
+  margin-inline-start: 0 !important;
 }
 
 /* Price Badge Occlusion & Contrast on Y-axis */

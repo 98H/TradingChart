@@ -29,7 +29,7 @@ export const BREAKING_NEWS_CATALOG = [
     sentiment: 'neutral',
     impact: 'high',
     summaryEn: 'Precious metals remain tightly compressed within an institutional equilibrium zone as dollar index hovers at 104.2.',
-    summaryFa: 'فلزات گرانبها در یک زون تعادل نهادی فشرده شده‌اند در حالی که شاخص دلار روی تراز ۱۰۴.۲ نوسان می‌کند.'
+    summaryFa: 'فلزات گرانبها در یک زون تعادل نهادی فشرده شده‌اند در حالی که شاخص دلار روی تراز 104.2 نوسان می‌کند.'
   },
   {
     id: 'news_3',

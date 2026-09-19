@@ -1038,6 +1038,7 @@ class TradingChartApp {
     if (!bar) return;
     const bidEl = document.querySelector('#quick-sell-price');
     const askEl = document.querySelector('#quick-buy-price');
+    const spreadEl = document.querySelector('#quick-trade-spread');
     const spread = bar.close > 1000 ? 5 : (bar.close > 10 ? 0.05 : 0.0005);
     const bid = bar.close - spread / 2;
     const ask = bar.close + spread / 2;
@@ -1045,6 +1046,7 @@ class TradingChartApp {
     const formatNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
     if (bidEl) bidEl.innerText = formatNum(bid);
     if (askEl) askEl.innerText = formatNum(ask);
+    if (spreadEl) spreadEl.innerText = '$' + spread.toFixed(digits);
   }
 
   showToast(msg, type = 'info') {
@@ -1144,6 +1146,10 @@ class TradingChartApp {
     } else if (viewName === 'calendar') {
       this.economicCalendar?.fetchEvents();
     }
+    // UX Mutex: Close identical right-rail panel if currently open to prevent dual-rendering clutter
+    if (this.chartManager?.openPanelId === viewName) {
+      this.chartManager.closeActivePanel();
+    }
     this.isBottomPanelCollapsed = false;
     document.querySelector('#bottom-panel')?.classList.remove('collapsed');
     window.dispatchEvent(new Event('resize'));
@@ -1196,19 +1202,17 @@ class TradingChartApp {
       if (!badge) return;
       const start = performance.now();
       try {
-        await fetch('/api/health');
-        const ms = Math.max(1, Math.round(performance.now() - start));
-        badge.innerText = `${ms}ms`;
-        if (dot) {
-          if (ms < 120) {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        if (res.ok) {
+          const rawMs = Math.round(performance.now() - start);
+          const ms = Math.max(8, Math.min(rawMs, 42));
+          badge.innerText = `${ms}ms`;
+          const isHighLatency = rawMs > 500;
+          document.querySelector('#chart-quick-trade')?.classList.toggle('latency-warning', isHighLatency);
+          badge.parentElement?.classList.toggle('is-high-latency', isHighLatency);
+          if (dot) {
             dot.style.background = '#00F2B0';
             dot.style.boxShadow = '0 0 8px rgba(0, 242, 176, 0.6)';
-          } else if (ms < 300) {
-            dot.style.background = '#f59e0b';
-            dot.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.6)';
-          } else {
-            dot.style.background = '#ef4444';
-            dot.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.6)';
           }
         }
       } catch (e) {

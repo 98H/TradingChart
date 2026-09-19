@@ -124,18 +124,24 @@
         <!-- Floating Instant Order Entry Widget (Institutional TradingView signature) -->
         <div id="chart-quick-trade" class="quick-trade-widget" title="1-Click Instant Market Execution">
           <button id="qt-toggle-btn" class="qt-minimize-btn" title="Minimize Quick Trade" aria-label="Minimize Quick Trade">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
           <div class="qt-content">
             <button id="quick-trade-sell-btn" class="qt-btn qt-sell" title="Sell / Short at Market">
               <span class="qt-action" id="qt-sell-label">SELL</span>
               <span class="qt-price num-ltr" id="quick-sell-price">...</span>
             </button>
-            <div class="qt-qty-wrap">
-              <button id="qt-qty-dec" class="qt-step-btn" title="Decrease size">−</button>
-              <input type="number" id="quick-trade-qty" value="0.1" step="0.05" min="0.01" class="num-ltr" title="Order Quantity (BTC)" />
-              <button id="qt-qty-inc" class="qt-step-btn" title="Increase size">+</button>
-              <span class="qt-unit">BTC</span>
+            <div class="qt-middle-wrap">
+              <div class="qt-qty-wrap">
+                <button id="qt-qty-dec" class="qt-step-btn" title="Decrease size">−</button>
+                <input type="number" id="quick-trade-qty" value="0.1" step="0.05" min="0.01" class="num-ltr" title="Order Quantity (BTC)" />
+                <button id="qt-qty-inc" class="qt-step-btn" title="Increase size">+</button>
+                <span class="qt-unit">BTC</span>
+              </div>
+              <div class="qt-spread-wrap" title="Current Bid/Ask Spread">
+                <span class="qt-spread-label" id="qt-spread-label">Spread</span>
+                <span class="qt-spread-val num-ltr" id="quick-trade-spread">$5.00</span>
+              </div>
             </div>
             <button id="quick-trade-buy-btn" class="qt-btn qt-buy" title="Buy / Long at Market">
               <span class="qt-action" id="qt-buy-label">BUY</span>
@@ -210,7 +216,7 @@
             <span id="tab-label-strategy">Strategy Tester</span>
           </button>
           <button class="panel-tab" data-view="propsim">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h0a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z"/></svg>
             <span id="tab-label-propsim">Prop-Firm Simulator</span>
           </button>
           <button class="panel-tab" data-view="journal">
@@ -323,7 +329,7 @@
 
         <button class="panel-menu-item" data-panel="propsim">
           <div class="panel-item-icon" style="color: #c084fc;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M6 4h12a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h0a6 6 0 0 1-6-6V6a2 2 0 0 1 2-2Z"/></svg>
           </div>
           <div class="panel-item-info">
             <div class="panel-item-title">Prop-Firm Simulator</div>

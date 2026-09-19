@@ -94,6 +94,7 @@ export const translations = {
     qtBuy: 'BUY',
     qtTrade: 'Trade',
     qtQty: 'Quantity',
+    qtSpread: 'Spread',
     layoutSave: 'Save',
     topbarReplay: 'Replay',
 
@@ -199,6 +200,7 @@ export const translations = {
     qtBuy: 'خرید',
     qtTrade: 'معامله',
     qtQty: 'حجم',
+    qtSpread: 'اسپرد',
     layoutSave: 'ذخیره',
     topbarReplay: 'بازپخش',
 
@@ -262,7 +264,7 @@ export function applyTranslationsToDOM() {
   const tabJour = document.querySelector('#tab-label-journal');
   if (tabJour) tabJour.innerText = dict.tabJournal;
   const tabTrack = document.querySelector('#tab-label-trackers');
-  if (tabTrack) tabTrack.innerText = dict.tabTrackers;
+  if (tabTrack) tabTrack.innerHTML = currentLang === 'fa' ? 'پایش بازار <bdi dir="ltr">(SEC)</bdi>' : 'Trackers';
 
   // 3. Panels Menu Modal Titles & Descs
   const panelsMenuTitle = document.querySelector('#panels-menu-title');
@@ -394,6 +396,8 @@ export function applyTranslationsToDOM() {
   if (qtBuy) qtBuy.innerText = dict.qtBuy || 'BUY';
   const qtPill = document.querySelector('#qt-pill-label');
   if (qtPill) qtPill.innerText = dict.qtTrade || 'Trade';
+  const qtSpread = document.querySelector('#qt-spread-label');
+  if (qtSpread) qtSpread.innerText = dict.qtSpread || 'Spread';
 
   // 10. Topbar Layout & Replay Labels
   const saveLabel = document.querySelector('#layout-save-label');

@@ -73,12 +73,12 @@ export class MarketNewsView {
 
           <!-- Quick Search Filter -->
           <div style="position: relative;">
-            <input type="text" id="news-search-input" placeholder="${isFa ? 'جستجو در اخبار و نمادها...' : 'Search headlines & symbols...'}" style="width: 100%; height: 28px; padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
+            <input type="text" id="news-search-input" placeholder="${isFa ? 'جستجو در اخبار و نمادها…' : 'Search headlines & symbols...'}" style="width: 100%; height: 28px; padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
           </div>
         </div>
 
         <!-- News Feed List -->
-        <div id="news-items-container" style="flex: 1; overflow-y: auto; padding: 10px 10px max(env(safe-area-inset-bottom), 34px) 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div id="news-items-container" style="flex: 1; overflow-y: auto; padding: 10px 10px calc(48px + env(safe-area-inset-bottom, 0px)) 10px; display: flex; flex-direction: column; gap: 8px;">
           <!-- Populated dynamically -->
         </div>
       </div>
