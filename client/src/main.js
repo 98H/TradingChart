@@ -437,12 +437,36 @@ class TradingChartApp {
     }
   }
 
+  getBaseAsset(sym) {
+    if (!sym) return 'BTC';
+    const clean = sym.replace(/^.*:/, '').toUpperCase();
+    if (clean.endsWith('USDT')) return clean.slice(0, -4);
+    if (clean.endsWith('USD')) return clean.slice(0, -3);
+    if (clean.endsWith('BTC')) return clean.slice(0, -3);
+    if (clean.startsWith('XAU')) return 'XAU';
+    if (clean.startsWith('XAG')) return 'XAG';
+    return clean.slice(0, 4);
+  }
+
   switchSymbol(sym) {
     const clean = sym.replace(/^.*:/, '').toUpperCase();
     this.currentSymbol = clean;
     this.chartManager.setSymbol(clean);
     this.depthOfMarket?.setSymbol(clean);
     this.watchlist?.setSymbol(clean);
+    const lastClose = this.activeBars && this.activeBars.length > 0 ? this.activeBars[this.activeBars.length - 1].close : null;
+    this.paperTrading?.setMarket(clean, lastClose);
+
+    const unitEl = document.querySelector('.qt-unit, #quick-trade-unit');
+    if (unitEl) unitEl.innerText = this.getBaseAsset(clean);
+
+    this.loadActiveCandles();
+  }
+
+  setTimeframe(tf) {
+    const tfStr = String(tf);
+    this.currentTimeframe = tfStr;
+    this.chartManager?.setTimeframe(tfStr);
     this.loadActiveCandles();
   }
 
@@ -451,6 +475,12 @@ class TradingChartApp {
     this.currentSymbol = clean;
     this.depthOfMarket?.setSymbol(clean);
     this.watchlist?.setSymbol(clean);
+    const lastClose = this.activeBars && this.activeBars.length > 0 ? this.activeBars[this.activeBars.length - 1].close : null;
+    this.paperTrading?.setMarket(clean, lastClose);
+
+    const unitEl = document.querySelector('.qt-unit, #quick-trade-unit');
+    if (unitEl) unitEl.innerText = this.getBaseAsset(clean);
+
     this.loadActiveCandles();
   }
 
@@ -1042,6 +1072,12 @@ class TradingChartApp {
     const bidEl = document.querySelector('#quick-sell-price');
     const askEl = document.querySelector('#quick-buy-price');
     const spreadEl = document.querySelector('#quick-trade-spread');
+    const unitEl = document.querySelector('.qt-unit, #quick-trade-unit');
+
+    if (unitEl) {
+      unitEl.innerText = this.getBaseAsset(this.currentSymbol);
+    }
+
     const spread = bar.close > 1000 ? 5 : (bar.close > 10 ? 0.05 : 0.0005);
     const bid = bar.close - spread / 2;
     const ask = bar.close + spread / 2;

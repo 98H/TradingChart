@@ -28,7 +28,19 @@ export class ScaleControls {
     this.container = el;
     this.render();
     this.startCountdownLoop();
-    this.syncActiveStates();
+
+    // Ensure standard non-inverted price scale on startup
+    setTimeout(() => {
+      if (this.renderer) {
+        if (this.renderer.get('invertScale')) {
+          this.renderer.set('invertScale', false);
+        }
+        if (this.renderer.get('scaleMode') === 'percent') {
+          this.renderer.set('scaleMode', 'price');
+        }
+      }
+      this.syncActiveStates();
+    }, 200);
   }
 
   get renderer() {

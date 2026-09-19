@@ -2,7 +2,7 @@
 // Real-Time Market News & Macro Catalyst Feed for TradingChart (TradingView Parity)
 // Features live category filters, sentiment tagging, impact badges, and 1-click symbol chart switching
 
-import { getLanguage, t } from './i18n.js';
+import { getLanguage, t, toPersianDigits } from './i18n.js';
 
 export class MarketNewsView {
   constructor(options = {}) {
@@ -73,7 +73,7 @@ export class MarketNewsView {
 
           <!-- Quick Search Filter -->
           <div style="position: relative;">
-            <input type="text" id="news-search-input" placeholder="${isFa ? 'جستجو در اخبار و نمادها…' : 'Search headlines & symbols...'}" style="width: 100%; height: 28px; padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
+            <input type="text" id="news-search-input" dir="${isFa ? 'rtl' : 'ltr'}" placeholder="${isFa ? 'جستجو در اخبار و نمادها...' : 'Search headlines & symbols...'}" style="width: 100%; height: 28px; padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export class MarketNewsView {
 
       const diffMins = Math.max(1, Math.round((Date.now() - (item.timestamp || Date.now())) / 60000));
       const timeAgoStr = isFa
-        ? (diffMins < 60 ? `${diffMins} دقیقه قبل` : `${Math.floor(diffMins / 60)} ساعت قبل`)
+        ? (diffMins < 60 ? `${toPersianDigits(diffMins)} دقیقه قبل` : `${toPersianDigits(Math.floor(diffMins / 60))} ساعت قبل`)
         : (diffMins < 60 ? `${diffMins}m ago` : `${Math.floor(diffMins / 60)}h ago`);
 
       return `

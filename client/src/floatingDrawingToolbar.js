@@ -19,9 +19,9 @@ export class FloatingDrawingToolbar {
     } catch (e) {
       savedPos = null;
     }
-    // Prevent colliding with top statusline / indicator legend (y: 50-135, x: 50-320)
-    if (!savedPos || (savedPos.top < 135 && savedPos.left < 320) || savedPos.top >= 500) {
-      savedPos = { top: 145, left: 65 };
+    // Default position: bottom-left thumb & drawing zone (TradingView canonical placement)
+    if (!savedPos || (savedPos.top !== undefined && (savedPos.top < 60 || savedPos.top > 600))) {
+      savedPos = { bottom: 44, left: 16 };
     }
     this.pos = savedPos;
 
@@ -44,8 +44,15 @@ export class FloatingDrawingToolbar {
 
   render() {
     const isFa = getLanguage() === 'fa';
-    this.el.style.top = `${this.pos.top}px`;
-    this.el.style.left = `${this.pos.left}px`;
+    if (this.pos.bottom !== undefined) {
+      this.el.style.top = 'auto';
+      this.el.style.bottom = `${this.pos.bottom}px`;
+      this.el.style.left = `${this.pos.left}px`;
+    } else {
+      this.el.style.bottom = 'auto';
+      this.el.style.top = `${this.pos.top}px`;
+      this.el.style.left = `${this.pos.left}px`;
+    }
 
     this.el.innerHTML = `
       <div class="fav-toolbar-inner ${this.isMinimized ? 'minimized' : ''}">

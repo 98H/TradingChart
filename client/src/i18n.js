@@ -123,7 +123,7 @@ export const translations = {
     tabStrategy: 'بک‌تستر استراتژی',
     tabPropsim: 'شبیه‌ساز پراپ‌فرم',
     tabJournal: 'میز ژورنال معاملات',
-    tabTrackers: 'پایش بازار (SEC)',
+    tabTrackers: 'پایش بازار \u200E(SEC)',
     tabCalendar: 'تقویم اقتصادی',
     tabScreener: 'دیده‌بان تکنیکال',
     tabNews: 'اخبار بازار',
@@ -264,7 +264,7 @@ export function applyTranslationsToDOM() {
   const tabJour = document.querySelector('#tab-label-journal');
   if (tabJour) tabJour.innerText = dict.tabJournal;
   const tabTrack = document.querySelector('#tab-label-trackers');
-  if (tabTrack) tabTrack.innerHTML = currentLang === 'fa' ? 'پایش بازار <bdi dir="ltr">(SEC)</bdi>' : 'Trackers';
+  if (tabTrack) tabTrack.innerHTML = currentLang === 'fa' ? '<span>پایش بازار</span> <span dir="ltr" style="display:inline-block;">(SEC)</span>' : 'Trackers';
 
   // 3. Panels Menu Modal Titles & Descs
   const panelsMenuTitle = document.querySelector('#panels-menu-title');

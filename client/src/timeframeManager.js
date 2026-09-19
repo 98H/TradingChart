@@ -68,6 +68,18 @@ export class TimeframeManager {
     }
   }
 
+  setTimeframe(id) {
+    const tfStr = String(id);
+    if (this.app) {
+      this.app.currentTimeframe = tfStr;
+      if (this.app.chartManager?.setTimeframe) {
+        this.app.chartManager.setTimeframe(tfStr);
+      }
+      this.app.loadActiveCandles?.();
+    }
+    this.close();
+  }
+
   render() {
     const isFa = getLanguage() === 'fa';
     const currentTf = String(this.app?.currentTimeframe || '60');

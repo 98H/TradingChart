@@ -106,9 +106,9 @@ export class PaperTrading {
         <div id="paper-ticket-view" style="display: ${this.activeTab === 'ticket' ? 'flex' : 'none'}; flex-direction: column; gap: 10px; background: var(--bg-darkest); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
-              ${isFa ? 'اردر معامله:' : 'Ticket:'} <span style="color: var(--accent-cyan); font-weight: 800;">${this.currentSymbol}</span>
+              ${isFa ? 'اردر معامله:' : 'Ticket:'} <span id="order-ticket-sym" style="color: var(--accent-cyan); font-weight: 800;">${this.currentSymbol}</span>
             </span>
-            <span style="font-size: 13px; font-weight: 800; color: #fff;" class="num-ltr" id="order-cur-price">$${this.currentPrice.toFixed(2)}</span>
+            <span style="font-size: 13px; font-weight: 800; color: #fff;" class="num-ltr" id="order-cur-price">$${this.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -206,9 +206,12 @@ export class PaperTrading {
 
     const btnReset = this.container.querySelector('#btn-reset-paper');
     btnReset?.addEventListener('click', () => {
-      this.balance = 100000.0;
-      this.positions = [];
-      this.updatePositionsView();
+      const isFa = getLanguage() === 'fa';
+      if (confirm(isFa ? 'آیا از بازنشانی حساب دمو و بستن تمام پوزیشن‌ها اطمینان دارید؟' : 'Are you sure you want to reset your paper account balance and close all open positions?')) {
+        this.balance = 100000.0;
+        this.positions = [];
+        this.updatePositionsView();
+      }
     });
   }
 
@@ -331,13 +334,16 @@ export class PaperTrading {
     const curPriceEl = this.container.querySelector('#order-cur-price');
     const countBadge = this.container.querySelector('#pos-count-badge');
 
-    if (eqEl) eqEl.innerText = `$${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (curPriceEl) curPriceEl.innerText = `$${this.currentPrice.toFixed(2)}`;
+    const ticketSymEl = this.container.querySelector('#order-ticket-sym');
+    if (ticketSymEl) ticketSymEl.innerText = this.currentSymbol;
+
+    if (eqEl) eqEl.innerText = `$${this.calculateEquity().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (curPriceEl) curPriceEl.innerText = `$${this.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (countBadge) countBadge.innerText = `${this.positions.length} ${isFa ? 'فعال' : 'Active'}`;
 
     const totalUnrealized = this.positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
     if (pnlEl) {
-      pnlEl.innerText = `${totalUnrealized >= 0 ? '+' : ''}$${totalUnrealized.toFixed(2)}`;
+      pnlEl.innerText = `${totalUnrealized >= 0 ? '+' : ''}$${totalUnrealized.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       pnlEl.style.color = totalUnrealized >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
     }
 
@@ -355,7 +361,7 @@ export class PaperTrading {
       const sideColor = p.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)';
 
       return `
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; margin-bottom: 8px;">
+        <div class="position-card pos-card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; transition: border-color 0.15s ease;">
           <!-- Card Header -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <div style="display: flex; align-items: center; gap: 6px;">
@@ -369,24 +375,24 @@ export class PaperTrading {
             </button>
           </div>
 
-          <!-- Position Grid Metrics (Strict LTR for numbers) -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px;">
+          <!-- Position Grid Metrics (Strict LTR for numbers & Tabular figures) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums;">
             <div>
               <span style="color: var(--text-dim);">${isFa ? 'حجم:' : 'Size:'}</span>
               <span class="num-ltr" style="font-weight: 700; color: var(--text-main); margin-left: 2px;">${p.qty}</span>
             </div>
             <div style="text-align: right;">
               <span style="color: var(--text-dim);">${isFa ? 'ورود:' : 'Entry:'}</span>
-              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.entryPrice.toFixed(2)}</span>
+              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div>
               <span style="color: var(--text-dim);">${isFa ? 'قیمت جاری:' : 'Mark:'}</span>
-              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.markPrice.toFixed(2)}</span>
+              <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.markPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div style="text-align: right;">
               <span style="color: var(--text-dim);">${isFa ? 'سود/زیان:' : 'P&L:'}</span>
               <span class="num-ltr" style="font-weight: 800; color: ${color}; margin-left: 2px;">
-                ${isWin ? '+' : ''}$${p.unrealizedPnl.toFixed(2)} (${isWin ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
+                ${isWin ? '+' : ''}$${p.unrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${isWin ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
               </span>
             </div>
           </div>

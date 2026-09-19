@@ -155,13 +155,13 @@ export class PineStudio {
         <!-- Split View: Editor + Line Numbers + Diagnostics -->
         <div style="flex: 1; display: flex; overflow: hidden; direction: ltr !important;">
           <!-- Line Numbers Gutter -->
-          <div id="pine-line-gutter" style="width: 42px; background: #06080d; color: #475569; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; text-align: right; padding: 12px 6px 12px 0; user-select: none; border-right: 1px solid var(--border-subtle); overflow: hidden;">
+          <div id="pine-line-gutter" class="pine-line-gutter line-gutter" style="width: 42px; background: #06080d; color: #475569; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; text-align: right; padding: 12px 6px 12px 0; user-select: none; border-right: 1px solid var(--border-subtle); overflow: hidden;">
             1
           </div>
 
           <!-- Code Textarea -->
-          <div style="flex: 1; position: relative; overflow: hidden;">
-            <textarea id="pine-code-editor" style="width: 100%; height: 100%; resize: none; background: #070a10; color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 12px; border: none; outline: none; white-space: pre;" spellcheck="false"></textarea>
+          <div style="flex: 1; position: relative; overflow: hidden; direction: ltr !important;">
+            <textarea id="pine-code-editor" style="width: 100%; height: 100%; resize: none; background: #070a10; color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 12px; border: none; outline: none; white-space: pre; direction: ltr !important; text-align: left !important; unicode-bidi: isolate !important;" spellcheck="false"></textarea>
           </div>
 
           <!-- Diagnostics Console with Clear Visual Divider -->

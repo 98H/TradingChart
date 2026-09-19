@@ -1322,26 +1322,29 @@ canvas.volume-layer-canvas {
 
   .nav-icon-btn,
   .mobile-only-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
   }
 
   .nav-text-btn {
     padding: 6px 12px;
     font-size: 11px;
     font-weight: 700;
-    min-height: 34px;
-    border-radius: 4px;
+    min-height: 38px;
+    min-width: 42px;
+    border-radius: 6px;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
   }
 
   .user-avatar-badge {
@@ -1379,12 +1382,17 @@ canvas.volume-layer-canvas {
 
   .qt-pill-trigger {
     position: absolute !important;
-    top: 8px !important;
-    right: 56px !important; /* Safely left of the dynamic Y-axis price badge */
+    top: auto !important;
+    bottom: 58px !important;
+    right: 12px !important;
     z-index: 45 !important;
-    padding: 3px 8px !important;
-    font-size: 10px !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
     display: flex !important;
+    touch-action: manipulation !important;
   }
 
   .quick-trade-widget:not(.minimized) ~ .qt-pill-trigger,

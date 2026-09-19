@@ -135,7 +135,7 @@ export class ChartStylePicker {
         ${CHART_STYLES.map(s => {
           const isActive = s.id === this.currentStyle;
           return `
-            <button class="style-menu-item ${isActive ? 'active' : ''}" data-style="${s.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 12px; font-weight: ${isActive ? '700' : '500'}; color: ${isActive ? 'var(--accent-green)' : '#fff'}; background: ${isActive ? 'rgba(0,242,176,0.1)' : 'transparent'}; border: none; border-radius: 4px; cursor: pointer; text-align: left; transition: all 0.12s;">
+            <button class="style-menu-item chart-style-item ${isActive ? 'active' : ''}" data-style="${s.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 12px; font-weight: ${isActive ? '700' : '500'}; color: ${isActive ? 'var(--accent-green)' : '#fff'}; background: ${isActive ? 'rgba(0,242,176,0.1)' : 'transparent'}; border: none; border-radius: 4px; cursor: pointer; text-align: left; transition: all 0.12s;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="display: flex; align-items: center; color: ${isActive ? 'var(--accent-green)' : 'var(--text-muted)'};">${s.icon}</span>
                 <span>${isFa ? s.nameFa : s.nameEn}</span>
