@@ -24,6 +24,13 @@ export class ChartAlertsOverlay {
     this.container = el;
   }
 
+  addAlert(targetPrice, condition = null) {
+    if (this.app?.alertsManager) {
+      return this.app.alertsManager.addAlert(targetPrice, condition);
+    }
+    return null;
+  }
+
   updateAlerts(alerts, activeSymbol, currentPrice) {
     if (!this.container) return;
     const cleanSym = (activeSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();

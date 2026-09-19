@@ -131,7 +131,7 @@ export class TemplateManager {
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               ${this.userTemplates.map(ut => `
-                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="template-card user-template-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <div style="font-size: 12px; font-weight: 700; color: #fff;">${ut.name}</div>
                     <div style="font-size: 10px; color: var(--text-dim);">${ut.date} &nbsp;·&nbsp; ${ut.scripts.length} ${isFa ? 'اندیکاتور' : 'indicators'}</div>
@@ -157,7 +157,7 @@ export class TemplateManager {
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             ${CURATED_TEMPLATES.map(t => `
-              <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px;">
+              <div class="template-card curated-template-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <div style="font-weight: 700; font-size: 12px; color: #fff;">${isFa ? (t.nameFa || t.name) : t.name}</div>
                   <span style="font-size: 9px; font-weight: 800; background: rgba(255,255,255,0.06); color: ${t.color}; padding: 1px 5px; border-radius: 3px;">${t.category}</span>

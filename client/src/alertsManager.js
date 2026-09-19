@@ -69,6 +69,36 @@ export class AlertsManager {
     this.render();
   }
 
+  addAlert(targetPrice, condition = null) {
+    const numPrice = Number(targetPrice);
+    if (!numPrice || isNaN(numPrice)) return null;
+    const cleanSym = (this.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
+    const dir = numPrice >= this.currentPrice ? 'above' : 'below';
+    const newId = 'alt-' + Date.now();
+    const defaultCondition = condition || `Price Crossing ${dir === 'above' ? 'Above' : 'Below'} $${numPrice.toLocaleString()}`;
+    const defaultConditionFa = `تقاطع قیمت با تراز $${numPrice.toLocaleString()}`;
+
+    this.alerts.unshift({
+      id: newId,
+      symbol: cleanSym,
+      condition: defaultCondition,
+      conditionFa: defaultConditionFa,
+      targetPrice: numPrice,
+      direction: dir,
+      channel: 'Sound & Popup',
+      channelFa: 'صوتی و اعلان تصویری',
+      active: true,
+      triggered: false,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
+    });
+
+    this.render();
+    if (window.__TRADING_APP__?.chartAlertsOverlay) {
+      window.__TRADING_APP__.chartAlertsOverlay.updateAlerts(this.alerts, cleanSym, this.currentPrice);
+    }
+    return newId;
+  }
+
   checkPrice(symbol, price) {
     for (const a of this.alerts) {
       if (!a.active || a.triggered || a.symbol !== symbol) continue;
