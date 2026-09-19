@@ -1,6 +1,6 @@
 // client/src/screenshotModal.js
 // Interactive Screenshot Preview & Export Modal for TradingChart (TradingView Parity)
-// Features instant image download, link copying, and pre-formatted Analysis / Social Post copy
+// Features instant multi-layer canvas composition, download, link copying, and pre-formatted Analysis / Social Post copy
 
 import { getLanguage, t } from './i18n.js';
 
@@ -9,7 +9,42 @@ export class ScreenshotModal {
     this.app = app;
   }
 
+  captureCompositeCanvas() {
+    try {
+      const chartMount = document.querySelector('#vela-workspace-mount') || document.querySelector('#chart-area');
+      const canvases = Array.from(chartMount?.querySelectorAll('canvas') || []).filter(c => c.width > 0 && c.height > 0);
+      if (canvases.length === 0) return null;
+
+      const width = Math.max(...canvases.map(c => c.width));
+      const height = Math.max(...canvases.map(c => c.height));
+
+      const out = document.createElement('canvas');
+      out.width = width;
+      out.height = height;
+      const ctx = out.getContext('2d');
+
+      ctx.fillStyle = '#0b0e14';
+      ctx.fillRect(0, 0, width, height);
+
+      for (const c of canvases) {
+        try {
+          ctx.drawImage(c, 0, 0, width, height);
+        } catch (e) {
+          console.warn('[ScreenshotModal] Canvas drawImage error:', e);
+        }
+      }
+      return out.toDataURL('image/png');
+    } catch (err) {
+      console.warn('[ScreenshotModal] Composite error:', err);
+      return null;
+    }
+  }
+
   open(imageSrc) {
+    if (!imageSrc) {
+      imageSrc = this.captureCompositeCanvas();
+    }
+
     let modal = document.querySelector('#modal-screenshot-preview');
     if (!modal) {
       modal = document.createElement('div');
@@ -26,7 +61,7 @@ export class ScreenshotModal {
     modal.innerHTML = `
       <div class="modal-box" style="max-width: 640px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: var(--font-sans);">
         <!-- Header -->
-        <div style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : ''}">
           <div style="font-weight: 700; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 8px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span>${isFa ? 'تصویر چارت و اشتراک‌گذاری ایده تحلیلی' : 'Chart Snapshot & Idea Sharing'}</span>
@@ -37,12 +72,12 @@ export class ScreenshotModal {
         </div>
 
         <!-- Body -->
-        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px; ${isFa ? 'direction: rtl;' : ''}">
           <!-- Snapshot Preview Frame -->
           <div style="width: 100%; max-height: 340px; background: #06090e; border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            ${imageSrc ? `<img src="${imageSrc}" style="width: 100%; height: auto; object-fit: contain;" alt="Chart Snapshot" />` : `
+            ${imageSrc ? `<img id="screenshot-canvas-preview" src="${imageSrc}" style="width: 100%; height: auto; object-fit: contain;" alt="Chart Snapshot" />` : `
               <div style="padding: 40px; text-align: center; color: var(--text-dim); font-size: 12px;">
-                <div style="font-size: 24px; margin-bottom: 8px;">📷</div>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="margin-bottom: 8px; color: var(--accent-cyan);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 <div>${isFa ? 'تصویر چارت با موفقیت ثبت شد.' : 'Chart snapshot ready for export.'}</div>
               </div>
             `}
@@ -58,14 +93,17 @@ export class ScreenshotModal {
 
           <!-- Action buttons -->
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-            <button id="btn-dl-screenshot" class="btn-primary" style="justify-content: center; padding: 7px; font-size: 11px;">
-              💾 ${isFa ? 'دانلود تصویر (PNG)' : 'Download PNG'}
+            <button id="btn-dl-screenshot" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>${isFa ? 'دانلود تصویر (PNG)' : 'Download PNG'}</span>
             </button>
-            <button id="btn-copy-screenshot-link" class="btn-secondary" style="justify-content: center; padding: 7px; font-size: 11px;">
-              📋 ${isFa ? 'کپی لینک اشتراک' : 'Copy Link'}
+            <button id="btn-copy-screenshot-link" class="btn-secondary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <span>${isFa ? 'کپی لینک اشتراک' : 'Copy Link'}</span>
             </button>
-            <button id="btn-copy-social-text" class="btn-secondary" style="justify-content: center; padding: 7px; font-size: 11px;">
-              💬 ${isFa ? 'کپی متن تحلیل' : 'Copy Post Text'}
+            <button id="btn-copy-social-text" class="btn-secondary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>${isFa ? 'کپی متن تحلیل' : 'Copy Post Text'}</span>
             </button>
           </div>
         </div>
@@ -76,37 +114,39 @@ export class ScreenshotModal {
 
     const close = () => modal.classList.remove('open');
     modal.querySelector('#btn-close-screenshot')?.addEventListener('click', close);
-    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) close();
+    });
 
+    // 1. Download
     modal.querySelector('#btn-dl-screenshot')?.addEventListener('click', () => {
-      this.app?.chartManager?.takeScreenshot();
-      this.app.showExecutionToast?.('DOWNLOAD', 1, 'PNG');
-      close();
+      const a = document.createElement('a');
+      a.download = `TradingChart_${sym}_${Date.now()}.png`;
+      a.href = imageSrc || this.captureCompositeCanvas();
+      a.click();
+      this.app?.showToast?.(isFa ? 'تصویر با موفقیت ذخیره شد' : 'Chart image downloaded successfully', 'success');
     });
 
-    modal.querySelector('#btn-copy-screenshot-link')?.addEventListener('click', () => {
+    // 2. Copy Link
+    modal.querySelector('#btn-copy-screenshot-link')?.addEventListener('click', async () => {
+      const shareUrl = `${window.location.origin}/?symbol=${sym}&tf=${tf}&snap=true`;
       try {
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(window.location.href).catch(() => {});
-        }
-      } catch (e) {}
-      const btn = modal.querySelector('#btn-copy-screenshot-link');
-      if (btn) btn.innerText = isFa ? 'کپی شد! ✓' : 'Copied! ✓';
-      this.app?.showToast?.(isFa ? 'لینک اشتراک‌گذاری کپی شد' : 'Share link copied to clipboard!');
-      setTimeout(() => { if (btn) btn.innerText = isFa ? '📋 کپی لینک اشتراک' : '📋 Copy Link'; }, 2000);
+        await navigator.clipboard.writeText(shareUrl);
+        this.app?.showToast?.(isFa ? 'لینک اشتراک‌گذاری کپی شد' : 'Share link copied to clipboard', 'success');
+      } catch (err) {
+        this.app?.showToast?.(isFa ? 'خطا در دسترسی به کلیپ‌بورد' : 'Clipboard access denied', 'error');
+      }
     });
 
-    modal.querySelector('#btn-copy-social-text')?.addEventListener('click', () => {
-      const socialText = `📊 TradingChart Market Analysis: $${sym} (${tf})\nCurrent Price: $${Number(lastPrice).toLocaleString()}\nPowered by TradingChart Open Architecture\n#TradingChart #TechnicalAnalysis #${sym}`;
+    // 3. Copy Social Text
+    modal.querySelector('#btn-copy-social-text')?.addEventListener('click', async () => {
+      const text = `📊 #TradingChart Analysis for #${sym}\nTimeframe: ${tf}m\nCurrent Price: $${lastPrice}\nAnalysis: LuxAlgo Signals & SMC Confluence active.\nShared via TradingChart Terminal 🚀`;
       try {
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(socialText).catch(() => {});
-        }
-      } catch (e) {}
-      const btn = modal.querySelector('#btn-copy-social-text');
-      if (btn) btn.innerText = isFa ? 'متن کپی شد! ✓' : 'Text Copied! ✓';
-      this.app?.showToast?.(isFa ? 'متن تحلیل کپی شد' : 'Analysis post text copied to clipboard!');
-      setTimeout(() => { if (btn) btn.innerText = isFa ? '💬 کپی متن تحلیل' : '💬 Copy Post Text'; }, 2000);
+        await navigator.clipboard.writeText(text);
+        this.app?.showToast?.(isFa ? 'متن تحلیل کپی شد' : 'Analysis post text copied to clipboard', 'success');
+      } catch (err) {
+        this.app?.showToast?.(isFa ? 'خطا در دسترسی به کلیپ‌بورد' : 'Clipboard access denied', 'error');
+      }
     });
   }
 }
