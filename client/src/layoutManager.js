@@ -107,7 +107,7 @@ export class LayoutManager {
   loadSavedLayouts() {
     try {
       const data = localStorage.getItem('tradingchart_user_layouts');
-      return data ? JSON.parse(data) : [
+      let layouts = data ? JSON.parse(data) : [
         {
           id: 'usr_default',
           name: 'Institutional SMC Master',
@@ -116,7 +116,7 @@ export class LayoutManager {
           badge: '4 Charts',
           badgeFa: '۴ چارت',
           sync: { symbol: false, timeframe: false, crosshair: true, style: false },
-          date: '2026-09-18'
+          date: new Date().toISOString().split('T')[0]
         },
         {
           id: 'usr_macro',
@@ -126,9 +126,22 @@ export class LayoutManager {
           badge: '2 Charts',
           badgeFa: '۲ چارت',
           sync: { symbol: false, timeframe: true, crosshair: true, style: false },
-          date: '2026-09-17'
+          date: new Date().toISOString().split('T')[0]
         }
       ];
+
+      // Clean deduplication by layout name & normalize typography
+      const seen = new Set();
+      layouts = layouts.filter(l => {
+        const cleanName = (l.name || '').replace(/×/g, 'x').trim();
+        if (seen.has(cleanName)) return false;
+        seen.add(cleanName);
+        l.name = cleanName;
+        if (l.nameFa) l.nameFa = l.nameFa.replace(/×/g, 'x');
+        if (l.badge === '1 Charts' || l.badge === '1 charts') l.badge = '1 Chart';
+        return true;
+      });
+      return layouts;
     } catch (e) {
       return [];
     }
@@ -181,14 +194,20 @@ export class LayoutManager {
 
     const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId);
     const count = preset ? preset.cols * preset.rows : 1;
+    const layoutNameEn = preset ? preset.nameEn : this.activeLayoutName;
+    const layoutNameFa = preset ? preset.nameFa : this.activeLayoutName;
+    const badgeText = count === 1 ? '1 Chart' : `${count} Charts`;
+    const badgeFa = count === 1 ? '۱ چارت' : `${toPersianDigits(count)} چارت`;
 
+    // Deduplicate: replace existing layout with the same name if exists
+    this.savedLayouts = this.savedLayouts.filter(l => l.name !== layoutNameEn);
     this.savedLayouts.unshift({
       id: 'usr_' + Date.now(),
-      name: preset ? preset.nameEn : this.activeLayoutName,
-      nameFa: preset ? preset.nameFa : this.activeLayoutName,
+      name: layoutNameEn,
+      nameFa: layoutNameFa,
       layoutId: this.activeLayoutId,
-      badge: `${count} Charts`,
-      badgeFa: `${toPersianDigits(count)} چارت`,
+      badge: badgeText,
+      badgeFa: badgeFa,
       sync: { ...this.syncOpts },
       date: new Date().toISOString().split('T')[0]
     });
@@ -318,12 +337,12 @@ export class LayoutManager {
                     <!-- Grid Visual Matrix -->
                     <div style="display: grid; grid-template-columns: repeat(${preset.cols}, 1fr); grid-template-rows: repeat(${preset.rows}, 1fr); gap: 3px; height: 38px; width: 100%; background: #06090e; padding: 4px; border-radius: 4px; box-sizing: border-box; direction: ltr !important;">
                       ${Array.from({ length: preset.cols * preset.rows }).map(() => `
-                        <div style="background: ${isActive ? 'var(--accent-cyan)' : '#26334d'}; border-radius: 2px; opacity: ${isActive ? '0.9' : '0.6'};"></div>
+                        <div style="background: ${isActive ? 'rgba(0, 242, 176, 0.22)' : 'rgba(38, 51, 77, 0.45)'}; border: 1.5px dashed ${isActive ? 'var(--accent-cyan)' : '#334155'}; border-radius: 2px;"></div>
                       `).join('')}
                     </div>
                     <div>
                       <div style="font-weight: 700; font-size: 12px; color: ${isActive ? 'var(--accent-cyan)' : '#fff'};">${isFa ? preset.nameFa : preset.nameEn}</div>
-                      <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px; line-height: 1.3;">${isFa ? preset.descFa : preset.descEn}</div>
+                      <div style="font-size: 10px; color: #94a3b8; margin-top: 2px; line-height: 1.3;">${isFa ? preset.descFa : preset.descEn}</div>
                     </div>
                   </button>
                 `;
@@ -369,8 +388,9 @@ export class LayoutManager {
 
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
               <input type="text" id="new-layout-name-input" value="${isFa ? (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId)?.nameFa || this.activeLayoutName) : (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId)?.nameEn || this.activeLayoutName)}" placeholder="${isFa ? 'نام چیدمان جدید...' : 'New Layout Name...'}" style="flex: 1; padding: 6px 12px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;" />
-              <button id="btn-save-as-new-layout" class="btn-primary" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;">
-                ${isFa ? '💾 ذخیره چیدمان جاری' : '💾 Save Current'}
+              <button id="btn-save-as-new-layout" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 14px; font-size: 12px; white-space: nowrap; cursor: pointer;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span>${isFa ? 'ذخیره چیدمان جاری' : 'Save Current'}</span>
               </button>
             </div>
 
@@ -379,9 +399,9 @@ export class LayoutManager {
                 <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px;">
-                      ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge || 'Grid')}
+                      ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
                     </span>
-                    <span style="font-weight: 700; font-size: 12px; color: #fff;">${isFa ? (l.nameFa || l.name) : l.name}</span>
+                    <span style="font-weight: 700; font-size: 12px; color: #fff;">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
                     <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
                   </div>
                   <div style="display: flex; gap: 6px; align-items: center;">
@@ -436,7 +456,8 @@ export class LayoutManager {
     modal.querySelector('#btn-save-as-new-layout')?.addEventListener('click', (e) => {
       e.stopPropagation();
       const input = modal.querySelector('#new-layout-name-input');
-      const name = input?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`;
+      const name = (input?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`).replace(/×/g, 'x');
+      this.savedLayouts = this.savedLayouts.filter(l => l.name !== name);
       this.savedLayouts.unshift({
         id: 'usr_' + Date.now(),
         name,
