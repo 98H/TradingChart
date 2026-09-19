@@ -226,7 +226,8 @@ export class TradeJournalModal {
       }
 
       const pnl = (side === 'buy' ? (exit - entry) : (entry - exit)) * qty;
-      this.app.showExecutionToast(side.toUpperCase(), qty, `${sym} (+$${pnl.toFixed(2)})`);
+      const formattedPnl = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}`;
+      this.app.showExecutionToast(side.toUpperCase(), qty, `${sym} (${formattedPnl})`);
       close();
     });
   }
