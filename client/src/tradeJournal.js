@@ -205,16 +205,18 @@ export class TradeJournal {
 
           <div class="trades-cards-list" style="display: flex; flex-direction: column; gap: 8px;">
             ${trips.map(t => {
-              const pnl = t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * t.quantity;
+              const entryPrice = typeof t.avgEntry === 'number' ? t.avgEntry : (typeof t.entryPrice === 'number' ? t.entryPrice : 0);
+              const exitPrice = typeof t.avgExit === 'number' ? t.avgExit : (typeof t.exitPrice === 'number' ? t.exitPrice : entryPrice);
+              const pnl = t.netPnl !== undefined ? t.netPnl : (exitPrice - entryPrice) * (t.quantity || 1);
               const isWin = pnl >= 0;
               const isLong = t.direction === 'long' || t.direction === 'buy' || t.side === 'buy';
-              const retPct = ((t.avgExit - t.avgEntry) / t.avgEntry) * 100 * (isLong ? 1 : -1);
+              const retPct = entryPrice > 0 ? ((exitPrice - entryPrice) / entryPrice) * 100 * (isLong ? 1 : -1) : 0;
               const dateStr = t.closedAt ? new Date(t.closedAt).toLocaleDateString(isFa ? 'fa-IR' : 'en-US', { month: 'short', day: 'numeric' }) : 'Sep 2026';
               return `
                 <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="font-weight: 800; font-size: 13px; color: #fff;">${t.symbol}</span>
+                      <span style="font-weight: 800; font-size: 13px; color: #fff;">${t.symbol || 'ASSET'}</span>
                       <span style="font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${isLong ? 'rgba(0, 242, 176, 0.15)' : 'rgba(255, 77, 91, 0.15)'}; color: ${isLong ? 'var(--accent-green)' : 'var(--accent-red)'};">
                         ${isLong ? (isFa ? 'خرید (LONG)' : 'LONG') : (isFa ? 'فروش (SHORT)' : 'SHORT')}
                       </span>
@@ -224,7 +226,7 @@ export class TradeJournal {
                   <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 11px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.04);">
                     <div>
                       <span style="color: var(--text-dim); font-size: 10px; display: block;">${isFa ? 'قیمت ورود ← خروج' : 'Entry → Exit'}</span>
-                      <span style="font-weight: 600; color: var(--text-main);" class="num-ltr">${t.avgEntry.toFixed(2)} → ${t.avgExit.toFixed(2)}</span>
+                      <span style="font-weight: 600; color: var(--text-main);" class="num-ltr">${entryPrice.toFixed(2)} → ${exitPrice.toFixed(2)}</span>
                     </div>
                     <div style="text-align: ${isFa ? 'left' : 'right'}; display: flex; flex-direction: column; align-items: ${isFa ? 'flex-start' : 'flex-end'};">
                       <span style="color: var(--text-dim); font-size: 10px; display: block; margin-bottom: 2px;">${isFa ? 'سود/زیان خالص' : 'Net P&L'}</span>

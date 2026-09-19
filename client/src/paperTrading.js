@@ -316,12 +316,60 @@ export class PaperTrading {
     this.updatePositionsView();
   }
 
+  executeOrder(side, type = 'market', price = null, qty = 0.1) {
+    const normalizedSide = (side === 'buy' || side === 'long') ? 'long' : 'short';
+    const execPrice = (type === 'market' || !price) ? this.currentPrice : Number(price);
+    this.openPosition(normalizedSide, Number(qty) || 0.1, 10, execPrice);
+    if (window.__TRADING_APP__?.soundEngine) {
+      window.__TRADING_APP__.soundEngine.playOrder();
+    }
+  }
+
   closePosition(posId) {
     const idx = this.positions.findIndex(p => p.id === posId);
     if (idx !== -1) {
       const p = this.positions[idx];
       this.balance += (p.margin + p.unrealizedPnl);
-      this.positions.splice(idx, 1);
+      const closedPos = this.positions.splice(idx, 1)[0];
+      if (!this.history) this.history = [];
+      this.history.unshift({
+        ...closedPos,
+        closedAt: new Date().toISOString(),
+        finalPnl: closedPos.unrealizedPnl
+      });
+
+      // Synchronize closed paper trade into Trade Journal
+      if (window.__TRADING_APP__?.tradeJournal?.sampleExecutions) {
+        const now = new Date();
+        const openTime = new Date(now.getTime() - 600000).toISOString();
+        const closeTime = now.toISOString();
+
+        const execOpen = {
+          id: `exec-open-${Date.now()}`,
+          accountId: 'tradingchart-paper-1',
+          symbol: closedPos.symbol,
+          side: closedPos.side === 'long' ? 'buy' : 'sell',
+          quantity: closedPos.qty,
+          price: closedPos.entryPrice,
+          executedAt: openTime,
+          fee: 1.0
+        };
+
+        const execClose = {
+          id: `exec-close-${Date.now()}`,
+          accountId: 'tradingchart-paper-1',
+          symbol: closedPos.symbol,
+          side: closedPos.side === 'long' ? 'sell' : 'buy',
+          quantity: closedPos.qty,
+          price: closedPos.markPrice,
+          executedAt: closeTime,
+          fee: 1.0
+        };
+
+        window.__TRADING_APP__.tradeJournal.sampleExecutions.unshift(execClose, execOpen);
+        window.__TRADING_APP__.tradeJournal.render();
+      }
+
       this.updatePositionsView();
     }
   }

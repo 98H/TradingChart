@@ -71,11 +71,13 @@ export class TimeframeManager {
   setTimeframe(id) {
     const tfStr = String(id);
     if (this.app) {
-      this.app.currentTimeframe = tfStr;
-      if (this.app.chartManager?.setTimeframe) {
-        this.app.chartManager.setTimeframe(tfStr);
+      if (typeof this.app.setTimeframe === 'function') {
+        this.app.setTimeframe(tfStr);
+      } else {
+        this.app.currentTimeframe = tfStr;
+        this.app.chartManager?.setTimeframe?.(tfStr);
+        this.app.loadActiveCandles?.();
       }
-      this.app.loadActiveCandles?.();
     }
     this.close();
   }
@@ -164,9 +166,7 @@ export class TimeframeManager {
     this.modalEl.querySelectorAll('.btn-select-tf').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        this.app.chartManager?.setTimeframe(id);
-        this.app.currentTimeframe = id;
-        this.close();
+        this.setTimeframe(id);
       });
     });
 
@@ -200,9 +200,7 @@ export class TimeframeManager {
         this.saveCustomTimeframes();
       }
 
-      this.app.chartManager?.setTimeframe(id);
-      this.app.currentTimeframe = id;
-      this.close();
+      this.setTimeframe(id);
     });
 
     // Delete custom timeframe

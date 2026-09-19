@@ -93,6 +93,34 @@ export class WatchlistManager {
     }
   }
 
+  addSymbol(symbol) {
+    if (!symbol) return;
+    const clean = symbol.replace(/^.*:/, '').toUpperCase();
+    if (!this.customSymbols.includes(clean)) {
+      this.customSymbols.push(clean);
+      localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
+      this.currentCategory = 'custom';
+      const select = this.container?.querySelector('#wl-category-select');
+      if (select) select.value = 'custom';
+      this.fetchTickers();
+      this.updateListUI();
+    }
+  }
+
+  removeSymbol(symbol) {
+    if (!symbol) return;
+    const clean = symbol.replace(/^.*:/, '').toUpperCase();
+    const idx = this.customSymbols.indexOf(clean);
+    if (idx !== -1) {
+      this.customSymbols.splice(idx, 1);
+      localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
+    }
+    // Also remove from preset if user specifically requested remove
+    delete this.flags[clean];
+    localStorage.setItem('tradingchart_watchlist_flags', JSON.stringify(this.flags));
+    this.updateListUI();
+  }
+
   setFlag(symbol, color) {
     if (color === 'none') {
       delete this.flags[symbol];
@@ -140,7 +168,7 @@ export class WatchlistManager {
         </div>
 
         <!-- Sort Columns Header -->
-        <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; padding: 4px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); align-items: center;">
+        <div style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr 20px; padding: 4px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); align-items: center;">
           <div></div>
           <div class="wl-sort-head" data-field="symbol" style="cursor: pointer; display: flex; align-items: center; gap: 2px;">
             ${isFa ? 'نماد' : 'Symbol'} ⇅
@@ -151,6 +179,7 @@ export class WatchlistManager {
           <div class="wl-sort-head" data-field="chg" style="text-align: right; cursor: pointer;">
             ${isFa ? 'تغییر' : 'Chg%'} ⇅
           </div>
+          <div></div>
         </div>
 
         <!-- Watchlist Table -->
@@ -261,7 +290,7 @@ export class WatchlistManager {
       const flagDisplay = flagIcons[currentFlag] || '⚐';
 
       return `
-        <div class="wl-item" data-symbol="${sym}" style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; cursor: pointer; transition: background 0.15s;">
+        <div class="wl-item" data-symbol="${sym}" style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr 20px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; cursor: pointer; transition: background 0.15s;">
           <!-- Flag Toggle Button -->
           <button class="btn-toggle-flag" data-symbol="${sym}" title="Change Flag Tag" style="background: transparent; border: none; font-size: 11px; cursor: pointer; padding: 0; color: ${currentFlag !== 'none' ? 'inherit' : 'var(--text-dim)'}; opacity: ${currentFlag !== 'none' ? '1' : '0.4'};">
             ${flagDisplay}
@@ -283,6 +312,11 @@ export class WatchlistManager {
               ${isPos ? '+' : ''}${t.priceChangePercent.toFixed(2)}%
             </span>
           </div>
+
+          <!-- Remove Button -->
+          <button class="btn-remove-wl" data-symbol="${sym}" title="${isFa ? 'حذف نماد از دیده‌بان' : 'Remove symbol'}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0; font-size: 11px; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity 0.15s;">
+            ✕
+          </button>
         </div>
       `;
     }).join('');
@@ -290,13 +324,30 @@ export class WatchlistManager {
     // Row selection listener
     listEl.querySelectorAll('.wl-item').forEach(row => {
       row.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-toggle-flag')) return;
+        if (e.target.closest('.btn-toggle-flag') || e.target.closest('.btn-remove-wl')) return;
         const sym = row.getAttribute('data-symbol');
         if (sym) {
           this.activeSymbol = sym;
           this.technicalRatingCard?.setSymbol(sym);
           this.onSelectSymbol(sym);
         }
+      });
+      row.addEventListener('mouseenter', () => {
+        const rm = row.querySelector('.btn-remove-wl');
+        if (rm) rm.style.opacity = '1';
+      });
+      row.addEventListener('mouseleave', () => {
+        const rm = row.querySelector('.btn-remove-wl');
+        if (rm) rm.style.opacity = '0.4';
+      });
+    });
+
+    // Remove symbol listener
+    listEl.querySelectorAll('.btn-remove-wl').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sym = btn.getAttribute('data-symbol');
+        this.removeSymbol(sym);
       });
     });
 
