@@ -550,6 +550,19 @@ class TradingChartApp {
           return;
         }
 
+        if (panelId === 'chartStyle') {
+          this.chartStylePicker?.toggle();
+          return;
+        }
+        if (panelId === 'barReplay') {
+          this.toggleReplay();
+          return;
+        }
+        if (panelId === 'dataExport') {
+          this.dataExportModal?.open();
+          return;
+        }
+
         if (this.activeWorkspaceView !== 'quant') {
           this.switchWorkspace('quant');
         }
@@ -892,6 +905,14 @@ class TradingChartApp {
     this.alertsManager?.openCreateAlert?.(price);
   }
 
+  openIndicatorsModal() {
+    this.indicatorsModal?.open();
+  }
+
+  openSettingsModal() {
+    this.settingsModal?.open();
+  }
+
   openSymbolSearch() {
     const modal = document.querySelector('#modal-symbol-search');
     if (modal) {
@@ -1184,6 +1205,12 @@ class TradingChartApp {
       this.technicalScreener?.fetchData();
     } else if (viewName === 'calendar') {
       this.economicCalendar?.fetchEvents();
+    } else if (viewName === 'propsim') {
+      this.propFirmSim?.render?.();
+    } else if (viewName === 'strategy') {
+      this.strategyTester?.renderReport?.();
+    } else if (viewName === 'journal') {
+      this.tradeJournal?.render?.();
     }
     // UX Mutex: Close identical right-rail panel if currently open to prevent dual-rendering clutter
     if (this.chartManager?.openPanelId === viewName) {
@@ -1192,6 +1219,21 @@ class TradingChartApp {
     this.isBottomPanelCollapsed = false;
     document.querySelector('#bottom-panel')?.classList.remove('collapsed');
     window.dispatchEvent(new Event('resize'));
+  }
+
+  toggleReplay() {
+    const replayBar = document.querySelector('#replay-bar');
+    const isVisible = replayBar?.classList.contains('visible');
+    const replayBtn = document.querySelector('#btn-topbar-replay');
+
+    if (isVisible) {
+      this.barReplay?.stopReplay();
+      replayBtn?.classList.remove('active');
+    } else {
+      const total = this.activeBars?.length || 500;
+      this.barReplay?.startReplay(total, Math.floor(total * 0.7));
+      replayBtn?.classList.add('active');
+    }
   }
 
   switchLanguage(lang) {
@@ -1206,6 +1248,12 @@ class TradingChartApp {
     this.economicCalendar?.render?.();
     this.paperTrading?.render?.();
     this.barReplay?.render?.();
+    this.propFirmSim?.render?.();
+    this.propFirmSimSide?.render?.();
+    this.strategyTester?.renderReport?.();
+    this.strategyTesterSide?.renderReport?.();
+    this.scaleControls?.render?.();
+    this.floatingDrawingToolbar?.render?.();
     this.layoutManager?.updateTopbarLabel?.();
     this.chartAlertsOverlay?.updateAlerts(
       this.alertsManager?.alerts,

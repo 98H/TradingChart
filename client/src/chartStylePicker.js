@@ -123,19 +123,19 @@ export class ChartStylePicker {
 
     this.menuEl.style.position = 'fixed';
     this.menuEl.style.top = `${rect.bottom + 6}px`;
-    this.menuEl.style.left = `${rect.left}px`;
+    this.menuEl.style.left = isFa ? `${Math.max(10, rect.right - 180)}px` : `${rect.left}px`;
     this.menuEl.style.display = 'block';
     this.isOpen = true;
 
     this.menuEl.innerHTML = `
-      <div class="style-menu-inner" style="background: rgba(14, 17, 23, 0.98); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); min-width: 170px; z-index: 999999;">
-        <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 8px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 2px;">
+      <div class="style-menu-inner" style="background: rgba(14, 17, 23, 0.98); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-persian), sans-serif' : 'var(--font-sans)'}; min-width: 170px; z-index: 999999; direction: ${isFa ? 'rtl' : 'ltr'};">
+        <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 8px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 2px; text-align: ${isFa ? 'right' : 'left'};">
           ${isFa ? 'حالت نمایش چارت' : 'Chart Style'}
         </div>
         ${CHART_STYLES.map(s => {
           const isActive = s.id === this.currentStyle;
           return `
-            <button class="style-menu-item chart-style-item ${isActive ? 'active' : ''}" data-style="${s.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 12px; font-weight: ${isActive ? '700' : '500'}; color: ${isActive ? 'var(--accent-green)' : '#fff'}; background: ${isActive ? 'rgba(0,242,176,0.1)' : 'transparent'}; border: none; border-radius: 4px; cursor: pointer; text-align: left; transition: all 0.12s;">
+            <button class="style-menu-item chart-style-item ${isActive ? 'active' : ''}" data-style="${s.id}" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 12px; font-weight: ${isActive ? '700' : '500'}; color: ${isActive ? 'var(--accent-green)' : '#fff'}; background: ${isActive ? 'rgba(0,242,176,0.1)' : 'transparent'}; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'}; transition: all 0.12s;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="display: flex; align-items: center; color: ${isActive ? 'var(--accent-green)' : 'var(--text-muted)'};">${s.icon}</span>
                 <span>${isFa ? s.nameFa : s.nameEn}</span>

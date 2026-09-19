@@ -171,26 +171,26 @@ export class TradeJournal {
 
         <!-- Weekday Attribution Breakdown (100% Fit with 5 columns) -->
         <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); width: 100%; box-sizing: border-box; flex-shrink: 0;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Weekday Attribution Breakdown</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">${isFa ? 'توزیع بازدهی روزهای هفته' : 'Weekday Attribution Breakdown'}</div>
           <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; text-align: center;">
             <div style="background: var(--bg-surface); padding: 8px 4px; border-radius: 4px; border: 1px solid var(--border-subtle); min-width: 0;">
-              <div style="font-size: 10px; color: var(--text-dim);">Mon</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'دوشنبه' : 'Mon'}</div>
               <div style="font-size: 12px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr">+$1,420</div>
             </div>
             <div style="background: var(--bg-surface); padding: 8px 4px; border-radius: 4px; border: 1px solid var(--border-subtle); min-width: 0;">
-              <div style="font-size: 10px; color: var(--text-dim);">Tue</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'سه‌شنبه' : 'Tue'}</div>
               <div style="font-size: 12px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr">+$2,840</div>
             </div>
             <div style="background: var(--bg-surface); padding: 8px 4px; border-radius: 4px; border: 1px solid var(--border-subtle); min-width: 0;">
-              <div style="font-size: 10px; color: var(--text-dim);">Wed</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'چهارشنبه' : 'Wed'}</div>
               <div style="font-size: 12px; font-weight: 800; color: var(--accent-red); margin-top: 2px;" class="num-ltr">-$680</div>
             </div>
             <div style="background: var(--bg-surface); padding: 8px 4px; border-radius: 4px; border: 1px solid var(--border-subtle); min-width: 0;">
-              <div style="font-size: 10px; color: var(--text-dim);">Thu</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'پنجشنبه' : 'Thu'}</div>
               <div style="font-size: 12px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr">+$1,950</div>
             </div>
             <div style="background: var(--bg-surface); padding: 8px 4px; border-radius: 4px; border: 1px solid var(--border-subtle); min-width: 0;">
-              <div style="font-size: 10px; color: var(--text-dim);">Fri</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'جمعه' : 'Fri'}</div>
               <div style="font-size: 12px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr">+$890</div>
             </div>
           </div>
@@ -226,7 +226,7 @@ export class TradeJournal {
                       <span style="color: var(--text-dim); font-size: 10px; display: block;">${isFa ? 'قیمت ورود ← خروج' : 'Entry → Exit'}</span>
                       <span style="font-weight: 600; color: var(--text-main);" class="num-ltr">${t.avgEntry.toFixed(2)} → ${t.avgExit.toFixed(2)}</span>
                     </div>
-                    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+                    <div style="text-align: ${isFa ? 'left' : 'right'}; display: flex; flex-direction: column; align-items: ${isFa ? 'flex-start' : 'flex-end'};">
                       <span style="color: var(--text-dim); font-size: 10px; display: block; margin-bottom: 2px;">${isFa ? 'سود/زیان خالص' : 'Net P&L'}</span>
                       <span style="font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: ${isWin ? 'rgba(0, 242, 176, 0.15)' : 'rgba(255, 77, 91, 0.15)'}; color: ${isWin ? 'var(--accent-green)' : 'var(--accent-red)'};" class="num-ltr">
                         ${isWin ? '+' : ''}$${pnl.toFixed(2)} (${retPct >= 0 ? '+' : ''}${retPct.toFixed(2)}%)

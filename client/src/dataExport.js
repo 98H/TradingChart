@@ -42,6 +42,7 @@ export class DataExportModal {
     const isFa = getLanguage() === 'fa';
     const symbol = this.app?.currentSymbol || 'BTCUSDT';
     const tf = this.app?.currentTimeframe || '60';
+    const tfDisplay = (tf === 'D' || tf === '1D') ? '1D' : (tf === 'W' || tf === '1W') ? '1W' : (tf === 'M' || tf === '1M') ? '1M' : (String(tf).endsWith('m') ? tf : `${tf}m`);
     const barsCount = this.app?.activeBars?.length || 0;
 
     this.modalEl.innerHTML = `
@@ -71,7 +72,7 @@ export class DataExportModal {
             </div>
             <div>
               <span style="font-size: 11px; color: var(--text-dim); display: block;">${isFa ? 'تایم‌فریم' : 'Timeframe'}</span>
-              <span style="font-size: 14px; font-weight: 700; color: var(--accent-cyan);">${tf}m</span>
+              <span style="font-size: 14px; font-weight: 700; color: var(--accent-cyan);" class="num-ltr">${tfDisplay}</span>
             </div>
             <div>
               <span style="font-size: 11px; color: var(--text-dim); display: block;">${isFa ? 'تعداد کندل‌ها' : 'Total Bars'}</span>

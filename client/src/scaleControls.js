@@ -76,6 +76,11 @@ export class ScaleControls {
           <span>Inv</span>
         </button>
 
+        <!-- Real-Time Candle Countdown Timer Badge -->
+        <div class="scale-dock-btn countdown-pill" title="${isFa ? 'زمان باقی‌مانده تا بسته شدن کندل جاری' : 'Time remaining until current bar close'}">
+          <span id="countdown-timer-val" class="num-ltr" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--accent-gold);">--:--</span>
+        </div>
+
         <!-- Timezone Selector Pill -->
         <button id="btn-scale-timezone" class="scale-dock-btn tz-pill" title="${isFa ? 'منطقه زمانی چارت' : 'Chart Timezone'}">
           <span id="scale-tz-label">${this.activeTimezone === 'Asia/Tehran' ? 'THR' : this.activeTimezone.replace('America/', '').replace('Europe/', '').replace('Asia/', '')}</span>

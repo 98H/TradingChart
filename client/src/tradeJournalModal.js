@@ -22,6 +22,7 @@ export class TradeJournalModal {
     const isFa = getLanguage() === 'fa';
     const curSymbol = this.app?.currentSymbol || 'BTCUSDT';
     const curPrice = this.app?.paperTrading?.currentPrice || 80000;
+    const baseAsset = this.app?.getBaseAsset ? this.app.getBaseAsset(curSymbol) : (curSymbol.endsWith('USDT') ? curSymbol.replace('USDT', '') : 'BTC');
     this.selectedSide = 'buy';
 
     modal.innerHTML = `
@@ -65,7 +66,7 @@ export class TradeJournalModal {
               <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'حجم پوزیشن (لات / کوین)' : 'Quantity / Size'}</label>
               <div style="display: flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0 8px;">
                 <input type="number" id="log-trade-qty" value="0.5" step="0.1" min="0.01" style="width: 100%; border: none; background: transparent; padding: 7px 0; font-size: 12px; font-weight: 700; color: #fff; outline: none;" class="num-ltr" />
-                <span id="log-unit-label" style="font-size: 10px; font-weight: 700; color: var(--text-dim);">BTC</span>
+                <span id="log-unit-label" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan);">${baseAsset}</span>
               </div>
             </div>
           </div>
@@ -172,6 +173,14 @@ export class TradeJournalModal {
         pnlBox.style.borderColor = isWin ? 'rgba(0, 242, 176, 0.25)' : 'rgba(255, 77, 91, 0.25)';
       }
     };
+
+    const symInput = modal.querySelector('#log-trade-symbol');
+    const unitLabel = modal.querySelector('#log-unit-label');
+    symInput?.addEventListener('input', () => {
+      const s = symInput.value.trim().toUpperCase();
+      const u = this.app?.getBaseAsset ? this.app.getBaseAsset(s) : (s.endsWith('USDT') ? s.replace('USDT', '') : s);
+      if (unitLabel && u) unitLabel.innerText = u;
+    });
 
     entryInput?.addEventListener('input', calcLivePnl);
     exitInput?.addEventListener('input', calcLivePnl);

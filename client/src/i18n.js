@@ -52,6 +52,18 @@ export const translations = {
     templatesDesc: '1-click curated indicator setups',
     workspacesTitle: 'Workspaces',
     workspacesDesc: 'Multi-chart grid layouts & sync switches',
+    chartStyleTitle: 'Chart Style',
+    chartStyleDesc: 'Candles, Bars, Heikin Ashi, Line, Area, Baseline',
+    barReplayTitle: 'Bar Replay',
+    barReplayDesc: 'Historical rewind, step execution & strategy testing',
+    dataExportTitle: 'Export Data',
+    dataExportDesc: 'Download historical candles in CSV or JSON format',
+    newsTitle: 'Market News & Catalysts',
+    newsDesc: 'Breaking headlines, sentiment & macro catalysts',
+    objectsTitle: 'Object Tree & Layers',
+    objectsDesc: 'Manage drawings and indicator layers',
+    dataWindowTitle: 'Data Window',
+    dataWindowDesc: 'Real-time cursor OHLC, volume & indicator values',
 
     // Symbol Search
     symbolModalTitle: 'Symbol Search & Market Navigator',
@@ -158,6 +170,18 @@ export const translations = {
     templatesDesc: 'اعمال با یک کلیک ستاپ‌های تحلیل تکنیکال و اسمارت مانی',
     workspacesTitle: 'فضاهای کاری و چیدمان (Workspaces)',
     workspacesDesc: 'گرید چندچارته و کلیدهای همگام‌سازی ابزارها',
+    chartStyleTitle: 'نوع نمودار (Chart Style)',
+    chartStyleDesc: 'کندل‌استیک، میله‌ای، هیکن‌آشی، خطی و ناحیه‌ای',
+    barReplayTitle: 'بازپخش تاریخی کندل‌ها (Replay)',
+    barReplayDesc: 'برگشت به گذشته، تست سناریو و اجرای گام‌به‌گام',
+    dataExportTitle: 'خروجی داده‌ها (Export)',
+    dataExportDesc: 'دریافت داده‌های OHLCV در قالب CSV و JSON',
+    newsTitle: 'اخبار و کاتالیزورهای بازار (News)',
+    newsDesc: 'سرخط اخبار فوری، شاخص سنتیمنت و متغیرهای کلان',
+    objectsTitle: 'درخت لایه‌ها و ابزارها (Objects)',
+    objectsDesc: 'مدیریت و پنهان‌سازی ترسیم‌ها و لایه‌های اندیکاتور',
+    dataWindowTitle: 'پنجره داده‌ها (Data Window)',
+    dataWindowDesc: 'مقادیر دقیق OHLCV و اندیکاتورها در نقطه کراس‌هیر',
 
     // Symbol Search
     symbolModalTitle: 'جستجوی نماد در تمام بازارهای مالی',
@@ -280,9 +304,17 @@ export function applyTranslationsToDOM() {
     { panel: 'journal', title: dict.journalTitle, desc: dict.journalDesc },
     { panel: 'trackers', title: dict.trackersTitle, desc: dict.trackersDesc },
     { panel: 'calendar', title: dict.calendarTitle, desc: dict.calendarDesc },
+    { panel: 'screener', title: dict.screenerTitle, desc: dict.screenerDesc },
+    { panel: 'dom', title: dict.domTitle, desc: dict.domDesc },
     { panel: 'compare', title: dict.compareTitle, desc: dict.compareDesc },
     { panel: 'templates', title: dict.templatesTitle, desc: dict.templatesDesc },
-    { panel: 'workspaces', title: dict.workspacesTitle, desc: dict.workspacesDesc }
+    { panel: 'workspaces', title: dict.workspacesTitle, desc: dict.workspacesDesc },
+    { panel: 'news', title: dict.newsTitle, desc: dict.newsDesc },
+    { panel: 'objects', title: dict.objectsTitle, desc: dict.objectsDesc },
+    { panel: 'dataWindow', title: dict.dataWindowTitle, desc: dict.dataWindowDesc },
+    { panel: 'chartStyle', title: dict.chartStyleTitle, desc: dict.chartStyleDesc },
+    { panel: 'barReplay', title: dict.barReplayTitle, desc: dict.barReplayDesc },
+    { panel: 'dataExport', title: dict.dataExportTitle, desc: dict.dataExportDesc }
   ];
 
   for (const item of panelItems) {

@@ -106,7 +106,7 @@ export class TechnicalRatingCard {
               <span id="trc-sym" style="font-size: 13px; font-weight: 800; font-family: var(--font-mono); color: #fff;">${this.symbol}</span>
               <span style="font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(255,255,255,0.06); color: var(--text-dim); font-weight: 700;">BINANCE</span>
             </div>
-            <div style="font-size: 10px; color: var(--text-dim);" id="trc-desc">Perpetual Contract · USDⓈ-M</div>
+            <div style="font-size: 10px; color: var(--text-dim);" id="trc-desc">${isFa ? 'قرارداد پرپچوال فیوچرز · مارجین تتر (USDⓈ-M)' : 'Perpetual Contract · USDⓈ-M'}</div>
           </div>
           <div style="text-align: right;">
             <div id="trc-price" class="num-ltr" style="font-size: 14px; font-weight: 800; font-family: var(--font-mono); color: #fff;">...</div>
@@ -263,7 +263,16 @@ export class TechnicalRatingCard {
     }
 
     if (ratingBadge) {
-      ratingBadge.innerText = m.rating.toUpperCase();
+      if (isFa) {
+        if (m.rating === 'Strong Buy') ratingBadge.innerText = 'خرید قوی 🔥';
+        else if (m.rating === 'Buy') ratingBadge.innerText = 'خرید 🟢';
+        else if (m.rating === 'Neutral') ratingBadge.innerText = 'خنثی ⚪';
+        else if (m.rating === 'Sell') ratingBadge.innerText = 'فروش 🔴';
+        else ratingBadge.innerText = 'فروش قوی 🔻';
+      } else {
+        ratingBadge.innerText = m.rating.toUpperCase();
+      }
+
       if (m.rating === 'Strong Buy') {
         ratingBadge.style.color = '#00F2B0';
         ratingBadge.style.background = 'rgba(0,242,176,0.18)';
@@ -284,8 +293,24 @@ export class TechnicalRatingCard {
     const bOsc = this.container.querySelector('#trc-breakdown-osc');
     const bMa = this.container.querySelector('#trc-breakdown-ma');
 
-    if (bSummary) bSummary.innerText = `${m.totalBuy} Buy / ${m.totalSell} Sell`;
-    if (bOsc) bOsc.innerText = m.oscBuy > m.oscSell ? `${m.oscBuy} Buy` : (m.oscSell > m.oscBuy ? `${m.oscSell} Sell` : 'Neutral');
-    if (bMa) bMa.innerText = `${m.maBuy} Buy / ${m.maSell} Sell`;
+    if (bSummary) {
+      bSummary.innerText = isFa 
+        ? `${toPersianDigits(m.totalBuy)} خرید / ${toPersianDigits(m.totalSell)} فروش`
+        : `${m.totalBuy} Buy / ${m.totalSell} Sell`;
+    }
+    if (bOsc) {
+      if (isFa) {
+        bOsc.innerText = m.oscBuy > m.oscSell 
+          ? `${toPersianDigits(m.oscBuy)} خرید` 
+          : (m.oscSell > m.oscBuy ? `${toPersianDigits(m.oscSell)} فروش` : 'خنثی');
+      } else {
+        bOsc.innerText = m.oscBuy > m.oscSell ? `${m.oscBuy} Buy` : (m.oscSell > m.oscBuy ? `${m.oscSell} Sell` : 'Neutral');
+      }
+    }
+    if (bMa) {
+      bMa.innerText = isFa
+        ? `${toPersianDigits(m.maBuy)} خرید / ${toPersianDigits(m.maSell)} فروش`
+        : `${m.maBuy} Buy / ${m.maSell} Sell`;
+    }
   }
 }

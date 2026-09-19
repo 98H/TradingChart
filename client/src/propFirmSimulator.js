@@ -1,7 +1,9 @@
 // client/src/propFirmSimulator.js
 // Powered by @luxalgo/prop-firm-sim-core: 10,000-path Monte Carlo challenge simulation
+// Full Bilingual Persian/English Localization with strict ZWNJ
 
 import { simulate } from '@luxalgo/prop-firm-sim-core';
+import { getLanguage, t, toPersianDigits } from './i18n.js';
 
 export const PROP_FIRM_PRESETS = {
   'ftmo-100k': {
@@ -72,42 +74,44 @@ export class PropFirmSimulator {
 
   render() {
     if (!this.container) return;
+    const isFa = getLanguage() === 'fa';
+
     this.container.innerHTML = `
-      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px;">
+      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Top Parameter Bar -->
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--bg-darkest); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Firm Challenge Preset</label>
-            <select id="prop-preset-select" style="padding: 4px 8px; font-size: 12px;">
-              <option value="ftmo-100k" ${this.currentPresetKey === 'ftmo-100k' ? 'selected' : ''}>FTMO $100k (2-Phase)</option>
-              <option value="ftmo-200k" ${this.currentPresetKey === 'ftmo-200k' ? 'selected' : ''}>FTMO $200k (2-Phase)</option>
-              <option value="topstep-50k" ${this.currentPresetKey === 'topstep-50k' ? 'selected' : ''}>Topstep $50k Futures</option>
+            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'قالب آزمون پراپ‌فرم' : 'Firm Challenge Preset'}</label>
+            <select id="prop-preset-select" style="padding: 4px 8px; font-size: 12px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px;">
+              <option value="ftmo-100k" ${this.currentPresetKey === 'ftmo-100k' ? 'selected' : ''}>${isFa ? 'FTMO ۱۰۰ هزار دلار (۲ مرحله‌ای)' : 'FTMO $100k (2-Phase)'}</option>
+              <option value="ftmo-200k" ${this.currentPresetKey === 'ftmo-200k' ? 'selected' : ''}>${isFa ? 'FTMO ۲۰۰ هزار دلار (۲ مرحله‌ای)' : 'FTMO $200k (2-Phase)'}</option>
+              <option value="topstep-50k" ${this.currentPresetKey === 'topstep-50k' ? 'selected' : ''}>${isFa ? 'تاپ‌استپ ۵۰ هزار دلار فیوچرز' : 'Topstep $50k Futures'}</option>
             </select>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Win Rate (%)</label>
-            <input type="number" id="prop-winrate-input" value="${(this.winRate * 100).toFixed(0)}" min="10" max="95" step="1" style="width: 80px; padding: 4px 8px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'نرخ برد (Win Rate %)' : 'Win Rate (%)'}</label>
+            <input type="number" id="prop-winrate-input" value="${(this.winRate * 100).toFixed(0)}" min="10" max="95" step="1" style="width: 80px; padding: 4px 8px; font-size: 12px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px;" class="num-ltr" />
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">R:R Ratio (Avg Win R)</label>
-            <input type="number" id="prop-rr-input" value="${this.avgWinR.toFixed(1)}" min="0.5" max="10" step="0.1" style="width: 80px; padding: 4px 8px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'نسبت سود به ریسک (R:R)' : 'R:R Ratio (Avg Win R)'}</label>
+            <input type="number" id="prop-rr-input" value="${this.avgWinR.toFixed(1)}" min="0.5" max="10" step="0.1" style="width: 80px; padding: 4px 8px; font-size: 12px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px;" class="num-ltr" />
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Risk Per Trade (%)</label>
-            <input type="number" id="prop-risk-input" value="${this.riskPct.toFixed(1)}" min="0.25" max="3" step="0.25" style="width: 80px; padding: 4px 8px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'ریسک در هر معامله (%)' : 'Risk Per Trade (%)'}</label>
+            <input type="number" id="prop-risk-input" value="${this.riskPct.toFixed(1)}" min="0.25" max="3" step="0.25" style="width: 80px; padding: 4px 8px; font-size: 12px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px;" class="num-ltr" />
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Trades Per Day</label>
-            <input type="number" id="prop-tpd-input" value="${this.tradesPerDay.toFixed(1)}" min="0.5" max="20" step="0.5" style="width: 80px; padding: 4px 8px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'تعداد معامله در روز' : 'Trades Per Day'}</label>
+            <input type="number" id="prop-tpd-input" value="${this.tradesPerDay.toFixed(1)}" min="0.5" max="20" step="0.5" style="width: 80px; padding: 4px 8px; font-size: 12px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px;" class="num-ltr" />
           </div>
 
-          <div style="margin-left: auto; align-self: flex-end;">
-            <button id="btn-run-propsim" class="btn-primary" style="padding: 6px 16px; font-size: 12px;">
-              ⚡ Run Monte Carlo (500 Paths)
+          <div style="margin-inline-start: auto; align-self: flex-end;">
+            <button id="btn-run-propsim" class="btn-primary" style="padding: 6px 16px; font-size: 12px; font-weight: 700;">
+              ${isFa ? '⚡ اجرای شبیه‌سازی مونت‌کارلو (۵۰۰ مسیر)' : '⚡ Run Monte Carlo (500 Paths)'}
             </button>
           </div>
         </div>
@@ -126,12 +130,12 @@ export class PropFirmSimulator {
     const inputTpd = this.container.querySelector('#prop-tpd-input');
     const btnRun = this.container.querySelector('#btn-run-propsim');
 
-    selectPreset.addEventListener('change', (e) => {
+    selectPreset?.addEventListener('change', (e) => {
       this.currentPresetKey = e.target.value;
       this.runSimulation();
     });
 
-    btnRun.addEventListener('click', () => {
+    btnRun?.addEventListener('click', () => {
       this.winRate = parseFloat(inputWinRate.value) / 100;
       this.avgWinR = parseFloat(inputRR.value);
       this.riskPct = parseFloat(inputRisk.value);
@@ -145,6 +149,7 @@ export class PropFirmSimulator {
   runSimulation() {
     const area = this.container.querySelector('#propsim-results-area');
     if (!area) return;
+    const isFa = getLanguage() === 'fa';
 
     try {
       const spec = PROP_FIRM_PRESETS[this.currentPresetKey];
@@ -214,41 +219,41 @@ export class PropFirmSimulator {
       area.innerHTML = `
         <!-- Left: 4 KPI Cards (2x2 Grid) -->
         <div style="width: 40%; min-width: 310px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid ${passColor};">
-            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Pass Probability</div>
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-${isFa ? 'right' : 'left'}: 3px solid ${passColor};">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'احتمال قبولی در چالش' : 'Pass Probability'}</div>
             <div style="font-size: 18px; font-weight: 800; color: ${passColor}; margin: 2px 0;" class="num-ltr">${passPct}%</div>
-            <div style="font-size: 9px; color: var(--text-muted);">95% CI: [${((res.perAttempt?.passProbabilityCi?.low || 0)*100).toFixed(1)}% - ${((res.perAttempt?.passProbabilityCi?.high || 0)*100).toFixed(1)}%]</div>
+            <div style="font-size: 9px; color: var(--text-muted);">${isFa ? 'بازه اطمینان ۹۵٪:' : '95% CI:'} [${((res.perAttempt?.passProbabilityCi?.low || 0)*100).toFixed(1)}% - ${((res.perAttempt?.passProbabilityCi?.high || 0)*100).toFixed(1)}%]</div>
           </div>
 
-          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-red);">
-            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Risk of Ruin</div>
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-${isFa ? 'right' : 'left'}: 3px solid var(--accent-red);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'ریسک سوختن حساب' : 'Risk of Ruin'}</div>
             <div style="font-size: 18px; font-weight: 800; color: var(--accent-red); margin: 2px 0;" class="num-ltr">${ruinPct}%</div>
-            <div style="font-size: 9px; color: var(--text-muted);">Chance of drawdown limit</div>
+            <div style="font-size: 9px; color: var(--text-muted);">${isFa ? 'احتمال نقض سقف دراوداون' : 'Chance of drawdown limit'}</div>
           </div>
 
-          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
-            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Expected Value (EV)</div>
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-${isFa ? 'right' : 'left'}: 3px solid var(--accent-cyan);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'امید ریاضی سود (EV)' : 'Expected Value (EV)'}</div>
             <div style="font-size: 18px; font-weight: 800; color: var(--accent-cyan); margin: 2px 0;" class="num-ltr">+$${Math.round(evNet).toLocaleString()}</div>
-            <div style="font-size: 9px; color: var(--text-muted);">Net expectancy after fees</div>
+            <div style="font-size: 9px; color: var(--text-muted);">${isFa ? 'بازده خالص پس از کسر کارمزد' : 'Net expectancy after fees'}</div>
           </div>
 
-          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-purple);">
-            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Median Days to Funded</div>
-            <div style="font-size: 18px; font-weight: 800; color: #fff; margin: 2px 0;" class="num-ltr">${daysToFunded} Days</div>
-            <div style="font-size: 9px; color: var(--text-muted);">P90 worst-case: ${Math.round(res.journey?.daysToFunded?.p90 || 24)}d</div>
+          <div style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-${isFa ? 'right' : 'left'}: 3px solid var(--accent-purple);">
+            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'میانه روزها تا قبولی' : 'Median Days to Funded'}</div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff; margin: 2px 0;" class="num-ltr">${daysToFunded} ${isFa ? 'روز' : 'Days'}</div>
+            <div style="font-size: 9px; color: var(--text-muted);">${isFa ? 'بدترین سناریو (P90):' : 'P90 worst-case:'} ${Math.round(res.journey?.daysToFunded?.p90 || 24)}${isFa ? ' روز' : 'd'}</div>
           </div>
         </div>
 
         <!-- Right: Monte Carlo Trajectory Curves -->
         <div style="flex: 1; min-width: 360px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Monte Carlo Equity Trajectories (35 Sample Simulation Paths)</span>
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">${isFa ? 'مسیرهای تعادلی اکوئیتی (۳۵ نمونه شبیه‌سازی مونت‌کارلو)' : 'Monte Carlo Equity Trajectories (35 Sample Simulation Paths)'}</span>
             <div style="display: flex; gap: 12px; font-size: 10px;">
-              <span style="color: var(--accent-green);">— Target (+$${Math.round(initial * targetPct).toLocaleString()})</span>
-              <span style="color: var(--accent-red);">— Drawdown (-$${Math.round(initial * maxLossPct).toLocaleString()})</span>
+              <span style="color: var(--accent-green);">— ${isFa ? 'تارگت سود' : 'Target'} (+$${Math.round(initial * targetPct).toLocaleString()})</span>
+              <span style="color: var(--accent-red);">— ${isFa ? 'حد ضرر کل' : 'Drawdown'} (-$${Math.round(initial * maxLossPct).toLocaleString()})</span>
             </div>
           </div>
-          <div style="flex: 1; width: 100%; min-height: 100px; max-height: 125px; position: relative;">
+          <div style="flex: 1; width: 100%; min-height: 100px; max-height: 125px; position: relative; direction: ltr !important;">
             <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="width: 100%; height: 100%;">
               <line x1="0" y1="${targetY}" x2="${svgW}" y2="${targetY}" stroke="rgba(14, 203, 129, 0.6)" stroke-width="1.5" stroke-dasharray="4 4" />
               <line x1="0" y1="${ruinY}" x2="${svgW}" y2="${ruinY}" stroke="rgba(246, 70, 93, 0.6)" stroke-width="1.5" stroke-dasharray="4 4" />

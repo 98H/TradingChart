@@ -1,5 +1,8 @@
 // client/src/strategyTester.js
 // Quantitative Strategy Backtesting Engine & Performance Analytics
+// Full Bilingual Persian/English Localization with strict ZWNJ
+
+import { getLanguage, t, toPersianDigits } from './i18n.js';
 
 export class StrategyTester {
   constructor(options = {}) {
@@ -19,18 +22,20 @@ export class StrategyTester {
 
   renderEmpty() {
     if (!this.container) return;
+    const isFa = getLanguage() === 'fa';
     this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); flex-direction: column; gap: 12px; padding: 24px; text-align: center;">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 21v-4"/></svg>
-        <div style="font-size: 14px; font-weight: 600; color: var(--text-muted);">No Strategy Backtest Results Yet</div>
-        <div style="font-size: 12px; max-width: 420px;">Open the Pine Editor tab, select a strategy template (like Shannon Rebalance Strategy), and click <b>'Backtest Strategy'</b>.</div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); flex-direction: column; gap: 12px; padding: 24px; text-align: center; ${isFa ? 'direction: rtl; font-family: var(--font-persian), sans-serif;' : 'direction: ltr;'}">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-cyan);"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 21v-4"/></svg>
+        <div style="font-size: 14px; font-weight: 700; color: #fff;">${isFa ? 'هنوز نتیجه بک‌تستی برای استراتژی ثبت نشده است' : 'No Strategy Backtest Results Yet'}</div>
+        <div style="font-size: 12px; max-width: 440px; color: var(--text-muted); line-height: 1.5;">${isFa ? 'تب ویرایشگر پاین را باز کنید، یک قالب استراتژی (مانند استراتژی بازتعادل شنون) را انتخاب کرده و روی دکمه «بک‌تست استراتژی» کلیک کنید.' : 'Open the Pine Editor tab, select a strategy template (like Shannon Rebalance Strategy), and click <b>\'Backtest Strategy\'</b>.'}</div>
       </div>
     `;
   }
 
   runSimulation(strategyCode, bars = this.candles) {
+    const isFa = getLanguage() === 'fa';
     if (!bars || bars.length < 30) {
-      this.container.innerHTML = `<div style="padding: 24px; color: var(--accent-red);">Need at least 30 historical bars to execute quantitative backtesting.</div>`;
+      this.container.innerHTML = `<div style="padding: 24px; color: var(--accent-red); ${isFa ? 'direction: rtl;' : ''}">${isFa ? 'حداقل ۳۰ کندل تاریخی برای اجرای بک‌تست کمی مورد نیاز است.' : 'Need at least 30 historical bars to execute quantitative backtesting.'}</div>`;
       return;
     }
 
@@ -149,6 +154,7 @@ export class StrategyTester {
   renderReport() {
     if (!this.container || !this.results) return;
     const r = this.results;
+    const isFa = getLanguage() === 'fa';
 
     const isProfit = r.netProfit >= 0;
     const profitColor = isProfit ? 'var(--accent-green)' : 'var(--accent-red)';
@@ -168,76 +174,78 @@ export class StrategyTester {
     const linePath = pts.length > 1 ? `M ${pts.join(' L ')}` : '';
 
     this.container.innerHTML = `
-      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto;">
+      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Key Metrics Strip -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 12px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle);">
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11px; color: var(--text-dim);">Net Profit</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'سود خالص' : 'Net Profit'}</div>
             <div style="font-size: 15px; font-weight: 800; color: ${profitColor};" class="num-ltr">
               ${isProfit ? '+' : ''}$${r.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${r.netProfitPct.toFixed(2)}%)
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11px; color: var(--text-dim);">Profit Factor</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'ضریب سودآوری (Profit Factor)' : 'Profit Factor'}</div>
             <div style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);" class="num-ltr">${r.profitFactor.toFixed(2)}</div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11px; color: var(--text-dim);">Win Rate</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نرخ برد (Win Rate)' : 'Win Rate'}</div>
             <div style="font-size: 15px; font-weight: 800; color: var(--text-main);" class="num-ltr">${r.winRate.toFixed(1)}% <span style="font-size: 11px; color: var(--text-dim);">(${r.winTradesCount}/${r.totalTrades})</span></div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11px; color: var(--text-dim);">Max Drawdown</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حداکثر افت سرمایه (Drawdown)' : 'Max Drawdown'}</div>
             <div style="font-size: 15px; font-weight: 800; color: var(--accent-red);" class="num-ltr">-${r.maxDrawdownPct.toFixed(2)}% ($${r.maxDrawdown.toLocaleString(undefined, { maximumFractionDigits: 0 })})</div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm);">
-            <div style="font-size: 11px; color: var(--text-dim);">Sharpe / Expectancy</div>
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نسبت شارپ / امید ریاضی' : 'Sharpe / Expectancy'}</div>
             <div style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center;">
-            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%;">
-              Export to Prop-Sim →
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center; border: 1px solid var(--border-subtle);">
+            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%; font-weight: 700;">
+              ${isFa ? 'انتقال به شبیه‌ساز پراپ →' : 'Export to Prop-Sim →'}
             </button>
             <button id="btn-export-csv" class="btn-secondary" style="font-size: 10px; padding: 3px 6px; width: 100%;">
-              Download CSV Ledger
+              ${isFa ? 'دریافت دفتر کل CSV' : 'Download CSV Ledger'}
             </button>
           </div>
         </div>
 
         <!-- Middle: Equity Curve & Details -->
         <div style="display: flex; gap: 16px; padding: 12px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 320px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Equity Curve ($)</div>
-            <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: 90px; overflow: visible;">
-              <defs>
-                <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.35"/>
-                  <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.0"/>
-                </linearGradient>
-              </defs>
-              <path d="${svgPath}" fill="url(#eqGrad)" />
-              <path d="${linePath}" fill="none" stroke="#00e5ff" stroke-width="2" />
-            </svg>
+          <div style="flex: 1; min-width: 320px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">${isFa ? 'منحنی بازدهی اکوئیتی ($)' : 'Equity Curve ($)'}</div>
+            <div style="direction: ltr !important;">
+              <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: 90px; overflow: visible;">
+                <defs>
+                  <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                <path d="${svgPath}" fill="url(#eqGrad)" />
+                <path d="${linePath}" fill="none" stroke="#00e5ff" stroke-width="2" />
+              </svg>
+            </div>
           </div>
 
           <!-- Trades Table -->
-          <div style="flex: 1; min-width: 340px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; max-height: 140px; overflow-y: auto;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Recent Closed Trades</div>
-            <table class="data-table" style="font-size: 11px;">
+          <div style="flex: 1; min-width: 340px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; max-height: 140px; overflow-y: auto; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">${isFa ? 'معاملات بسته‌شده اخیر' : 'Recent Closed Trades'}</div>
+            <table class="data-table" style="font-size: 11px; width: 100%; text-align: ${isFa ? 'right' : 'left'};">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Side</th>
-                  <th>Entry</th>
-                  <th>Exit</th>
-                  <th>P&L ($)</th>
-                  <th>P&L (%)</th>
+                  <th>${isFa ? 'جهت' : 'Side'}</th>
+                  <th>${isFa ? 'قیمت ورود' : 'Entry'}</th>
+                  <th>${isFa ? 'قیمت خروج' : 'Exit'}</th>
+                  <th>${isFa ? 'سود/زیان ($)' : 'P&L ($)'}</th>
+                  <th>${isFa ? 'بازده (%)' : 'P&L (%)'}</th>
                 </tr>
               </thead>
               <tbody>
                 ${r.trades.slice(-8).reverse().map(t => `
                   <tr>
                     <td>${t.id}</td>
-                    <td><span style="color: ${t.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">${t.side.toUpperCase()}</span></td>
+                    <td><span style="color: ${t.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">${isFa ? (t.side === 'long' ? 'خرید' : 'فروش') : t.side.toUpperCase()}</span></td>
                     <td class="num-ltr">$${t.entryPrice.toFixed(2)}</td>
                     <td class="num-ltr">$${t.exitPrice.toFixed(2)}</td>
                     <td class="num-ltr" style="color: ${t.profit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">

@@ -6,7 +6,7 @@ export const INDICATORS_LIBRARY = [
   // ── 1. Smart Money Concepts (SMC) & ICT (12 Indicators) ─────────────
   {
     id: 'smc_order_blocks',
-    name: 'Smart Money Concepts: Order Blocks & BOS',
+    name: 'Smart Money Concepts (SMC): Order Blocks & BOS',
     category: 'smc',
     description: 'Structural pivot swing detection with Break of Structure (BOS) and Order Block identification.',
     script: `//@version=5
@@ -28,7 +28,7 @@ plotshape(bosBear, title="BOS Bear", style=shape.triangledown, location=location
   },
   {
     id: 'smc_fvg',
-    name: 'Fair Value Gaps (FVG) Detector',
+    name: 'Fair Value Gaps (FVG / SMC) Detector',
     category: 'smc',
     description: '3-candle imbalance detector marking bullish and bearish Fair Value Gaps and 50% CE level.',
     script: `//@version=5
@@ -41,7 +41,7 @@ plotshape(bearFvg, title="-FVG Bear", style=shape.circle, location=location.abov
   },
   {
     id: 'smc_liquidity_sweep',
-    name: 'Liquidity Sweeps (High/Low Wick Sweeps)',
+    name: 'Liquidity Sweeps (SMC High/Low Wick Sweeps)',
     category: 'smc',
     description: 'Distinguishes between wick liquidity sweeps and confirmed candle body structure breaks.',
     script: `//@version=5
@@ -57,7 +57,7 @@ plotshape(sweepLow, title="Sweep Low", style=shape.diamond, location=location.be
   },
   {
     id: 'smc_premium_discount',
-    name: 'Premium & Discount Equilibrium Zones',
+    name: 'Premium & Discount Equilibrium Zones (SMC)',
     category: 'smc',
     description: 'Macro 50% equilibrium level splitting the swing range into institutional Premium and Discount zones.',
     script: `//@version=5
