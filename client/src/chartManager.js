@@ -6,6 +6,7 @@ import { VelaWorkspace } from '@luxalgo/vela/workspace';
 import { PineEngine } from '@luxalgo/vela-pinets';
 import { BinanceProvider } from '@luxalgo/vela/providers/binance';
 import { HyperliquidProvider } from '@luxalgo/vela/providers/hyperliquid';
+import { sharedBarStore } from '@luxalgo/vela';
 import { registerAllVelaPanels } from './velaPanels.js';
 import { UniversalMarketProvider } from './universalProvider.js';
 
@@ -39,6 +40,7 @@ export class ChartManager {
         layout: '1', // Single chart default, allows dynamic setLayout ('2h', '2v', '4')
         symbol: 'universal:BTCUSDT',
         timeframe: '60',
+        bars: 2000, // TradingView-grade history depth (≈83 days 1h / ≈3y daily)
         live: true,
         watermark: true,
         statusline: true,
@@ -159,6 +161,12 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
   setTimeframe(tf) {
     this.activeTimeframe = String(tf);
     if (this.workspace) {
+      // Route through setMarket so the deep-history `bars` depth is re-applied
+      // on every switch (setTimeframe alone keeps Vela's default window).
+      const cell = this.workspace.active;
+      if (cell && typeof cell.setMarket === 'function') {
+        try { cell.setMarket({ timeframe: String(tf), bars: 2000 }); return; } catch (e) {}
+      }
       this.workspace.setActiveTimeframe(String(tf));
     }
   }
@@ -166,6 +174,30 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
   setPriceStyle(style) {
     if (this.workspace?.active) {
       this.workspace.active.setPriceStyle(style);
+    }
+  }
+
+  // Force the active chart cell to re-pull its series from the provider.
+  // Used after switching to/from a synthetic chart type (Renko/Kagi/...),
+  // whose transformation happens inside the provider's getBars().
+  // Vela no-ops a same-symbol/same-timeframe set, so we bounce through a
+  // DIFFERENT timeframe (not 1s — that series is cached and would flash),
+  // wait for its fetch to settle, then restore.
+  refreshData() {
+    try {
+      const cell = this.workspace?.active;
+      if (!cell) return;
+      const tf = String(this.activeTimeframe);
+      const bounceTf = tf === '5' ? '15' : '5';
+      // Invalidate Vela's module-level bar cache so the provider is re-consulted
+      // and the synthetic transform (Renko/Kagi/...) is applied on reload.
+      try { sharedBarStore.clear(); } catch (e) {}
+      cell.setTimeframe?.(bounceTf);
+      setTimeout(() => {
+        cell.setTimeframe?.(tf);
+      }, 700);
+    } catch (e) {
+      console.warn('[ChartManager] refreshData fallback failed:', e.message);
     }
   }
 

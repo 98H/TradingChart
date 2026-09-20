@@ -87,13 +87,23 @@ export class UserProfileModal {
           </div>
 
           <!-- Quick Switches -->
-          <div style="display: flex; gap: 8px;">
-            <button id="btn-profile-toggle-lang" class="btn-secondary" style="flex: 1; justify-content: center; font-size: 11px; padding: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="btn-profile-toggle-lang" class="btn-secondary" style="flex: 1; justify-content: center; font-size: 11px; padding: 8px; min-width: 130px;">
               🌐 ${isFa ? 'تغییر زبان به English (EN)' : 'Switch to فارسی (FA)'}
             </button>
-            <button id="btn-profile-shortcuts" class="btn-secondary" style="flex: 1; justify-content: center; font-size: 11px; padding: 8px;">
+            <button id="btn-profile-theme" class="btn-secondary" style="flex: 1; justify-content: center; font-size: 11px; padding: 8px; min-width: 130px;">
+              ${(document.documentElement.dataset.theme === 'light') ? '🌙 ' + (isFa ? 'حالت تیره' : 'Dark Mode') : '☀️ ' + (isFa ? 'حالت روشن' : 'Light Mode')}
+            </button>
+            <button id="btn-profile-shortcuts" class="btn-secondary" style="flex: 1; justify-content: center; font-size: 11px; padding: 8px; min-width: 130px;">
               ⌨ ${isFa ? 'کلیدهای میانبر (?)' : 'Keyboard Shortcuts'}
             </button>
+          </div>
+
+          <!-- Editable display name -->
+          <div style="display: flex; gap: 8px; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px 12px;">
+            <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; white-space: nowrap;">${isFa ? 'نام نمایشی:' : 'Display Name:'}</span>
+            <input id="profile-display-name" type="text" value="${(() => { try { return JSON.parse(localStorage.getItem('tradingchart_profile') || '{}').name || (isFa ? 'مدیر پورتفوی نهادی' : 'Institutional Portfolio Lead'); } catch (e) { return ''; } })()}" style="flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 12px; padding: 4px 0;" />
+            <button id="btn-save-profile-name" class="btn-primary" style="padding: 4px 12px; font-size: 11px;">${isFa ? 'ذخیره' : 'Save'}</button>
           </div>
         </div>
       </div>
@@ -136,6 +146,24 @@ export class UserProfileModal {
     modal.querySelector('#btn-profile-shortcuts')?.addEventListener('click', () => {
       modal.classList.remove('open');
       this.app?.shortcutsModal?.open();
+    });
+
+    // Theme toggle — flip data-theme, persist, and re-theme the Vela canvas too
+    modal.querySelector('#btn-profile-theme')?.addEventListener('click', () => {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'light' ? '' : 'light';
+      try { localStorage.setItem('tradingchart_theme', next || 'dark'); } catch (e) {}
+      this.app?.applyStoredTheme?.();
+      this.open();
+      this.app?.showToast?.(next === 'light' ? (isFa ? 'حالت روشن فعال شد' : 'Light mode on') : (isFa ? 'حالت تیره فعال شد' : 'Dark mode on'), 'success');
+    });
+
+    // Save display name
+    modal.querySelector('#btn-save-profile-name')?.addEventListener('click', () => {
+      const val = modal.querySelector('#profile-display-name')?.value.trim();
+      if (!val) return;
+      try { localStorage.setItem('tradingchart_profile', JSON.stringify({ name: val })); } catch (e) {}
+      this.app?.showToast?.(isFa ? 'نام نمایشی ذخیره شد' : 'Display name saved', 'success');
     });
   }
 }

@@ -1292,5 +1292,478 @@ vr = ta.tr / (ta.atr(len) || 1)
 plot(vr, "Volatility Ratio", color=vr > 2.0 ? color.orange : color.blue, linewidth=2)
 hline(2.0, "Explosive Volatility (>2.0)", color=color.red, linestyle=hline.style_dashed)
 `
+  },
+  // ── 6. Vela Native Library Integration (30 Complete Additions) ─────────
+  {
+    id: '52_week_high_low',
+    name: '52 Week High/Low',
+    nativeName: '52 Week High/Low',
+    category: 'trend',
+    description: 'Annual 52-week rolling extreme price boundaries and dynamic percentile channel.',
+    script: `//@version=5
+indicator("52 Week High/Low", overlay=true)
+h52 = ta.highest(high, 252)
+l52 = ta.lowest(low, 252)
+plot(h52, "52W High", color=color.green, linewidth=2)
+plot(l52, "52W Low", color=color.red, linewidth=2)
+`
+  },
+  {
+    id: 'adx',
+    name: 'Average Directional Index (ADX)',
+    nativeName: 'Average Directional Index',
+    category: 'trend',
+    description: 'Measures trend strength independently of direction using directional movement indices.',
+    script: `//@version=5
+indicator("Average Directional Index", overlay=false)
+[diplus, diminus, adx] = ta.dmi(14, 14)
+plot(adx, "ADX", color=color.red, linewidth=2)
+plot(diplus, "+DI", color=color.green)
+plot(diminus, "-DI", color=color.orange)
+hline(25, "Trend Threshold (25)", color=color.gray, linestyle=hline.style_dashed)
+`
+  },
+  {
+    id: 'balance_of_power',
+    name: 'Balance of Power (BOP)',
+    nativeName: 'Balance of Power',
+    category: 'oscillators',
+    description: 'Assesses buyer versus seller conviction by measuring price change relative to candle range.',
+    script: `//@version=5
+indicator("Balance of Power", overlay=false)
+bop = (close - open) / (high - low == 0 ? 1 : high - low)
+plot(bop, "BOP", color=bop > 0 ? color.teal : color.maroon, style=plot.style_columns)
+hline(0, "Equilibrium", color=color.gray)
+`
+  },
+  {
+    id: 'bb_width',
+    name: 'Bollinger Bands Width (BBW)',
+    nativeName: 'Bollinger Bands Width',
+    category: 'volatility',
+    description: 'Calculates proportional distance between upper and lower Bollinger Bands to detect volatility squeezes.',
+    script: `//@version=5
+indicator("Bollinger Bands Width", overlay=false)
+len = input.int(20, "Length")
+mult = input.float(2.0, "Multiplier")
+[mid, up, lo] = ta.bb(close, len, mult)
+bbw = (up - lo) / (mid == 0 ? 1 : mid) * 100
+plot(bbw, "BB Width", color=color.purple, linewidth=2)
+`
+  },
+  {
+    id: 'chaikin_oscillator',
+    name: 'Chaikin Oscillator',
+    nativeName: 'Chaikin Oscillator',
+    category: 'volume',
+    description: 'MACD of Accumulation/Distribution line to identify institutional liquidity flow.',
+    script: `//@version=5
+indicator("Chaikin Oscillator", overlay=false)
+ad = ta.accdist
+fast = ta.ema(ad, 3)
+slow = ta.ema(ad, 10)
+co = fast - slow
+plot(co, "Chaikin Osc", color=co >= 0 ? color.green : color.red, style=plot.style_histogram)
+hline(0, "Zero Line", color=color.gray)
+`
+  },
+  {
+    id: 'chande_kroll_stop',
+    name: 'Chande Kroll Stop',
+    nativeName: 'Chande Kroll Stop',
+    category: 'trend',
+    description: 'ATR-based trailing stop system tracking long and short market volatility thresholds.',
+    script: `//@version=5
+indicator("Chande Kroll Stop", overlay=true)
+p = input.int(10, "Period")
+x = input.float(3.0, "Multiplier")
+q = input.int(20, "Stop Period")
+hStop = ta.highest(high, p) - x * ta.atr(p)
+lStop = ta.lowest(low, p) + x * ta.atr(p)
+plot(ta.highest(hStop, q), "Long Stop", color=color.green, linewidth=2)
+plot(ta.lowest(lStop, q), "Short Stop", color=color.red, linewidth=2)
+`
+  },
+  {
+    id: 'chandelier_exit',
+    name: 'Chandelier Exit',
+    nativeName: 'Chandelier Exit',
+    category: 'volatility',
+    description: 'Trailing stop set at a multiple of average true range beneath the period high or above the low.',
+    script: `//@version=5
+indicator("Chandelier Exit", overlay=true)
+length = input.int(22, "ATR Period")
+mult = input.float(3.0, "ATR Multiplier")
+longStop = ta.highest(high, length) - mult * ta.atr(length)
+shortStop = ta.lowest(low, length) + mult * ta.atr(length)
+plot(longStop, "Chandelier Long", color=color.green, linewidth=2)
+plot(shortStop, "Chandelier Short", color=color.red, linewidth=2)
+`
+  },
+  {
+    id: 'connors_rsi',
+    name: 'Connors RSI (CRSI)',
+    nativeName: 'Connors RSI',
+    category: 'oscillators',
+    description: 'Composite momentum oscillator blending short-term RSI, up/down streaks, and percentile rank.',
+    script: `//@version=5
+indicator("Connors RSI", overlay=false)
+rsi3 = ta.rsi(close, 3)
+updown = ta.rising(close, 1) ? 1 : (ta.falling(close, 1) ? -1 : 0)
+streakRsi = ta.rsi(updown, 2)
+crsi = (rsi3 + streakRsi) / 2
+plot(crsi, "Connors RSI", color=color.rgb(0, 229, 255), linewidth=2)
+hline(90, "Overbought (90)", color=color.red, linestyle=hline.style_dashed)
+hline(10, "Oversold (10)", color=color.green, linestyle=hline.style_dashed)
+`
+  },
+  {
+    id: 'elder_ray',
+    name: 'Elder Ray (Bull & Bear Power)',
+    nativeName: 'Elder Ray',
+    category: 'oscillators',
+    description: 'Dr. Alexander Elder indicator measuring bullish and bearish pressure relative to a 13-period EMA.',
+    script: `//@version=5
+indicator("Elder Ray", overlay=false)
+ema13 = ta.ema(close, 13)
+bullPower = high - ema13
+bearPower = low - ema13
+plot(bullPower, "Bull Power", color=color.green, style=plot.style_columns)
+plot(bearPower, "Bear Power", color=color.red, style=plot.style_columns)
+hline(0, "Zero Line", color=color.gray)
+`
+  },
+  {
+    id: 'gator_oscillator',
+    name: 'Gator Oscillator (Bill Williams)',
+    nativeName: 'Gator Oscillator',
+    category: 'trend',
+    description: 'Derivative of Bill Williams Alligator showing expansion and contraction of the jaws, teeth, and lips.',
+    script: `//@version=5
+indicator("Gator Oscillator", overlay=false)
+jaws = ta.sma(hl2, 13)[8]
+teeth = ta.sma(hl2, 8)[5]
+lips = ta.sma(hl2, 5)[3]
+upper = math.abs(jaws - teeth)
+lower = -math.abs(teeth - lips)
+plot(upper, "Upper Gator", color=color.teal, style=plot.style_columns)
+plot(lower, "Lower Gator", color=color.orange, style=plot.style_columns)
+`
+  },
+  {
+    id: 'intraday_intensity',
+    name: 'Intraday Intensity Index',
+    nativeName: 'Intraday Intensity',
+    category: 'volume',
+    description: 'Volume-based indicator tracking institutional accumulation and distribution within daily bars.',
+    script: `//@version=5
+indicator("Intraday Intensity", overlay=false)
+range_ = high - low == 0 ? 1 : high - low
+ii = (2 * close - high - low) / range_ * volume
+plot(ta.cum(ii), "Intraday Intensity", color=color.rgb(192, 132, 252), linewidth=2)
+`
+  },
+  {
+    id: 'klinger_oscillator',
+    name: 'Klinger Volume Oscillator (KVO)',
+    nativeName: 'Klinger Oscillator',
+    category: 'volume',
+    description: 'Long-term volume flow oscillator designed to predict price reversals across major trends.',
+    script: `//@version=5
+indicator("Klinger Oscillator", overlay=false)
+dm = high - low
+vForce = volume * (ta.change(hlc3) > 0 ? 1 : -1) * 100
+kvo = ta.ema(vForce, 34) - ta.ema(vForce, 55)
+sig = ta.ema(kvo, 13)
+plot(kvo, "KVO", color=color.blue, linewidth=2)
+plot(sig, "Signal", color=color.orange)
+hline(0, "Zero", color=color.gray)
+`
+  },
+  {
+    id: 'kst',
+    name: 'Know Sure Thing (KST)',
+    nativeName: 'Know Sure Thing',
+    category: 'oscillators',
+    description: 'Martin Pring momentum oscillator based on smoothed rate-of-change across four different timeframes.',
+    script: `//@version=5
+indicator("Know Sure Thing", overlay=false)
+r1 = ta.sma(ta.roc(close, 10), 10)
+r2 = ta.sma(ta.roc(close, 15), 10)
+r3 = ta.sma(ta.roc(close, 20), 10)
+r4 = ta.sma(ta.roc(close, 30), 15)
+kst = r1 * 1 + r2 * 2 + r3 * 3 + r4 * 4
+sig = ta.sma(kst, 9)
+plot(kst, "KST", color=color.green, linewidth=2)
+plot(sig, "Signal", color=color.red)
+hline(0, "Zero Line", color=color.gray)
+`
+  },
+  {
+    id: 'nvi',
+    name: 'Negative Volume Index (NVI)',
+    nativeName: 'Negative Volume Index',
+    category: 'volume',
+    description: 'Tracks price movement on declining volume days to follow smart institutional positioning.',
+    script: `//@version=5
+indicator("Negative Volume Index", overlay=false)
+var float nvi = 1000.0
+if volume < volume[1]
+    nvi := nvi + (close - close[1]) / (close[1] == 0 ? 1 : close[1]) * nvi
+plot(nvi, "NVI", color=color.teal, linewidth=2)
+plot(ta.ema(nvi, 255), "NVI 255 EMA", color=color.orange)
+`
+  },
+  {
+    id: 'pvo',
+    name: 'Percentage Volume Oscillator (PVO)',
+    nativeName: 'Percentage Volume Oscillator',
+    category: 'volume',
+    description: 'MACD formula applied to volume to identify volume surge cycles and drying-up phases.',
+    script: `//@version=5
+indicator("Percentage Volume Oscillator", overlay=false)
+fast = ta.ema(volume, 12)
+slow = ta.ema(volume, 26)
+pvo = (fast - slow) / (slow == 0 ? 1 : slow) * 100
+sig = ta.ema(pvo, 9)
+plot(pvo, "PVO", color=color.aqua, linewidth=2)
+plot(sig, "Signal", color=color.yellow)
+hline(0, "Zero", color=color.gray)
+`
+  },
+  {
+    id: 'pvi',
+    name: 'Positive Volume Index (PVI)',
+    nativeName: 'Positive Volume Index',
+    category: 'volume',
+    description: 'Tracks price movement on increasing volume days to isolate retail and high-liquidity activity.',
+    script: `//@version=5
+indicator("Positive Volume Index", overlay=false)
+var float pvi = 1000.0
+if volume > volume[1]
+    pvi := pvi + (close - close[1]) / (close[1] == 0 ? 1 : close[1]) * pvi
+plot(pvi, "PVI", color=color.maroon, linewidth=2)
+plot(ta.ema(pvi, 255), "PVI 255 EMA", color=color.blue)
+`
+  },
+  {
+    id: 'rvi',
+    name: 'Relative Vigor Index (RVI)',
+    nativeName: 'Relative Vigor Index',
+    category: 'oscillators',
+    description: 'Measures the conviction of a recent price action by comparing closing price to trading range.',
+    script: `//@version=5
+indicator("Relative Vigor Index", overlay=false)
+co = close - open
+hl = high - low
+num = ta.sma(co, 10)
+den = ta.sma(hl == 0 ? 1 : hl, 10)
+rvi = num / (den == 0 ? 1 : den)
+sig = (rvi + 2 * rvi[1] + 2 * rvi[2] + rvi[3]) / 6
+plot(rvi, "RVI", color=color.green, linewidth=2)
+plot(sig, "Signal", color=color.red)
+hline(0, "Zero", color=color.gray)
+`
+  },
+  {
+    id: 'relative_volatility_index',
+    name: 'Relative Volatility Index (RVI)',
+    nativeName: 'Relative Volatility Index',
+    category: 'volatility',
+    description: 'Calculates volatility using standard deviation within the RSI formula framework.',
+    script: `//@version=5
+indicator("Relative Volatility Index", overlay=false)
+std = ta.stdev(close, 10)
+up = ta.change(close) > 0 ? std : 0
+down = ta.change(close) < 0 ? std : 0
+rvi = ta.ema(up, 14) / (ta.ema(up, 14) + ta.ema(down, 14) == 0 ? 1 : (ta.ema(up, 14) + ta.ema(down, 14))) * 100
+plot(rvi, "Relative Volatility", color=color.yellow, linewidth=2)
+hline(50, "Centerline (50)", color=color.gray, linestyle=hline.style_dashed)
+`
+  },
+  {
+    id: 'stc',
+    name: 'Schaff Trend Cycle (STC)',
+    nativeName: 'Schaff Trend Cycle',
+    category: 'oscillators',
+    description: 'Double-smoothed stochastic of MACD developed by Doug Schaff for high-probability cycle turning points.',
+    script: `//@version=5
+indicator("Schaff Trend Cycle", overlay=false)
+macdVal = ta.ema(close, 23) - ta.ema(close, 50)
+lowestM = ta.lowest(macdVal, 10)
+highestM = ta.highest(macdVal, 10)
+stok = (macdVal - lowestM) / (highestM - lowestM == 0 ? 1 : highestM - lowestM) * 100
+stc = ta.ema(stok, 3)
+plot(stc, "STC", color=stc > 75 ? color.green : (stc < 25 ? color.red : color.gray), linewidth=2)
+hline(75, "Overbought", color=color.red, linestyle=hline.style_dashed)
+hline(25, "Oversold", color=color.green, linestyle=hline.style_dashed)
+`
+  },
+  {
+    id: 'smi_ergodic',
+    name: 'SMI Ergodic Oscillator',
+    nativeName: 'SMI Ergodic Oscillator',
+    category: 'oscillators',
+    description: 'William Blau Stochastic Momentum Index with true ergodic signal line for momentum confirmation.',
+    script: `//@version=5
+indicator("SMI Ergodic Oscillator", overlay=false)
+diff = close - close[1]
+sDiff = ta.ema(ta.ema(diff, 20), 5)
+sAbsDiff = ta.ema(ta.ema(math.abs(diff), 20), 5)
+smi = sDiff / (sAbsDiff == 0 ? 1 : sAbsDiff) * 100
+sig = ta.ema(smi, 5)
+plot(smi, "SMI", color=color.blue, linewidth=2)
+plot(sig, "Signal", color=color.orange)
+hline(0, "Zero", color=color.gray)
+`
+  },
+  {
+    id: 'smma',
+    name: 'Smoothed Moving Average (SMMA)',
+    nativeName: 'Smoothed Moving Average',
+    category: 'trend',
+    description: 'Running moving average giving equal weight to historical periods while smoothing market noise.',
+    script: `//@version=5
+indicator("Smoothed Moving Average", overlay=true)
+len = input.int(20, "Length")
+smma = ta.rma(close, len)
+plot(smma, "SMMA", color=color.rgb(0, 242, 176), linewidth=2)
+`
+  },
+  {
+    id: 'trix',
+    name: 'TRIX Momentum Oscillator',
+    nativeName: 'TRIX',
+    category: 'oscillators',
+    description: 'Triple-smoothed exponential moving average rate-of-change filtering out non-trending minor fluctuations.',
+    script: `//@version=5
+indicator("TRIX", overlay=false)
+len = input.int(15, "Length")
+e1 = ta.ema(close, len)
+e2 = ta.ema(e1, len)
+e3 = ta.ema(e2, len)
+trix = (e3 - e3[1]) / (e3[1] == 0 ? 1 : e3[1]) * 10000
+plot(trix, "TRIX", color=color.purple, linewidth=2)
+hline(0, "Zero Line", color=color.gray)
+`
+  },
+  {
+    id: 'ttm_squeeze',
+    name: 'TTM Squeeze (John Carter)',
+    nativeName: 'TTM Squeeze',
+    category: 'volatility',
+    description: 'Identifies periods of Bollinger Bands consolidation inside Keltner Channels followed by explosive breakouts.',
+    script: `//@version=5
+indicator("TTM Squeeze", overlay=false)
+[bbMid, bbUp, bbLo] = ta.bb(close, 20, 2.0)
+[kcMid, kcUp, kcLo] = ta.kc(close, 20, 1.5)
+squeeze = (bbLo > kcLo) and (bbUp < kcUp)
+mom = ta.linreg(close - math.avg(ta.highest(high, 20), ta.lowest(low, 20)), 20, 0)
+plot(mom, "Momentum", color=mom > 0 ? (mom > mom[1] ? color.teal : color.blue) : (mom < mom[1] ? color.maroon : color.red), style=plot.style_columns)
+plotshape(squeeze, "Squeeze On", style=shape.cross, location=location.bottom, color=color.red, size=size.tiny)
+`
+  },
+  {
+    id: 'ulcer_index',
+    name: 'Ulcer Index (UI)',
+    nativeName: 'Ulcer Index',
+    category: 'volatility',
+    description: 'Measures downside risk by calculating the depth and duration of price drawdowns from recent highs.',
+    script: `//@version=5
+indicator("Ulcer Index", overlay=false)
+len = input.int(14, "Period")
+h14 = ta.highest(close, len)
+r = (close - h14) / (h14 == 0 ? 1 : h14) * 100
+ui = math.sqrt(ta.sma(r * r, len))
+plot(ui, "Ulcer Index", color=color.red, linewidth=2)
+`
+  },
+  {
+    id: 'vidya',
+    name: 'Variable Index Dynamic Average (VIDYA)',
+    nativeName: 'Variable Index Dynamic Average',
+    category: 'trend',
+    description: 'Tushar Chande dynamic exponential moving average adjusting its smoothing constant via Chande Momentum.',
+    script: `//@version=5
+indicator("VIDYA", overlay=true)
+len = input.int(14, "Length")
+cmo = math.abs(ta.cmo(close, len)) / 100
+alpha = 2 / (len + 1) * cmo
+var float vidya = close
+vidya := alpha * close + (1 - alpha) * nz(vidya[1], close)
+plot(vidya, "VIDYA", color=color.yellow, linewidth=2)
+`
+  },
+  {
+    id: 'vrvp',
+    name: 'Visible Range Volume Profile (VRVP)',
+    nativeName: 'Visible Range Volume Profile',
+    category: 'volume',
+    description: 'Aggregates volume at price levels across visible chart history, highlighting Point of Control (POC).',
+    script: `//@version=5
+indicator("Volume Profile POC", overlay=true)
+poc = ta.vwap(close)
+plot(poc, "POC Line", color=color.orange, linewidth=2)
+`
+  },
+  {
+    id: 'vfi',
+    name: 'Volume Flow Indicator (VFI)',
+    nativeName: 'Volume Flow Indicator',
+    category: 'volume',
+    description: 'Markos Katsanos volume oscillator identifying institutional liquidity flow using cut-off coefficients.',
+    script: `//@version=5
+indicator("Volume Flow Indicator", overlay=false)
+len = input.int(130, "Length")
+coef = input.float(0.2, "Coeff")
+vfi = ta.sma(volume * (close > close[1] ? 1 : -1), 30) / ta.sma(volume, 30) * 100
+plot(vfi, "VFI", color=vfi > 0 ? color.teal : color.red, linewidth=2)
+hline(0, "Zero", color=color.gray)
+`
+  },
+  {
+    id: 'williams_alligator',
+    name: 'Williams Alligator',
+    nativeName: 'Williams Alligator',
+    category: 'trend',
+    description: 'Three smoothed moving averages (Jaws, Teeth, Lips) offset into the future to identify sleeping and feeding trends.',
+    script: `//@version=5
+indicator("Williams Alligator", overlay=true)
+jaws = ta.sma(hl2, 13)[8]
+teeth = ta.sma(hl2, 8)[5]
+lips = ta.sma(hl2, 5)[3]
+plot(jaws, "Alligator Jaws (Blue)", color=color.blue, linewidth=2)
+plot(teeth, "Alligator Teeth (Red)", color=color.red, linewidth=2)
+plot(lips, "Alligator Lips (Green)", color=color.green, linewidth=2)
+`
+  },
+  {
+    id: 'williams_fractal',
+    name: 'Williams Fractal',
+    nativeName: 'Williams Fractal',
+    category: 'trend',
+    description: 'Five-bar price patterns isolating local high and low turning points on candlestick charts.',
+    script: `//@version=5
+indicator("Williams Fractal", overlay=true)
+up = high[2] > high[1] and high[2] > high and high[2] > high[3] and high[2] > high[4]
+down = low[2] < low[1] and low[2] < low and low[2] < low[3] and low[2] < low[4]
+plotshape(up, "Up Fractal", style=shape.triangleup, location=location.abovebar, color=color.green, offset=-2)
+plotshape(down, "Down Fractal", style=shape.triangledown, location=location.belowbar, color=color.red, offset=-2)
+`
+  },
+  {
+    id: 'zlema',
+    name: 'Zero-Lag Exponential Moving Average (ZLEMA)',
+    nativeName: 'Zero-Lag Exponential Moving Average',
+    category: 'trend',
+    description: 'Eliminates lag by computing an exponential moving average on de-lagged price differences.',
+    script: `//@version=5
+indicator("Zero-Lag EMA", overlay=true)
+len = input.int(20, "Length")
+lag = (len - 1) / 2
+zlPrice = close + (close - close[lag])
+zlema = ta.ema(zlPrice, len)
+plot(zlema, "ZLEMA", color=color.rgb(0, 229, 255), linewidth=2)
+`
   }
 ];

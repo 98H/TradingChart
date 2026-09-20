@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const CHROME = '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome';
+const CHROME = '/root/.cache/puppeteer/chrome-headless-shell/linux-153.0.8010.36/chrome-headless-shell-linux64/chrome-headless-shell';
 const BASE = 'http://127.0.0.1:8088';
 const EVID = path.resolve(__dirname, '../screenshots/qa_cycles');
 
@@ -53,6 +53,7 @@ async function launch(viewportName = 'desktop') {
   const vp = VIEWPORTS[viewportName];
   const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
+    userDataDir: `/tmp/qa_chrome_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--disable-extensions', '--disable-background-networking',
            `--window-size=${vp.width},${vp.height}`]

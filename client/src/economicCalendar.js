@@ -33,6 +33,7 @@ export class EconomicCalendarView {
       this.events = [];
     } finally {
       this.isLoading = false;
+      this.render();
     }
   }
 
@@ -107,7 +108,7 @@ export class EconomicCalendarView {
             const impactColor = isHigh ? 'var(--accent-red)' : isMed ? 'var(--accent-gold)' : 'var(--accent-green)';
 
             return `
-              <div class="calendar-event-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; transition: border-color 0.15s;">
+              <div class="calendar-event-card cal-event-row" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; transition: border-color 0.15s;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <div style="display: flex; align-items: center; gap: 6px;">
                     <span style="font-size: 13px;">${e.flag}</span>

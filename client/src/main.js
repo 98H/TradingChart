@@ -28,6 +28,9 @@ import { TemplateManager } from './templateManager.js';
 import { TechnicalScreenerView } from './technicalScreener.js';
 import { DepthOfMarketView } from './depthOfMarket.js';
 import { FloatingDrawingToolbar } from './floatingDrawingToolbar.js';
+import { DrawingToolsLibrary } from './drawingToolsLibrary.js';
+import { GoToDateModal } from './goToDate.js';
+import { CommandPalette } from './commandPalette.js';
 import { ChartAlertsOverlay } from './chartAlertsOverlay.js';
 import { MarketNewsView } from './marketNewsView.js';
 import { ChartStylePicker } from './chartStylePicker.js';
@@ -75,20 +78,36 @@ class TradingChartApp {
   async init() {
     console.log('[TradingChart] Initializing LuxAlgo Quant Workspace...');
     window.__TRADING_APP__ = this;
-
     // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
     this.chartManager = new ChartManager({
       app: this,
       mountId: '#vela-workspace-mount',
       onSymbolChange: (sym) => this.handleSymbolChange(sym)
     });
+    this.applyStoredTheme();
 
     // 2. Initialize Modals
     this.indicatorsModal = new IndicatorsModal({
       modalEl: document.querySelector('#modal-indicators'),
       onAddIndicator: (item) => {
+        if (item.nativeName && this.chartManager?.workspace?.active?.chart?.addNativeIndicator) {
+          try {
+            const handle = this.chartManager.workspace.active.chart.addNativeIndicator(item.nativeName);
+            if (handle) {
+              const isFa = getLanguage() === 'fa';
+              this.showToast(isFa ? `اندیکاتور «${item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+              return { success: true, handleId: handle.id };
+            }
+          } catch (e) {
+            console.warn('[AddIndicator] Native indicator fallback to Pine:', e);
+          }
+        }
         if (item.script) {
           const res = this.chartManager.addPineIndicator(item.script, item.name);
+          const isFa = getLanguage() === 'fa';
+          if (res?.success) {
+            this.showToast(isFa ? `اندیکاتور «${item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+          }
           return res;
         }
       }
@@ -136,6 +155,14 @@ class TradingChartApp {
 
     // 4. Initialize Floating Drawing Toolbar & Canvas Alert Overlay (TradingView Parity)
     this.floatingToolbar = new FloatingDrawingToolbar(this);
+    this.drawingToolsLibrary = new DrawingToolsLibrary(this);
+    // Keep floating toolbar highlight in sync with library selection
+    this.drawingToolsLibrary.onToolSelected = (tool) => {
+      this.floatingToolbar.activeTool = tool;
+      this.floatingToolbar.render();
+    };
+    this.goToDateModal = new GoToDateModal(this);
+    this.commandPalette = new CommandPalette(this);
     this.chartAlertsOverlay = new ChartAlertsOverlay(this);
     this.chartStylePicker = new ChartStylePicker(this);
     this.contextMenu = new CanvasContextMenu(this);
@@ -435,7 +462,7 @@ class TradingChartApp {
   async loadActiveCandles() {
     try {
       // Pre-flight validation: a rejected/empty payload must never be applied.
-      const bars = await this.fetchCandlesFor(this.currentSymbol, this.currentTimeframe, 500);
+      const bars = await this.fetchCandlesFor(this.currentSymbol, this.currentTimeframe, 2000);
       if (!bars || bars.length === 0) {
         console.warn('[TradingChart] Empty candles payload — retaining previous series');
         if (!this.activeBars || this.activeBars.length === 0) {
@@ -506,7 +533,7 @@ class TradingChartApp {
   }
 
   /** Fetch a candle series for an arbitrary symbol/timeframe (pre-flight helper). */
-  async fetchCandlesFor(symbol, timeframe, limit = 500) {
+  async fetchCandlesFor(symbol, timeframe, limit = 2000) {
     const key = `${symbol}_${timeframe}`;
     try {
       const res = await fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`);
@@ -697,6 +724,41 @@ class TradingChartApp {
       this.dataExportModal?.open();
     });
 
+    // Drawing undo / redo — delegate to Vela's drawing history
+    document.querySelector('#btn-undo')?.addEventListener('click', () => {
+      try { this.chartManager?.workspace?.active?.chart?.drawings?.undo(); } catch (e) {}
+    });
+    document.querySelector('#btn-redo')?.addEventListener('click', () => {
+      try { this.chartManager?.workspace?.active?.chart?.drawings?.redo(); } catch (e) {}
+    });
+
+    // Magnet snap mode — cycles off → weak → strong → off (TradingView parity)
+    let magnetIdx = 0;
+    const magnetModes = ['off', 'weak', 'strong'];
+    const magnetLabels = { off: 'خاموش', weak: 'ضعیف', strong: 'قوی' };
+    document.querySelector('#btn-magnet')?.addEventListener('click', () => {
+      magnetIdx = (magnetIdx + 1) % magnetModes.length;
+      const mode = magnetModes[magnetIdx];
+      try { this.chartManager?.workspace?.active?.chart?.drawings?.setSnapMode(mode); } catch (e) {}
+      const btn = document.querySelector('#btn-magnet');
+      if (btn) btn.classList.toggle('active', mode !== 'off');
+      this.showToast?.(getLanguage() === 'fa' ? `مگنت: ${magnetLabels[mode]}` : `Magnet: ${mode}`, mode === 'off' ? 'info' : 'success');
+    });
+
+    // Fullscreen toggle
+    document.querySelector('#btn-fullscreen')?.addEventListener('click', () => {
+      const root = document.documentElement;
+      if (!document.fullscreenElement) {
+        root.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      document.querySelector('#btn-fullscreen')?.classList.toggle('active', !!document.fullscreenElement);
+      window.dispatchEvent(new Event('resize'));
+    });
+
     document.querySelector('#btn-topbar-replay')?.addEventListener('click', () => {
       const replayBar = document.querySelector('#replay-bar');
       const isVisible = replayBar?.classList.contains('visible');
@@ -840,11 +902,12 @@ class TradingChartApp {
     // 8. Time Range Bar active tracking
     this.bindTimeRangeActive();
 
-    // 8. Capture topbar clicks for Indicators and Symbol Search
+    // 8. Capture topbar and mobilebar clicks for Indicators and Symbol Search
     document.addEventListener('click', (e) => {
-      const indBtn = e.target.closest('.vela-widget-indicators');
+      const indBtn = e.target.closest('.vela-widget-indicators, .vela-mb-indicators, [aria-label="Indicators"], [data-tool="indicators"]');
       if (indBtn) {
         e.stopPropagation();
+        e.stopImmediatePropagation();
         e.preventDefault();
         this.indicatorsModal?.open();
         return;
@@ -937,6 +1000,17 @@ class TradingChartApp {
       } else if (e.key === '/') {
         e.preventDefault();
         this.indicatorsModal?.open();
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        try { this.chartManager?.workspace?.active?.chart?.drawings?.undo(); } catch (err) {}
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y' || (e.shiftKey && (e.key === 'z' || e.key === 'Z')))) {
+        e.preventDefault();
+        try { this.chartManager?.workspace?.active?.chart?.drawings?.redo(); } catch (err) {}
+      } else if (e.key === 'F11') {
+        e.preventDefault();
+        const root = document.documentElement;
+        if (!document.fullscreenElement) root.requestFullscreen?.().catch(() => {});
+        else document.exitFullscreen?.().catch(() => {});
       } else if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         this.openSymbolSearch();
@@ -1288,11 +1362,14 @@ class TradingChartApp {
     toast.innerHTML = isFa
       ? `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ اجرا شد</span> ${sideFa} ${toPersianDigits(String(qty))} ${symbol} @ بازار`
       : `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ EXECUTED</span> ${side} ${qty} ${symbol} @ MARKET`;
+    toast.style.display = 'flex';
     toast.style.opacity = '1';
     toast.style.transform = 'translateY(0)';
-    setTimeout(() => {
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(10px)';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
     }, 3000);
   }
 
@@ -1351,6 +1428,24 @@ class TradingChartApp {
     }
   }
 
+  applyStoredTheme() {
+    try {
+      const t = localStorage.getItem('tradingchart_theme');
+      const light = t === 'light';
+      if (light) document.documentElement.dataset.theme = 'light';
+      else delete document.documentElement.dataset.theme;
+      // Re-theme every Vela chart canvas (per-cell setTheme), so candles/grid
+      // flip to day mode too — workspace.setTheme alone is a no-op here.
+      const ws = this.chartManager?.workspace;
+      const cellThemes = light
+        ? { background: '#ffffff', textColor: '#1f2937', gridColor: '#eef1f6', borderColor: '#d3dae6', upColor: '#059669', downColor: '#dc2626' }
+        : { background: '#0b0e14', textColor: '#b2b5be', gridColor: '#161922', borderColor: '#1e222d', upColor: '#00F2B0', downColor: '#FF4D5B' };
+      const apply = (cell) => { try { cell?.chart?.setTheme?.(cellThemes); } catch (e) {} };
+      if (ws?.cellsById) ws.cellsById.forEach(apply);
+      else if (ws?.active) apply(ws.active);
+    } catch (e) {}
+  }
+
   switchLanguage(lang) {
     setLanguage(lang);
     // Persist the user's explicit choice so the RTL/Persian session survives
@@ -1395,6 +1490,8 @@ class TradingChartApp {
     this.alertsManager?.render?.();
     this.marketTrackers?.render?.();
     this.templateManager?.render?.();
+    this.tradeJournalModal?.render?.();
+    this.screenshotModal?.render?.();
     this.chartAlertsOverlay?.updateAlerts(
       this.alertsManager?.alerts,
       this.currentSymbol,

@@ -1,0 +1,128 @@
+{
+  "timestamp": "2026-09-20T09:52:43.788Z",
+  "totalPasses": 30,
+  "totalDefects": 0,
+  "passes": [
+    {
+      "test": "D01: Boot & Canvas Mount",
+      "details": "BTCUSDT (60) with 500 candles on 7 canvases"
+    },
+    {
+      "test": "D02: Symbol Search & Switch to SOLUSDT",
+      "details": "Chart repointed to SOLUSDT (500 bars)"
+    },
+    {
+      "test": "D03: Switch to Commodity XAUUSD",
+      "details": "Switched to XAUUSD (500 bars)"
+    },
+    {
+      "test": "D04: Timeframe Switch 15",
+      "details": "500 candles loaded"
+    },
+    {
+      "test": "D04: Timeframe Switch 60",
+      "details": "500 candles loaded"
+    },
+    {
+      "test": "D04: Timeframe Switch 240",
+      "details": "500 candles loaded"
+    },
+    {
+      "test": "D04: Timeframe Switch D",
+      "details": "500 candles loaded"
+    },
+    {
+      "test": "D05: Chart Style Switching",
+      "details": "All 5 price styles applied without error"
+    },
+    {
+      "test": "D06: Floating Drawing Toolbar",
+      "details": "Tools arm/clear, magnet/lock toggles responsive"
+    },
+    {
+      "test": "D07: Canvas Context Menu",
+      "details": "11 context actions mounted and dismissed on Esc"
+    },
+    {
+      "test": "D08: Indicators Catalogue & Add RSI",
+      "details": "RSI indicator mounted (3 active chart handles)"
+    },
+    {
+      "test": "D09: Pine Studio AST Transpilation",
+      "details": "Pine Script template loaded and compiled cleanly"
+    },
+    {
+      "test": "D10: Strategy Tester Simulation",
+      "details": "Executed backtest: 7 trades, Net Profit: +$132.112 (0.13%), Win Rate: 42.9% (3/7)"
+    },
+    {
+      "test": "D11: Prop Firm Simulator 10k Monte Carlo",
+      "details": "Pass Rate: 66.6%, Ruin Risk: 33.4%, EV: +$2,651"
+    },
+    {
+      "test": "D12: Paper Trading Long Order & Position Close",
+      "details": "Opened position (total 2), closed successfully (remaining 1)"
+    },
+    {
+      "test": "D13: Quick Trade 1-Click Execution",
+      "details": "Execution toast triggered: \"✓ EXECUTED\nBUY 0.1 BTCUSDT @ MARKET\""
+    },
+    {
+      "test": "D14: Depth of Market (DOM L2)",
+      "details": "12 Bids, 12 Asks, Spread: $0.03 (0%)"
+    },
+    {
+      "test": "D15: Trade Journal & Workspace Switcher",
+      "details": "Calendar heatmap rendered, log trade modal submitted, Quant/Journal workspace toggles smooth"
+    },
+    {
+      "test": "D16: Technical Screener Multi-Asset Telemetry",
+      "details": "50 assets screened with RSI, Trend & Ratings"
+    },
+    {
+      "test": "D17: Global Macro Economic Calendar",
+      "details": "20 events loaded, 18 High Impact events filtered"
+    },
+    {
+      "test": "D18: Market Trackers (Congress, 13F, FINRA) & News",
+      "details": "8 government disclosure sub-tabs verified"
+    },
+    {
+      "test": "D19: Layout Studio & Compare Overlay",
+      "details": "Compare modal opened/closed, 2x1 & 1x1 layouts switched without error"
+    },
+    {
+      "test": "D20: Bar Replay Engine",
+      "details": "Replay bar mounted, stepped forward, and cleanly exited"
+    },
+    {
+      "test": "D21: Export & Screenshot Dialogs",
+      "details": "Both modals instantiated, populated and dismissed cleanly"
+    },
+    {
+      "test": "D22: Full Persian RTL Translation & Clean Round-Trip",
+      "details": "FA Nav: \"کوانت\", \"+ پنل‌ها\", EN restored: \"Quant\""
+    },
+    {
+      "test": "M01: Mobile Responsive Viewport Fit",
+      "details": "390px viewport, scrollWidth=390px (no horizontal overflow)"
+    },
+    {
+      "test": "M02: Mobile More Drawer",
+      "details": "Drawer opens on mobile dock tap"
+    },
+    {
+      "test": "M03: Mobile Symbol Search Modal Fit",
+      "details": "Modal width 352px fits within 390px"
+    },
+    {
+      "test": "M04: Mobile Persian RTL Clean Fit",
+      "details": "Zero horizontal overflow in Persian RTL mode"
+    },
+    {
+      "test": "Console & Page Errors",
+      "details": "0 runtime errors captured across desktop & mobile sessions"
+    }
+  ],
+  "defects": []
+}

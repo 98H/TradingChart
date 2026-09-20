@@ -3,6 +3,9 @@
 // Instant 1-click switching between Candlesticks, Bars, Heikin Ashi, Line, Area, and Baseline.
 
 import { getLanguage, t } from './i18n.js';
+import { SYNTHETIC_TYPES } from './syntheticChartTypes.js';
+
+const ICON_SVG = (inner) => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${inner}</svg>`;
 
 export const CHART_STYLES = [
   {
@@ -40,6 +43,49 @@ export const CHART_STYLES = [
     nameEn: 'Baseline',
     nameFa: 'خط پایه (Baseline)',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="2 2"/><path d="M4 8 Q9 5 12 12 Q16 19 20 15" stroke="currentColor" stroke-width="2"/></svg>`
+  },
+  // ── Synthetic (non-time-based) chart types — computed client-side ──
+  {
+    id: 'hollow',
+    nameEn: 'Hollow Candles',
+    nameFa: 'کندل توخالی',
+    icon: ICON_SVG('<line x1="9" y1="2" x2="9" y2="6"/><rect x="6" y="6" width="6" height="12" rx="1"/><line x1="9" y1="18" x2="9" y2="22"/><line x1="17" y1="4" x2="17" y2="9"/><rect x="14" y="9" width="6" height="8" rx="1" fill="currentColor"/><line x1="17" y1="17" x2="17" y2="21"/>')
+  },
+  {
+    id: 'volumecandles',
+    nameEn: 'Volume Candles',
+    nameFa: 'کندل حجمی',
+    icon: ICON_SVG('<rect x="4" y="8" width="5" height="10" fill="currentColor" fill-opacity="0.35"/><rect x="11" y="5" width="8" height="14" fill="currentColor" fill-opacity="0.35"/>')
+  },
+  {
+    id: 'renko',
+    nameEn: 'Renko',
+    nameFa: 'رنکو',
+    icon: ICON_SVG('<rect x="4" y="4" width="6" height="6" fill="currentColor" fill-opacity="0.35"/><rect x="10" y="10" width="6" height="6" fill="currentColor" fill-opacity="0.35"/><rect x="16" y="16" width="6" height="6"/>')
+  },
+  {
+    id: 'kagi',
+    nameEn: 'Kagi',
+    nameFa: 'کاگی',
+    icon: ICON_SVG('<path d="M4 18 V8 H12 V14 H18 V4" stroke-width="2.6"/><path d="M4 18 H12"/>')
+  },
+  {
+    id: 'linebreak',
+    nameEn: 'Line Break',
+    nameFa: 'لاین‌بریک',
+    icon: ICON_SVG('<rect x="4" y="6" width="4" height="8" fill="currentColor" fill-opacity="0.35"/><rect x="10" y="10" width="4" height="8"/><rect x="16" y="4" width="4" height="8" fill="currentColor" fill-opacity="0.35"/>')
+  },
+  {
+    id: 'range',
+    nameEn: 'Range Bars',
+    nameFa: 'رنج‌بار',
+    icon: ICON_SVG('<rect x="4" y="8" width="5" height="8"/><rect x="11" y="8" width="5" height="8" fill="currentColor" fill-opacity="0.35"/><rect x="18" y="8" width="4" height="8"/>')
+  },
+  {
+    id: 'pnf',
+    nameEn: 'Point & Figure',
+    nameFa: 'پوینت و فیگور',
+    icon: ICON_SVG('<text x="4" y="11" font-size="9" font-weight="900" fill="currentColor" stroke="none">X</text><text x="13" y="19" font-size="9" font-weight="900" fill="currentColor" stroke="none">O</text><text x="4" y="20" font-size="9" font-weight="900" fill="currentColor" stroke="none">X</text>')
   }
 ];
 
@@ -188,7 +234,14 @@ export class ChartStylePicker {
     this.updateButtonUI();
 
     if (this.app?.chartManager) {
-      this.app.chartManager.setPriceStyle(styleId);
+      if (SYNTHETIC_TYPES[styleId]) {
+        // Synthetic types are computed in the data provider; Vela renders them as candles.
+        this.app.chartManager.setPriceStyle('candles');
+        this.app.chartManager.refreshData?.();
+      } else {
+        this.app.chartManager.setPriceStyle(styleId);
+        this.app.chartManager.refreshData?.();
+      }
       this.app.showExecutionToast('STYLE', 1, styleId.toUpperCase());
     }
   }

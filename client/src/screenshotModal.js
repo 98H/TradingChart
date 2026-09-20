@@ -7,6 +7,8 @@ import { getLanguage, t } from './i18n.js';
 export class ScreenshotModal {
   constructor(app) {
     this.app = app;
+    this.currentImageSrc = null;
+    this.modalEl = null;
   }
 
   captureCompositeCanvas() {
@@ -40,11 +42,7 @@ export class ScreenshotModal {
     }
   }
 
-  open(imageSrc) {
-    if (!imageSrc) {
-      imageSrc = this.captureCompositeCanvas();
-    }
-
+  getModalEl() {
     let modal = document.querySelector('#modal-screenshot-preview');
     if (!modal) {
       modal = document.createElement('div');
@@ -52,14 +50,35 @@ export class ScreenshotModal {
       modal.className = 'modal-overlay';
       document.body.appendChild(modal);
     }
+    this.modalEl = modal;
+    return modal;
+  }
+
+  open(imageSrc) {
+    this.currentImageSrc = imageSrc || this.captureCompositeCanvas();
+    const modal = this.getModalEl();
+    this.render();
+    modal.classList.add('open');
+  }
+
+  close() {
+    const modal = document.querySelector('#modal-screenshot-preview');
+    if (modal) modal.classList.remove('open');
+  }
+
+  render() {
+    const modal = document.querySelector('#modal-screenshot-preview');
+    if (!modal) return;
+    this.modalEl = modal;
 
     const isFa = getLanguage() === 'fa';
     const sym = this.app?.currentSymbol || 'BTCUSDT';
     const tf = this.app?.currentTimeframe || '60';
     const lastPrice = this.app?.paperTrading?.lastPrice || 80900;
+    const imageSrc = this.currentImageSrc;
 
     modal.innerHTML = `
-      <div class="modal-box" style="max-width: 640px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: var(--font-sans);">
+      <div class="modal-box" style="max-width: 640px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans), sans-serif'};">
         <!-- Header -->
         <div style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : ''}">
           <div style="font-weight: 700; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 8px;">
@@ -92,10 +111,18 @@ export class ScreenshotModal {
           </div>
 
           <!-- Action buttons -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px;">
             <button id="btn-dl-screenshot" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>${isFa ? 'دانلود تصویر (PNG)' : 'Download PNG'}</span>
+              <span>${isFa ? 'دانلود (PNG)' : 'Download'}</span>
+            </button>
+            <button id="btn-print-chart" class="btn-secondary" title="${isFa ? 'چاپ چارت' : 'Print chart'}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>${isFa ? 'چاپ' : 'Print'}</span>
+            </button>
+            <button id="btn-embed-code" class="btn-secondary" title="${isFa ? 'کد جاسازی' : 'Embed code'}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span>${isFa ? 'جاسازی' : 'Embed'}</span>
             </button>
             <button id="btn-copy-screenshot-link" class="btn-secondary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px; font-size: 11px; cursor: pointer;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -109,8 +136,6 @@ export class ScreenshotModal {
         </div>
       </div>
     `;
-
-    modal.classList.add('open');
 
     const close = () => modal.classList.remove('open');
     modal.querySelector('#btn-close-screenshot')?.addEventListener('click', close);
@@ -138,7 +163,30 @@ export class ScreenshotModal {
       }
     });
 
-    // 3. Copy Social Text
+    // Print — open the snapshot in a clean window and trigger the OS print dialog
+    modal.querySelector('#btn-print-chart')?.addEventListener('click', () => {
+      const src = imageSrc || this.captureCompositeCanvas();
+      if (!src) { this.app?.showToast?.(isFa ? 'تصویری برای چاپ یافت نشد' : 'No image to print', 'error'); return; }
+      const win = window.open('', '_blank', 'width=900,height=650');
+      if (!win) { this.app?.showToast?.(isFa ? 'پنجره چاپ مسدود شد' : 'Print window blocked', 'error'); return; }
+      win.document.write(`<!doctype html><html><head><title>TradingChart ${sym} ${tf}</title><style>body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;padding:16px;font-family:sans-serif}h1{font-size:15px;margin:0 0 10px}img{max-width:100%;border:1px solid #ddd}</style></head><body><h1>TradingChart — ${sym} · ${tf}</h1><img src="${src}" onload="setTimeout(()=>window.print(),150)"/></body></html>`);
+      win.document.close();
+      this.app?.showToast?.(isFa ? 'پنجره چاپ باز شد' : 'Print preview opened', 'success');
+    });
+
+    // Embed — copy a responsive iframe snippet for this exact symbol/timeframe
+    modal.querySelector('#btn-embed-code')?.addEventListener('click', async () => {
+      const url = `${window.location.origin}/?symbol=${sym}&tf=${tf}`;
+      const embed = `<iframe src="${url}" width="100%" height="520" frameborder="0" allowtransparency="true" scrolling="no" style="border-radius:8px;" title="TradingChart ${sym}"></iframe>`;
+      try {
+        await navigator.clipboard.writeText(embed);
+        this.app?.showToast?.(isFa ? 'کد جاسازی کپی شد' : 'Embed code copied to clipboard', 'success');
+      } catch (err) {
+        this.app?.showToast?.(isFa ? 'خطا در دسترسی به کلیپ‌بورد' : 'Clipboard access denied', 'error');
+      }
+    });
+
+    // Copy Social Text
     modal.querySelector('#btn-copy-social-text')?.addEventListener('click', async () => {
       const text = `📊 #TradingChart Analysis for #${sym}\nTimeframe: ${tf}m\nCurrent Price: $${lastPrice}\nAnalysis: LuxAlgo Signals & SMC Confluence active.\nShared via TradingChart Terminal 🚀`;
       try {

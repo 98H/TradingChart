@@ -1,6 +1,8 @@
 // client/src/universalProvider.js
 // Custom Vela DataProvider connecting to TradingChart's resilient multi-tier backend proxy
 
+import { SYNTHETIC_TYPES } from './syntheticChartTypes.js';
+
 const SUPPORTED_TIMEFRAMES = [
   '1s', '1S', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', 'W', 'M'
 ];
@@ -124,9 +126,16 @@ export class UniversalMarketProvider {
     const params = new URLSearchParams();
     params.set('symbol', clean);
     params.set('timeframe', String(timeframe));
-    if (range.limit) params.set('limit', String(range.limit));
+    // TradingView-grade depth: default to 2000 bars (≈3 years daily / ≈83 days
+    // hourly / ≈20 days 15m), not Vela's bare window. The server backfills via
+    // multi-page pagination.
+    params.set('limit', String(range.limit || 2000));
     if (range.from) params.set('from_time', String(range.from));
     if (range.to) params.set('to_time', String(range.to));
+
+    // Active synthetic chart type (Renko/Kagi/...) — transform real bars client-side
+    const synthType = (typeof window !== 'undefined' && localStorage.getItem('tradingchart_price_style')) || 'candles';
+    const synth = SYNTHETIC_TYPES[synthType] || null;
 
     try {
       const res = await fetch(`/api/candles?${params.toString()}`);
@@ -134,7 +143,7 @@ export class UniversalMarketProvider {
       const data = await res.json();
       const raw = Array.isArray(data.candles) ? data.candles : [];
       // Ignore malformed bars that would break the indicator engine downstream.
-      const bars = raw
+      let bars = raw
         .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
         .map(b => ({
           time: Number(b.time),
@@ -152,7 +161,8 @@ export class UniversalMarketProvider {
         const lastGood = this.seriesCache.get(cacheKey);
         if (lastGood && lastGood.length) {
           console.warn(`[UniversalProvider] Empty payload for ${clean} ${timeframe} — serving last known-good series`);
-          return lastGood.map(b => ({ ...b }));
+          const lg = lastGood.map(b => ({ ...b }));
+          return synth ? synth.fn(lg) : lg;
         }
         return [];
       }
@@ -171,7 +181,7 @@ export class UniversalMarketProvider {
         }
       }
 
-      return bars;
+      return synth ? synth.fn(bars) : bars;
     } catch (e) {
       console.warn(`[UniversalProvider] Error fetching ${ticker} ${timeframe}:`, e.message);
       // Network failure: degrade to the last known-good series instead of empty.

@@ -101,7 +101,81 @@ export class LayoutManager {
       style: false
     };
     this.savedLayouts = this.loadSavedLayouts();
+    this.restoreCurrentLayout();
     this.initDOM();
+  }
+
+  // Restore the last-active grid after a page reload (TradingView parity).
+  restoreCurrentLayout() {
+    try {
+      const raw = localStorage.getItem('tradingchart_current_layout');
+      if (!raw) return;
+      const { layoutId, name } = JSON.parse(raw);
+      if (layoutId && layoutId !== '1') {
+        // Defer until chartManager exists; main.js re-calls after init too.
+        this.activeLayoutId = layoutId;
+        if (name) this.activeLayoutName = name;
+      }
+    } catch (e) {}
+  }
+
+// TradingView parity: capture / restore the FULL trading setup per layout —
+// not just the grid shape. A saved layout stores each cell's symbol, timeframe,
+// price style, indicators (with input deltas), and drawings via Vela's
+// getState/applyState. This is exactly TradingView's "Save Layout" behavior.
+
+  captureWorkspaceState() {
+    try {
+      const ws = this.app?.chartManager?.workspace;
+      if (!ws || typeof ws.getState !== 'function') return null;
+      return JSON.parse(JSON.stringify(ws.getState()));
+    } catch (e) { return null; }
+  }
+
+  applyWorkspaceState(state) {
+    try {
+      const ws = this.app?.chartManager?.workspace;
+      if (!ws || typeof ws.applyState !== 'function' || !state) return false;
+      ws.applyState(state);
+      return true;
+    } catch (e) {
+      console.warn('[Layout] applyState failed, falling back to grid-only:', e.message);
+      return false;
+    }
+  }
+
+  // TradingView parity: rename / duplicate / export / import saved layouts.
+  renameLayout(id, newName) {
+    const l = this.savedLayouts.find(x => x.id === id);
+    if (!l) return false;
+    l.name = newName; l.nameFa = newName;
+    this.saveSavedLayouts();
+    return true;
+  }
+  duplicateLayout(id) {
+    const l = this.savedLayouts.find(x => x.id === id);
+    if (!l) return null;
+    const copy = { ...l, id: 'usr_' + Date.now(), name: l.name + ' (Copy)', nameFa: (l.nameFa || l.name) + ' (کپی)', date: new Date().toISOString().split('T')[0] };
+    if (l.state) copy.state = JSON.parse(JSON.stringify(l.state));
+    this.savedLayouts.unshift(copy);
+    this.saveSavedLayouts();
+    return copy;
+  }
+  exportLayout(id) {
+    const l = this.savedLayouts.find(x => x.id === id);
+    if (!l) return null;
+    return JSON.stringify({ __tradingchart_layout: true, ...l }, null, 2);
+  }
+  importLayout(json) {
+    try {
+      const obj = typeof json === 'string' ? JSON.parse(json) : json;
+      if (!obj || obj.__tradingchart_layout !== true || !obj.layoutId) return null;
+      const copy = { ...obj, id: 'usr_' + Date.now() };
+      delete copy.__tradingchart_layout;
+      this.savedLayouts.unshift(copy);
+      this.saveSavedLayouts();
+      return copy;
+    } catch (e) { return null; }
   }
 
   loadSavedLayouts() {
@@ -209,6 +283,7 @@ export class LayoutManager {
       badge: badgeText,
       badgeFa: badgeFa,
       sync: { ...this.syncOpts },
+      state: this.captureWorkspaceState(),
       date: new Date().toISOString().split('T')[0]
     });
     this.saveSavedLayouts();
@@ -240,9 +315,13 @@ export class LayoutManager {
     }
   }
 
-  setLayout(layoutId, layoutName) {
+  setLayout(layoutId, layoutName, opts = {}) {
     this.activeLayoutId = layoutId;
     if (layoutName) this.activeLayoutName = layoutName;
+    // Persist current layout so it survives reload (TradingView parity).
+    if (!opts.skipPersist) {
+      try { localStorage.setItem('tradingchart_current_layout', JSON.stringify({ layoutId, name: this.activeLayoutName })); } catch (e) {}
+    }
     this.updateTopbarLabel();
 
     if (this.app?.chartManager) {
@@ -254,9 +333,39 @@ export class LayoutManager {
         this.app?.restoreQuickTrade?.();
       }
 
-      // Intelligent multi-cell diversification
-      if (layoutId === '4') {
-        setTimeout(() => {
+      // FULL-SETUP RESTORE (TradingView parity): if this layout carries a saved
+      // workspace state (symbols/TFs/indicators/drawings per cell), apply it.
+      // Wait for the grid to be built first so applyState lands on every cell.
+      if (opts.state) {
+        const applyFull = () => {
+          const ok = this.applyWorkspaceState(opts.state);
+          if (ok && this.app?.showToast) {
+            const isFa = getLanguage() === 'fa';
+            this.app.showToast(isFa ? `ستاپ «${opts.stateName || ''}» کامل بازیابی شد` : 'Full layout setup restored', 'success');
+          }
+        };
+        // Multi-cell grids build cells async; wait for them before applying.
+        const expected = (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.cols || 1) *
+                         (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.rows || 1);
+        let tries = 0;
+        const waitThenApply = () => {
+          const count = this.app.chartManager.workspace?.cellsById?.size || 1;
+          if (count >= expected || tries++ > 30) { applyFull(); return; }
+          setTimeout(waitThenApply, 150);
+        };
+        setTimeout(waitThenApply, 300);
+        window.dispatchEvent(new Event('resize'));
+        return;
+      }
+
+      // Intelligent multi-cell diversification. Cell creation is async, so we
+      // wait until the grid is fully built before assigning symbols — otherwise
+      // a cell that appears after our timeout keeps its default market and the
+      // symbol assignment is silently lost (a pane renders the wrong/blank chart).
+      if (layoutId !== '1') {
+        const expected = (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.cols || 1) *
+                         (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.rows || 1);
+        const assign = () => {
           const ws = this.app.chartManager.workspace;
           const cells = Array.from(ws?.cellsById?.values() || []);
           const defaultSymbols = ['universal:BTCUSDT', 'universal:ETHUSDT', 'universal:SOLUSDT', 'universal:BNBUSDT'];
@@ -265,15 +374,14 @@ export class LayoutManager {
               cell.setSymbol(defaultSymbols[idx]);
             }
           });
-        }, 300);
-      } else if (layoutId === '2h' || layoutId === '2v') {
-        setTimeout(() => {
-          const ws = this.app.chartManager.workspace;
-          const cells = Array.from(ws?.cellsById?.values() || []);
-          if (cells.length > 1 && cells[1]?.setSymbol) {
-            cells[1].setSymbol('universal:ETHUSDT');
-          }
-        }, 300);
+        };
+        let tries = 0;
+        const waitForCells = () => {
+          const count = this.app.chartManager.workspace?.cellsById?.size || 0;
+          if (count >= expected || tries++ > 40) { assign(); return; }
+          setTimeout(waitForCells, 150);
+        };
+        setTimeout(waitForCells, 300);
       }
     }
     window.dispatchEvent(new Event('resize'));
@@ -394,6 +502,10 @@ export class LayoutManager {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 <span>${isFa ? 'ذخیره چیدمان جاری' : 'Save Current'}</span>
               </button>
+              <button id="btn-import-layout" class="btn-secondary" title="${isFa ? 'ورود چیدمان از فایل JSON' : 'Import layout JSON'}" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; cursor: pointer;">
+                ⤒ ${isFa ? 'ورود' : 'Import'}
+              </button>
+              <input type="file" id="import-layout-file" accept=".json,application/json" style="display:none;" />
             </div>
 
             <div class="saved-layouts-list" style="display: flex; flex-direction: column; gap: 6px;">
@@ -406,10 +518,13 @@ export class LayoutManager {
                     <span style="font-weight: 700; font-size: 12px; color: #fff;">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
                     <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
                   </div>
-                  <div style="display: flex; gap: 6px; align-items: center;">
+                  <div style="display: flex; gap: 4px; align-items: center;">
                     <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600;">
                       ${isFa ? 'بارگذاری' : 'Load'}
                     </button>
+                    <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 3px 7px; font-size: 11px;">✏️</button>
+                    <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 3px 7px; font-size: 11px;">⧉</button>
+                    <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 3px 7px; font-size: 11px;">⤓</button>
                     <button class="btn-secondary btn-del-layout" data-id="${l.id}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
                       ✕
                     </button>
@@ -468,10 +583,33 @@ export class LayoutManager {
         badge: `${this.activeLayoutId.toUpperCase()} Grid`,
         badgeFa: `${this.activeLayoutId.toUpperCase()} گرید`,
         sync: { ...this.syncOpts },
+        state: this.captureWorkspaceState(),
         date: new Date().toISOString().split('T')[0]
       });
       this.saveSavedLayouts();
       this.openLayoutStudio();
+    });
+
+    // Import — read JSON file
+    modal.querySelector('#btn-import-layout')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      modal.querySelector('#import-layout-file')?.click();
+    });
+    modal.querySelector('#import-layout-file')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imported = this.importLayout(String(reader.result || ''));
+        if (imported) {
+          this.app?.showToast?.(isFa ? 'چیدمان با موفقیت وارد شد' : 'Layout imported', 'success');
+          this.openLayoutStudio();
+        } else {
+          this.app?.showToast?.(isFa ? 'فایل چیدمان نامعتبر است' : 'Invalid layout file', 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
     });
 
     // Bind Load / Delete
@@ -480,8 +618,46 @@ export class LayoutManager {
         e.stopPropagation();
         const layoutId = btn.getAttribute('data-layout');
         const name = btn.getAttribute('data-name');
-        this.setLayout(layoutId, name);
+        const id = btn.getAttribute('data-id');
+        const saved = this.savedLayouts.find(l => l.id === id);
+        // Full-setup restore when the layout carries a captured workspace state.
+        this.setLayout(layoutId, name, saved?.state ? { state: saved.state, stateName: name } : {});
         close();
+      });
+    });
+
+    // Rename — inline prompt
+    modal.querySelectorAll('.btn-rename-layout').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const cur = btn.getAttribute('data-name') || '';
+        const next = prompt(isFa ? 'نام جدید چیدمان:' : 'New layout name:', cur);
+        if (next && next.trim()) { this.renameLayout(id, next.trim()); this.openLayoutStudio(); }
+      });
+    });
+
+    // Duplicate
+    modal.querySelectorAll('.btn-dup-layout').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.duplicateLayout(btn.getAttribute('data-id'));
+        this.openLayoutStudio();
+      });
+    });
+
+    // Export — download JSON
+    modal.querySelectorAll('.btn-export-layout').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const json = this.exportLayout(btn.getAttribute('data-id'));
+        if (!json) return;
+        const blob = new Blob([json], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `tradingchart_layout_${btn.getAttribute('data-id')}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       });
     });
 

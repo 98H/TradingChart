@@ -77,6 +77,28 @@ function getIntervalSeconds(interval) {
 export async function fetchBinanceKlines(symbol, interval, limit = 500, startTime = null, endTime = null) {
   const cleanSymbol = symbol.replace(/^.*:/, '').toUpperCase();
   const normInterval = normalizeInterval(interval);
+
+  // Multi-page backfill: a single Binance call is capped at 1000 klines, but
+  // traders need years of history (e.g. 3 years of daily bars ≈ 1100, and
+  // 20 days of 15m ≈ 2000). Paginate backwards via endTime until the requested
+  // depth is satisfied or the exchange has no older data.
+  const PAGE = 1000;
+  if (limit > PAGE) {
+    const collected = new Map();
+    let end = endTime || Date.now();
+    let guard = 0;
+    while (collected.size < limit && guard++ < 20) {
+      const page = await fetchBinanceKlines(cleanSymbol, interval, Math.min(PAGE, limit - collected.size + 1), null, end);
+      if (!page.length) break;
+      for (const b of page) collected.set(b.time, b);
+      const oldest = page[0].time;
+      if (page.length < 2 || oldest >= end) break;
+      end = oldest - 1;
+    }
+    const merged = Array.from(collected.values()).sort((a, b) => a.time - b.time);
+    return merged.slice(-limit);
+  }
+
   const endpoints = [
     `${BINANCE_VISION_BASE}/klines`,
     `${BINANCE_API_BASE}/klines`,

@@ -5,6 +5,84 @@
 
 import { getLanguage } from './i18n.js';
 
+// Icons and labels for every favorite-renderable tool (key → svg path + i18n label)
+const FAV_ICON_MAP = {
+  trendline: { p: '<line x1="4" y1="20" x2="20" y2="4"/><circle cx="4" cy="20" r="1.5" fill="currentColor"/><circle cx="20" cy="4" r="1.5" fill="currentColor"/>', en: 'Trend Line (Alt+T)', fa: 'خط روند (Alt+T)' },
+  hline: { p: '<line x1="3" y1="12" x2="21" y2="12"/>', en: 'Horizontal Line (Alt+H)', fa: 'خط افقی (Alt+H)' },
+  ray: { p: '<line x1="3" y1="20" x2="21" y2="6"/><circle cx="3" cy="20" r="1.6" fill="currentColor"/>', en: 'Ray Line', fa: 'نیم‌خط (Ray)' },
+  fibretracement: { p: '<line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="19" x2="21" y2="19"/>', en: 'Fib Retracement (Alt+F)', fa: 'فیبوناچی بازگشتی (Alt+F)' },
+  box: { p: '<rect x="4" y="6" width="16" height="12" rx="1"/>', en: 'Rectangle / Order Block', fa: 'مستطیل / اردربلاک' },
+  position: { p: '<rect x="4.5" y="4.5" width="15" height="7.5" rx="1" fill="currentColor" fill-opacity="0.25"/><rect x="4.5" y="12" width="15" height="7.5" rx="1"/>', en: 'Long/Short Position (Alt+P)', fa: 'ابزار پوزیشن خرید/فروش (Alt+P)' },
+  longposition: { p: '<rect x="4" y="4" width="16" height="8" rx="1"/><rect x="4" y="12" width="16" height="8" rx="1" fill="currentColor" fill-opacity="0.25"/>', en: 'Long Position', fa: 'پوزیشن خرید' },
+  shortposition: { p: '<rect x="4" y="4" width="16" height="8" rx="1" fill="currentColor" fill-opacity="0.25"/><rect x="4" y="12" width="16" height="8" rx="1"/>', en: 'Short Position', fa: 'پوزیشن فروش' },
+  datepricerange: { p: '<rect x="4" y="6" width="16" height="12" rx="1"/><path d="M4 18 20 6" stroke-dasharray="2 2"/>', en: 'Measure / Date & Price Range', fa: 'خط‌کش و محدوده درصد و زمان' },
+  freehand: { p: '<path d="M9.5 12 17 4.5a2.12 2.12 0 0 1 3 3L12.5 15"/><path d="M7 14a3 3 0 0 0-3 3c0 1.3-1.2 1.5-1.5 2 .8.9 2 1.5 3.5 1.5a3.5 3.5 0 0 0 3.5-3.5 3 3 0 0 0-2.5-3Z"/>', en: 'Brush / Freehand', fa: 'قلم‌مو و ترسیم آزاد' },
+  text: { p: '<path d="M5 6h14M12 6v13"/>', en: 'Text Annotation', fa: 'یادداشت متنی' },
+  pitchfork: { p: '<path d="M4 20 L12 4 M12 4 L20 20 M4 20 L20 20 M12 4 L12 14"/>', en: 'Pitchfork', fa: 'چنگال اندروز' },
+  gannfan: { p: '<path d="M4 20 L20 4 M4 20 L20 10 M4 20 L20 16"/>', en: 'Gann Fan', fa: 'بادبزن گان' },
+  ellipse: { p: '<ellipse cx="12" cy="12" rx="9" ry="6"/>', en: 'Ellipse', fa: 'بیضی' },
+  triangle: { p: '<path d="M12 4 L20 20 L4 20 Z"/>', en: 'Triangle', fa: 'مثلث' },
+  arrow: { p: '<path d="M4 20 L18 6 M12 6 H18 V12"/>', en: 'Arrow', fa: 'فلش' },
+  callout: { p: '<path d="M4 4 H20 V14 H10 L6 20 V14 H4 Z"/>', en: 'Callout', fa: 'حباب توضیح' },
+  xabcd: { p: '<path d="M3 16 L7 6 L11 14 L15 4 L21 12"/>', en: 'XABCD Pattern', fa: 'الگوی XABCD' },
+  elliottimpulse: { p: '<path d="M3 19 L6 12 L9 15 L12 8 L15 11 L18 4 L21 7"/>', en: 'Elliott Impulse', fa: 'موج ایمپالس الیوت' },
+  anchoredvwap: { p: '<path d="M3 16 Q8 6 12 12 Q16 18 21 8"/><circle cx="12" cy="12" r="2"/>', en: 'Anchored VWAP', fa: 'VWAP لنگردار' },
+  parallelchannel: { p: '<path d="M4 18 L18 6 M6 22 L20 10"/>', en: 'Parallel Channel', fa: 'کانال موازی' },
+  vline: { p: '<line x1="12" y1="3" x2="12" y2="21"/>', en: 'Vertical Line', fa: 'خط عمودی' },
+  crossline: { p: '<path d="M12 3 V21 M3 12 H21"/>', en: 'Cross Line', fa: 'خط متقاطع' },
+  pricelabel: { p: '<path d="M4 8 H16 L20 12 L16 16 H4 Z"/>', en: 'Price Label', fa: 'برچسب قیمت' },
+  note: { p: '<path d="M6 4 H18 V20 H6 Z M9 8 H15 M9 12 H15"/>', en: 'Note', fa: 'یادداشت' },
+  circle: { p: '<circle cx="12" cy="12" r="8"/>', en: 'Circle', fa: 'دایره' },
+  path: { p: '<path d="M4 20 L10 6 L14 16 L20 4"/>', en: 'Path', fa: 'مسیر' },
+  fibextension: { p: '<path d="M4 20 H20 M4 12 H20 M4 4 H20"/>', en: 'Fib Extension', fa: 'اکستنشن فیبوناچی' },
+  headshoulders: { p: '<path d="M3 16 L7 10 L10 14 L12 6 L14 14 L17 10 L21 16"/>', en: 'Head & Shoulders', fa: 'سر و شانه' },
+  abcd: { p: '<path d="M3 16 L8 6 L13 14 L20 5"/>', en: 'ABCD Pattern', fa: 'الگوی ABCD' },
+  regressionchannel: { p: '<path d="M4 18 L20 6 M4 14 L20 2 M4 22 L20 10"/>', en: 'Regression Trend', fa: 'روند رگرسیون' },
+  fixedrangevp: { p: '<path d="M4 4 V20 M4 8 H12 M4 12 H16 M4 16 H10"/>', en: 'Fixed Range Volume Profile', fa: 'پروفایل حجم بازه ثابت' },
+  gannbox: { p: '<path d="M4 4 H20 V20 H4 Z M4 4 L20 20 M4 20 L20 4"/>', en: 'Gann Box', fa: 'باکس گان' },
+  gannsquare: { p: '<path d="M4 4 H20 V20 H4 Z M4 12 H20 M12 4 V20"/>', en: 'Gann Square', fa: 'مربع گان' },
+  extendedline: { p: '<path d="M2 22 L22 2"/>', en: 'Extended Line', fa: 'خط توسعه‌یافته' },
+  infoline: { p: '<path d="M4 20 L20 4 M3 3h6"/>', en: 'Info Line', fa: 'خط اطلاعات' },
+  trendangle: { p: '<path d="M4 20 L20 20 M4 20 L16 6"/>', en: 'Trend Angle', fa: 'زاویه روند' },
+  hray: { p: '<path d="M4 12 H21"/>', en: 'Horizontal Ray', fa: 'نیم‌خط افقی' },
+  disjointchannel: { p: '<path d="M4 18 L12 6 M8 22 L16 10 M12 6 L20 18"/>', en: 'Disjoint Channel', fa: 'کانال مجزا' },
+  flattopbottom: { p: '<path d="M4 8 H20 M4 16 H20 M6 8 V16 M18 8 V16"/>', en: 'Flat Top/Bottom', fa: 'سقف/کف تخت' },
+  schiffpitchfork: { p: '<path d="M6 20 L13 4 M13 4 L19 20 M6 20 L19 20"/>', en: 'Schiff Pitchfork', fa: 'چنگال شیف' },
+  modifiedschiffpitchfork: { p: '<path d="M8 20 L14 4 M14 4 L18 20 M8 20 L18 20"/>', en: 'Modified Schiff', fa: 'شیف اصلاح‌شده' },
+  insidepitchfork: { p: '<path d="M6 20 L14 4 M14 4 L20 16 M6 20 L20 16"/>', en: 'Inside Pitchfork', fa: 'چنگال درونی' },
+  fibfan: { p: '<path d="M4 20 L20 4 M4 20 L20 10 M4 20 L20 16"/>', en: 'Fib Fan', fa: 'بادبزن فیبوناچی' },
+  fibtimezones: { p: '<path d="M6 4 V20 M10 4 V20 M14 4 V20 M19 4 V20"/>', en: 'Fib Time Zones', fa: 'زون‌های زمانی فیبو' },
+  fibchannel: { p: '<path d="M4 18 L20 6 M4 12 L20 2 M4 24 L20 10"/>', en: 'Fib Channel', fa: 'کانال فیبوناچی' },
+  fibcircles: { p: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>', en: 'Fib Circles', fa: 'دوایر فیبوناچی' },
+  fibarcs: { p: '<path d="M4 20 A12 12 0 0 1 20 8 M4 20 A8 8 0 0 1 16 12"/>', en: 'Fib Arcs', fa: 'کمان‌های فیبوناچی' },
+  fibwedge: { p: '<path d="M4 4 L20 12 L4 20 Z"/>', en: 'Fib Wedge', fa: 'گوه فیبوناچی' },
+  fibspiral: { p: '<path d="M12 12 a2 2 0 0 1 2 2 a4 4 0 0 1 -4 4 a6 6 0 0 1 -6 -6"/>', en: 'Fib Spiral', fa: 'مارپیچ فیبوناچی' },
+  fibextensiontrend: { p: '<path d="M4 20 L12 12 L8 16 L20 4"/>', en: 'Trend-Based Fib Extension', fa: 'اکستنشن روندی فیبو' },
+  fibspeedfan: { p: '<path d="M4 20 A16 16 0 0 1 20 4 M4 20 A10 10 0 0 1 14 10"/>', en: 'Fib Speed Fan', fa: 'کمان مقاومتی فیبو' },
+  trendfibtime: { p: '<path d="M6 4 V20 M11 4 V20 M18 4 V20 M4 12 H20"/>', en: 'Trend-Based Fib Time', fa: 'زمان فیبو روندی' },
+  rotatedrect: { p: '<path d="M8 4 L20 10 L16 20 L4 14 Z"/>', en: 'Rotated Rectangle', fa: 'مستطیل چرخیده' },
+  arc: { p: '<path d="M4 20 A10 10 0 0 1 20 20"/>', en: 'Arc', fa: 'کمان' },
+  curve: { p: '<path d="M4 20 Q12 4 20 20"/>', en: 'Curve', fa: 'منحنی' },
+  polyline: { p: '<path d="M4 20 L8 10 L14 14 L20 4"/>', en: 'Polyline', fa: 'چندخطی' },
+  highlighter: { p: '<path d="M5 19 L14 6 L18 10 L9 19 Z M5 19 L3 21"/>', en: 'Highlighter', fa: 'هایلایتر' },
+  comment: { p: '<path d="M4 4 H20 V16 H4 Z M8 8 H16 M8 12 H13"/>', en: 'Comment', fa: 'اظهارنظر' },
+  pricenote: { p: '<path d="M4 6 H14 L18 10 V18 H4 Z"/>', en: 'Price Note', fa: 'یادداشت قیمت' },
+  signpost: { p: '<path d="M12 3 V8 M7 8 H17 L15 12 H7 Z M12 12 V21"/>', en: 'Signpost', fa: 'تابلوی راهنما' },
+  flagmark: { p: '<path d="M6 3 V21 M6 4 H18 L14 8 L18 12 H6"/>', en: 'Flag Mark', fa: 'پرچم' },
+  arrowmarkup: { p: '<path d="M12 20 V6 M6 12 L12 4 L18 12"/>', en: 'Arrow Up', fa: 'پیکان بالا' },
+  arrowmarkdown: { p: '<path d="M12 4 V18 M6 12 L12 20 L18 12"/>', en: 'Arrow Down', fa: 'پیکان پایین' },
+  iconstamp: { p: '<circle cx="12" cy="12" r="8"/><path d="M9 10 h.01 M15 10 h.01 M8 15 q4 3 8 0"/>', en: 'Emoji / Sticker', fa: 'استیکر' },
+  cypher: { p: '<path d="M3 14 L7 8 L11 12 L15 5 L21 10"/>', en: 'Cypher', fa: 'سایفر' },
+  elliottcorrection: { p: '<path d="M3 8 L8 16 L13 6 L18 14 L21 10"/>', en: 'Elliott Correction', fa: 'موج اصلاحی الیوت' },
+  forecast: { p: '<path d="M4 18 L12 8"/><circle cx="12" cy="8" r="6"/>', en: 'Forecast', fa: 'پیش‌بینی' },
+  magnifier: { p: '<circle cx="10" cy="10" r="6"/><path d="M15 15 L21 21"/>', en: 'Zoom / Magnifier', fa: 'بزرگ‌نمایی' },
+  measure: { p: '<path d="M4 20 L20 4 M4 20 h3 M20 4 h-3"/>', en: 'Measure', fa: 'اندازه‌گیری' },
+  daterange: { p: '<path d="M4 8 H20 M6 8 V18 M18 8 V18"/>', en: 'Date Range', fa: 'محدوده تاریخ' },
+  pricerange: { p: '<path d="M8 4 V20 M8 6 H18 M8 18 H18"/>', en: 'Price Range', fa: 'محدوده قیمت' },
+};
+
+const DEFAULT_FAVORITES = ['trendline', 'hline', 'ray', 'fibretracement', 'box', 'position', 'datepricerange', 'freehand', 'text'];
+
 export class FloatingDrawingToolbar {
   constructor(app) {
     this.app = app;
@@ -13,6 +91,7 @@ export class FloatingDrawingToolbar {
     this.isLocked = false;
     this.isHidden = false;
     this.isMinimized = false;
+    this.favorites = this.loadFavorites();
     let savedPos = null;
     try {
       savedPos = JSON.parse(localStorage.getItem('tradingchart_fav_toolbar_pos') || 'null');
@@ -26,6 +105,29 @@ export class FloatingDrawingToolbar {
     this.pos = savedPos;
 
     this.mount();
+  }
+
+  loadFavorites() {
+    try {
+      const f = JSON.parse(localStorage.getItem('tradingchart_drawing_favorites') || 'null');
+      if (Array.isArray(f) && f.length) return f.filter(k => FAV_ICON_MAP[k]);
+    } catch (e) {}
+    return [...DEFAULT_FAVORITES];
+  }
+
+  refreshFavorites(favs) {
+    this.favorites = (favs || []).filter(k => FAV_ICON_MAP[k]);
+    this.render();
+  }
+
+  renderFavoriteButtons(isFa) {
+    return this.favorites.map(key => {
+      const meta = FAV_ICON_MAP[key];
+      if (!meta) return '';
+      return `<button class="fav-tool-btn" data-tool="${key}" title="${isFa ? meta.fa : meta.en}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${meta.p}</svg>
+      </button>`;
+    }).join('\n          ');
   }
 
   mount() {
@@ -62,49 +164,11 @@ export class FloatingDrawingToolbar {
         </div>
 
         <div class="fav-tools-list" style="${this.isMinimized ? 'display: none;' : 'display: flex; align-items: center; gap: 2px;'}">
-          <!-- 1. Trendline -->
-          <button class="fav-tool-btn" data-tool="trendline" title="${isFa ? 'خط روند (Alt+T)' : 'Trend Line (Alt+T)'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/><circle cx="4" cy="20" r="1.5" fill="currentColor"/><circle cx="20" cy="4" r="1.5" fill="currentColor"/></svg>
-          </button>
+          ${this.renderFavoriteButtons(isFa)}
 
-          <!-- 2. Horizontal Line -->
-          <button class="fav-tool-btn" data-tool="hline" title="${isFa ? 'خط افقی (Alt+H)' : 'Horizontal Line (Alt+H)'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/></svg>
-          </button>
-
-          <!-- 3. Ray -->
-          <button class="fav-tool-btn" data-tool="ray" title="${isFa ? 'نیم‌خط (Ray)' : 'Ray Line'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="20" x2="21" y2="6"/><circle cx="3" cy="20" r="1.6" fill="currentColor"/></svg>
-          </button>
-
-          <!-- 4. Fib Retracement -->
-          <button class="fav-tool-btn" data-tool="fibretracement" title="${isFa ? 'فیبوناچی بازگشتی (Alt+F)' : 'Fib Retracement (Alt+F)'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
-          </button>
-
-          <!-- 5. Rectangle Box -->
-          <button class="fav-tool-btn" data-tool="box" title="${isFa ? 'مستطیل / اردربلاک (Box)' : 'Rectangle / Order Block'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
-          </button>
-
-          <!-- 6. Long/Short Position -->
-          <button class="fav-tool-btn" data-tool="position" title="${isFa ? 'ابزار پوزیشن خرید/فروش (Alt+P)' : 'Long/Short Position (Alt+P)'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4.5" y="4.5" width="15" height="7.5" rx="1" fill="currentColor" fill-opacity="0.25"/><rect x="4.5" y="12" width="15" height="7.5" rx="1"/></svg>
-          </button>
-
-          <!-- 7. Measure / Ruler -->
-          <button class="fav-tool-btn" data-tool="datepricerange" title="${isFa ? 'خط‌کش و محدوده درصد و زمان' : 'Measure / Date & Price Range'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/><path d="M4 18 20 6" stroke-dasharray="2 2"/></svg>
-          </button>
-
-          <!-- 8. Brush -->
-          <button class="fav-tool-btn" data-tool="freehand" title="${isFa ? 'قلم‌مو و ترسیم آزاد (Brush)' : 'Brush / Freehand'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 12 17 4.5a2.12 2.12 0 0 1 3 3L12.5 15"/><path d="M7 14a3 3 0 0 0-3 3c0 1.3-1.2 1.5-1.5 2 .8.9 2 1.5 3.5 1.5a3.5 3.5 0 0 0 3.5-3.5 3 3 0 0 0-2.5-3Z"/></svg>
-          </button>
-
-          <!-- 9. Text Annotation -->
-          <button class="fav-tool-btn" data-tool="text" title="${isFa ? 'یادداشت متنی (Text)' : 'Text Annotation'}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 6h14M12 6v13"/></svg>
+          <!-- All Drawing Tools Library -->
+          <button id="fav-btn-all-tools" class="fav-tool-btn" title="${isFa ? 'همه ابزارهای ترسیم (۷۰+ ابزار)' : 'All Drawing Tools (70+)'}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="19" cy="5" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="19" r="1.6"/><circle cx="12" cy="19" r="1.6"/><circle cx="19" cy="19" r="1.6"/></svg>
           </button>
 
           <div class="fav-divider"></div>
@@ -141,6 +205,11 @@ export class FloatingDrawingToolbar {
   }
 
   bindEvents() {
+    // All-tools library button
+    this.el.querySelector('#fav-btn-all-tools')?.addEventListener('click', () => {
+      this.app?.drawingToolsLibrary?.open();
+    });
+
     // Tool buttons
     this.el.querySelectorAll('.fav-tool-btn[data-tool]').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-09-20T09:53:30.630Z",
+  "passes": [
+    {
+      "test": "W01: Canvas Drawing Mouse Simulation",
+      "details": "Dispatched mouse events, clear trash response ok"
+    },
+    {
+      "test": "W02: Watchlist Numeric Price Sorting",
+      "details": "Ascending & descending sorting verified mathematically"
+    },
+    {
+      "test": "W03: Indicator Settings Tuning Dialog",
+      "details": "Opened for active indicator, altered parameter, applied and saved"
+    },
+    {
+      "test": "W04: Trade Journal Short P&L Computation",
+      "details": "Short trade profit correctly calculated as positive (+2,000)"
+    },
+    {
+      "test": "W05: Settings Modal Cross-Tab Input State Persistence",
+      "details": "Inputs preserved and saved across tab switches"
+    },
+    {
+      "test": "W06: Persian UI Microcopy Exhaustive Scan",
+      "details": "Zero untranslated UI strings found in Persian mode"
+    },
+    {
+      "test": "W07: 320px Ultra-Narrow Responsive Constraint",
+      "details": "No horizontal scrollbar, body scrollWidth 320px ≤ 320px"
+    },
+    {
+      "test": "Wave 2 Console Integrity",
+      "details": "0 runtime errors captured"
+    }
+  ],
+  "defects": []
+}

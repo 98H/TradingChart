@@ -152,7 +152,15 @@ export class StrategyTester {
   }
 
   renderReport() {
-    if (!this.container || !this.results) return;
+    if (!this.container) return;
+    if (!this.results && this.candles && this.candles.length >= 30) {
+      this.runSimulation(null, this.candles);
+      return;
+    }
+    if (!this.results) {
+      this.renderEmpty();
+      return;
+    }
     const r = this.results;
     const isFa = getLanguage() === 'fa';
 
@@ -177,27 +185,27 @@ export class StrategyTester {
       <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Key Metrics Strip -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 12px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle);">
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'سود خالص' : 'Net Profit'}</div>
-            <div style="font-size: 15px; font-weight: 800; color: ${profitColor};" class="num-ltr">
+            <div id="strat-net-profit" style="font-size: 15px; font-weight: 800; color: ${profitColor};" class="num-ltr">
               ${isProfit ? '+' : ''}$${r.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${r.netProfitPct.toFixed(2)}%)
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'ضریب سودآوری (Profit Factor)' : 'Profit Factor'}</div>
-            <div style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);" class="num-ltr">${r.profitFactor.toFixed(2)}</div>
+            <div id="strat-profit-factor" style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);" class="num-ltr">${r.profitFactor.toFixed(2)}</div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نرخ برد (Win Rate)' : 'Win Rate'}</div>
-            <div style="font-size: 15px; font-weight: 800; color: var(--text-main);" class="num-ltr">${r.winRate.toFixed(1)}% <span style="font-size: 11px; color: var(--text-dim);">(${r.winTradesCount}/${r.totalTrades})</span></div>
+            <div id="strat-win-rate" style="font-size: 15px; font-weight: 800; color: var(--text-main);" class="num-ltr">${r.winRate.toFixed(1)}% <span style="font-size: 11px; color: var(--text-dim);">(${r.winTradesCount}/${r.totalTrades})</span></div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حداکثر افت سرمایه (Drawdown)' : 'Max Drawdown'}</div>
-            <div style="font-size: 15px; font-weight: 800; color: var(--accent-red);" class="num-ltr">-${r.maxDrawdownPct.toFixed(2)}% ($${r.maxDrawdown.toLocaleString(undefined, { maximumFractionDigits: 0 })})</div>
+            <div id="strat-max-drawdown" style="font-size: 15px; font-weight: 800; color: var(--accent-red);" class="num-ltr">-${r.maxDrawdownPct.toFixed(2)}% ($${r.maxDrawdown.toLocaleString(undefined, { maximumFractionDigits: 0 })})</div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نسبت شارپ / امید ریاضی' : 'Sharpe / Expectancy'}</div>
-            <div style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
+            <div id="strat-sharpe" style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
           </div>
           <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center; border: 1px solid var(--border-subtle);">
             <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 10px; min-height: 28px; width: 100%; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'انتقال نتایج به شبیه‌ساز پراپ' : 'Export results to Prop-Sim'}" aria-label="Export to Prop-Sim">
@@ -241,7 +249,7 @@ export class StrategyTester {
                   <th>${isFa ? 'بازده (%)' : 'P&L (%)'}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="strat-trades-tbody">
                 ${r.trades.slice(-8).reverse().map(t => `
                   <tr>
                     <td>${t.id}</td>

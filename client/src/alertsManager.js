@@ -103,14 +103,31 @@ export class AlertsManager {
     for (const a of this.alerts) {
       if (!a.active || a.triggered || a.symbol !== symbol) continue;
 
+      const target = a.targetPrice;
+      const ref = Number.isFinite(a.referencePrice) ? a.referencePrice : this.currentPrice;
       let fired = false;
-      if (a.direction === 'above' && price >= a.targetPrice) fired = true;
-      if (a.direction === 'below' && price <= a.targetPrice) fired = true;
+      switch (a.direction) {
+        case 'above': fired = price >= target; break;
+        case 'below': fired = price <= target; break;
+        // TradingView condition set
+        case 'crossing': fired = (ref < target && price >= target) || (ref > target && price <= target); break;
+        case 'crossing_up': fired = ref < target && price >= target; break;
+        case 'crossing_down': fired = ref > target && price <= target; break;
+        case 'greater_than': fired = price > target; break;
+        case 'less_than': fired = price < target; break;
+        case 'enter_channel': fired = price >= a.channelLow && price <= target; break;
+        case 'exit_channel': fired = price < a.channelLow || price > target; break;
+        case 'inside_channel': fired = price >= a.channelLow && price <= target; break;
+        case 'outside_channel': fired = price < a.channelLow || price > target; break;
+        case 'move_up_pct': fired = ref > 0 && price >= ref * (1 + target / 100); break;
+        case 'move_down_pct': fired = ref > 0 && price <= ref * (1 - target / 100); break;
+        default: fired = false;
+      }
 
       if (fired) {
         a.triggered = true;
         this.playBeep();
-        this.showToast(`🚨 Alert: ${a.symbol} reached $${price.toLocaleString()} (${a.condition})`);
+        this.showToast(`🚨 Alert: ${a.symbol} @ $${price.toLocaleString()} (${a.condition})`);
         this.render();
 
         if (a.channel.includes('Webhook')) {
@@ -214,16 +231,31 @@ export class AlertsManager {
                   ${isFa ? 'شرط تریگر' : 'Condition'}
                 </label>
                 <select id="new-alert-cond" style="width: 100%; padding: 4px; font-size: 11px;">
-                  <option value="above">${isFa ? 'تقاطع به بالا (Crossing Above)' : 'Crossing Above'}</option>
-                  <option value="below">${isFa ? 'تقاطع به پایین (Crossing Below)' : 'Crossing Below'}</option>
+                  <option value="crossing">${isFa ? 'تقاطع (Crossing)' : 'Crossing'}</option>
+                  <option value="crossing_up">${isFa ? 'تقاطع به بالا (Crossing Up)' : 'Crossing Up'}</option>
+                  <option value="crossing_down">${isFa ? 'تقاطع به پایین (Crossing Down)' : 'Crossing Down'}</option>
+                  <option value="greater_than">${isFa ? 'بزرگ‌تر از (Greater Than)' : 'Greater Than'}</option>
+                  <option value="less_than">${isFa ? 'کوچک‌تر از (Less Than)' : 'Less Than'}</option>
+                  <option value="enter_channel">${isFa ? 'ورود به کانال (Enter Channel)' : 'Enter Channel'}</option>
+                  <option value="exit_channel">${isFa ? 'خروج از کانال (Exit Channel)' : 'Exit Channel'}</option>
+                  <option value="inside_channel">${isFa ? 'داخل کانال (Inside Channel)' : 'Inside Channel'}</option>
+                  <option value="outside_channel">${isFa ? 'خارج کانال (Outside Channel)' : 'Outside Channel'}</option>
+                  <option value="move_up_pct">${isFa ? 'حرکت صعودی ٪ (Move Up %)' : 'Move Up %'}</option>
+                  <option value="move_down_pct">${isFa ? 'حرکت نزولی ٪ (Move Down %)' : 'Move Down %'}</option>
                 </select>
               </div>
               <div>
-                <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">
+                <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;" id="alert-price-label">
                   ${isFa ? 'قیمت هدف ($)' : 'Target Price ($)'}
                 </label>
                 <input type="number" id="new-alert-price" value="${this.currentPrice}" step="any" style="width: 100%; padding: 4px 8px; font-size: 11px;" />
               </div>
+            </div>
+            <div id="alert-channel-low-row" style="display: none;">
+              <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">
+                ${isFa ? 'کف کانال ($)' : 'Channel Low ($)'}
+              </label>
+              <input type="number" id="new-alert-channel-low" value="${(this.currentPrice * 0.97).toFixed(2)}" step="any" style="width: 100%; padding: 4px 8px; font-size: 11px;" />
             </div>
             <div>
               <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">
@@ -311,6 +343,19 @@ export class AlertsManager {
       this.render();
     });
 
+    // Show channel-low field only for channel conditions; relabel target for %
+    const condSel = this.container.querySelector('#new-alert-cond');
+    condSel?.addEventListener('change', () => {
+      const v = condSel.value;
+      const isChannel = v.includes('channel');
+      const isPct = v.startsWith('move_');
+      const isFa = getLanguage() === 'fa';
+      const lowRow = this.container.querySelector('#alert-channel-low-row');
+      const priceLabel = this.container.querySelector('#alert-price-label');
+      if (lowRow) lowRow.style.display = isChannel ? 'block' : 'none';
+      if (priceLabel) priceLabel.innerText = isPct ? (isFa ? 'درصد حرکت (%)' : 'Move %') : isChannel ? (isFa ? 'سقف کانال ($)' : 'Channel High ($)') : (isFa ? 'قیمت هدف ($)' : 'Target Price ($)');
+    });
+
     const btnCancel = this.container.querySelector('#btn-new-alert-cancel');
     btnCancel?.addEventListener('click', () => {
       this.isCreating = false;
@@ -319,18 +364,38 @@ export class AlertsManager {
 
     const btnSave = this.container.querySelector('#btn-new-alert-save');
     btnSave?.addEventListener('click', () => {
-      const cond = this.container.querySelector('#new-alert-cond')?.value || 'above';
+      const cond = this.container.querySelector('#new-alert-cond')?.value || 'crossing';
       const priceVal = parseFloat(this.container.querySelector('#new-alert-price')?.value);
+      const channelLowVal = parseFloat(this.container.querySelector('#new-alert-channel-low')?.value);
       const channelVal = this.container.querySelector('#new-alert-channel')?.value || 'Sound & Popup';
 
-      if (!isNaN(priceVal) && priceVal > 0) {
+      const isPct = cond === 'move_up_pct' || cond === 'move_down_pct';
+      const isChannel = cond.includes('channel');
+      const valid = isPct ? (!isNaN(priceVal) && priceVal > 0 && priceVal <= 1000)
+        : isChannel ? (!isNaN(priceVal) && !isNaN(channelLowVal) && channelLowVal < priceVal)
+        : (!isNaN(priceVal) && priceVal > 0);
+
+      if (valid) {
         const isFa = getLanguage() === 'fa';
+        const COND_LABELS = {
+          crossing: ['Crossing', 'تقاطع با'], crossing_up: ['Crossing Up', 'تقاطع به بالای'],
+          crossing_down: ['Crossing Down', 'تقاطع به زیر'], greater_than: ['Greater Than', 'بزرگ‌تر از'],
+          less_than: ['Less Than', 'کوچک‌تر از'], enter_channel: ['Enter Channel', 'ورود به کانال'],
+          exit_channel: ['Exit Channel', 'خروج از کانال'], inside_channel: ['Inside Channel', 'داخل کانال'],
+          outside_channel: ['Outside Channel', 'خارج کانال'], move_up_pct: ['Move Up', 'حرکت صعودی'],
+          move_down_pct: ['Move Down', 'حرکت نزولی']
+        };
+        const [en, fa] = COND_LABELS[cond] || COND_LABELS.crossing;
+        const valStr = isPct ? `${priceVal}%` : `$${priceVal.toLocaleString()}`;
+        const chStr = isChannel ? ` [$${channelLowVal?.toLocaleString()}–$${priceVal.toLocaleString()}]` : '';
         this.alerts.unshift({
           id: 'alt-' + Date.now(),
           symbol: this.currentSymbol,
-          condition: `Price Crossing ${cond === 'above' ? 'Above' : 'Below'} $${priceVal.toLocaleString()}`,
-          conditionFa: cond === 'above' ? `تقاطع قیمت به بالای $${priceVal.toLocaleString()}` : `تقاطع قیمت به زیر $${priceVal.toLocaleString()}`,
+          condition: `${en} ${valStr}${chStr}`,
+          conditionFa: `${fa} ${valStr}${chStr}`,
           targetPrice: priceVal,
+          channelLow: isChannel ? channelLowVal : undefined,
+          referencePrice: this.currentPrice,
           direction: cond,
           channel: channelVal,
           channelFa: channelVal.includes('Webhook') ? 'رله وب‌هوک خودکار' : 'هشدار صوتی و تصویری',

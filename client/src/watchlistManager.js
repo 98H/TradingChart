@@ -163,7 +163,7 @@ export class WatchlistManager {
           <!-- Quick Add Symbol -->
           <div style="display: flex; gap: 4px;">
             <input type="text" id="wl-add-input" placeholder="${isFa ? '+ افزودن نماد...' : '+ Add symbol...'}" style="flex: 1; padding: 4px 8px; font-size: 11px; text-transform: uppercase; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
-            <button id="wl-add-btn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">Add</button>
+            <button id="wl-add-btn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">${isFa ? 'افزودن' : 'Add'}</button>
           </div>
         </div>
 

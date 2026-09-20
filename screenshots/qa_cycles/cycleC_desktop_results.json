@@ -1,6 +1,6 @@
 {
  "suite": "cycleC_desktop",
- "ts": "2026-09-20T08:09:13.561Z",
+ "ts": "2026-09-20T21:33:34.237Z",
  "results": [
   {
    "suite": "cycleC_desktop",
@@ -16,13 +16,13 @@
     "modalClosed": true,
     "savedIds": [
      {
-      "id": "exec-close-1789891536470",
+      "id": "exec-close-1789939809327",
       "side": "sell",
       "price": 110,
       "qty": 1
      },
      {
-      "id": "exec-open-1789891536470",
+      "id": "exec-open-1789939809327",
       "side": "buy",
       "price": 100,
       "qty": 1
@@ -50,20 +50,20 @@
      "sample": "All Events High Impact 🔥 🇺🇸 USD 🏛️ Central Banks 📈 Infl"
     },
     "screener": {
-     "len": 3898,
+     "len": 3927,
      "rows": 35,
      "emptyState": false,
      "sample": "All Crypto Metals Commodities Forex Equities All Technical R"
     },
     "news": {
-     "len": 2324,
+     "len": 2327,
      "rows": 10,
      "emptyState": false,
      "sample": "Market News & Catalysts Live Feed All Crypto Metals Forex Eq"
     },
     "propsim": {
-     "len": 483,
-     "rows": 0,
+     "len": 484,
+     "rows": 4,
      "emptyState": false,
      "sample": "FIRM CHALLENGE PRESET FTMO $100k (2-Phase) FTMO $200k (2-Pha"
     }
@@ -76,10 +76,10 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "len": 5048,
+    "len": 5050,
     "bidRows": 12,
     "askRows": 12,
-    "sample": "BTCUSDT DOM L2 Size: − + Mark Price: $80,420 Spread: $0.03 (0%) Order "
+    "sample": "BTCUSDT DOM L2 Size: − + Mark Price: $80,875.27 Spread: $0.03 (0%) Ord"
    }
   },
   {

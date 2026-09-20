@@ -40,7 +40,33 @@ export class SettingsModal {
     if (this.modalEl) this.modalEl.classList.remove('open');
   }
 
+  saveCurrentTabInputs() {
+    if (!this.modalEl) return;
+    const bull = this.modalEl.querySelector('#cfg-bull-color');
+    const bear = this.modalEl.querySelector('#cfg-bear-color');
+    const wm = this.modalEl.querySelector('#cfg-watermark-toggle');
+    const tz = this.modalEl.querySelector('#cfg-timezone-select');
+    const grid = this.modalEl.querySelector('#cfg-grid-select');
+    const theme = this.modalEl.querySelector('#cfg-theme-select');
+    const lang = this.modalEl.querySelector('#cfg-lang-select');
+    const snd = this.modalEl.querySelector('#cfg-sound-toggle');
+    const cfm = this.modalEl.querySelector('#cfg-confirm-toggle');
+    const cd = this.modalEl.querySelector('#cfg-countdown-toggle');
+
+    if (bull) this.settings.bullColor = bull.value;
+    if (bear) this.settings.bearColor = bear.value;
+    if (wm) this.settings.watermark = wm.checked;
+    if (tz) this.settings.timezone = tz.value;
+    if (grid) this.settings.gridLines = grid.value;
+    if (theme) this.settings.theme = theme.value;
+    if (lang) this.settings.language = lang.value;
+    if (snd) this.settings.soundEffects = snd.checked;
+    if (cfm) this.settings.orderConfirm = cfm.checked;
+    if (cd) this.settings.countdownEnabled = cd.checked;
+  }
+
   setTab(tab) {
+    this.saveCurrentTabInputs();
     this.activeTab = tab;
     this.render();
   }
@@ -264,28 +290,7 @@ export class SettingsModal {
     });
 
     saveBtn?.addEventListener('click', () => {
-      const bull = this.modalEl.querySelector('#cfg-bull-color');
-      const bear = this.modalEl.querySelector('#cfg-bear-color');
-      const wm = this.modalEl.querySelector('#cfg-watermark-toggle');
-      const tz = this.modalEl.querySelector('#cfg-timezone-select');
-      const grid = this.modalEl.querySelector('#cfg-grid-select');
-      const theme = this.modalEl.querySelector('#cfg-theme-select');
-      const lang = this.modalEl.querySelector('#cfg-lang-select');
-      const snd = this.modalEl.querySelector('#cfg-sound-toggle');
-      const cfm = this.modalEl.querySelector('#cfg-confirm-toggle');
-      const cd = this.modalEl.querySelector('#cfg-countdown-toggle');
-
-      if (bull) this.settings.bullColor = bull.value;
-      if (bear) this.settings.bearColor = bear.value;
-      if (wm) this.settings.watermark = wm.checked;
-      if (tz) this.settings.timezone = tz.value;
-      if (grid) this.settings.gridLines = grid.value;
-      if (theme) this.settings.theme = theme.value;
-      if (lang) {
-        this.settings.language = lang.value;
-      } else {
-        this.settings.language = getLanguage();
-      }
+      this.saveCurrentTabInputs();
 
       localStorage.setItem('tradingchart_user_settings', JSON.stringify(this.settings));
       this.onApplySettings(this.settings);

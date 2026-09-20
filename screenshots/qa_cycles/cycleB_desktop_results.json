@@ -1,6 +1,6 @@
 {
  "suite": "cycleB_desktop",
- "ts": "2026-09-20T08:02:17.008Z",
+ "ts": "2026-09-20T21:27:41.976Z",
  "results": [
   {
    "suite": "cycleB_desktop",
@@ -11,8 +11,8 @@
    "info": {
     "before": 1,
     "after": 2,
-    "eq0": 101418.01000000001,
-    "eq1": 100614.64980000001,
+    "eq0": 101670.62,
+    "eq1": 100862.2076,
     "pos": [
      {
       "id": "pos-1",
@@ -20,11 +20,11 @@
       "side": "long",
       "qty": 0.5,
       "entryPrice": 77500,
-      "markPrice": 80336.02,
+      "markPrice": 80841.24,
       "leverage": 10,
       "margin": 3875,
-      "unrealizedPnl": 1418.010000000002,
-      "unrealizedPnlPct": 36.593806451612956,
+      "unrealizedPnl": 1670.6200000000026,
+      "unrealizedPnlPct": 43.112774193548454,
       "sl": 76000,
       "tp": 80500
      }
@@ -75,37 +75,37 @@
    "info": [
     {
      "tf": "1",
-     "bars": 500,
-     "cur": "1"
+     "bars": 2000,
+     "cur": "60"
     },
     {
      "tf": "5",
-     "bars": 500,
-     "cur": "5"
+     "bars": 2000,
+     "cur": "1"
     },
     {
      "tf": "15",
-     "bars": 500,
+     "bars": 2000,
      "cur": "15"
     },
     {
      "tf": "60",
-     "bars": 500,
-     "cur": "60"
+     "bars": 2000,
+     "cur": "15"
     },
     {
      "tf": "240",
-     "bars": 500,
+     "bars": 2000,
      "cur": "240"
     },
     {
      "tf": "D",
-     "bars": 500,
+     "bars": 2000,
      "cur": "D"
     },
     {
      "tf": "W",
-     "bars": 475,
+     "bars": 2000,
      "cur": "W"
     }
    ]
@@ -127,11 +127,11 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "count": 11,
+    "count": 12,
     "labels": [
-     "🔔\nAdd Alert at $80,314.10\nAlt+A",
-     "⚡\nBuy Limit at $80,314.10",
-     "⚡\nSell Limit at $80,314.10",
+     "🔔\nAdd Alert at $80,828.44\nAlt+A",
+     "⚡\nBuy Limit at $80,828.44",
+     "⚡\nSell Limit at $80,828.44",
      "📐\nAdd Indicator...\n/",
      "⏱\nChange Timeframe...\n,",
      "➕\nCompare Symbol...\nAlt+C",
@@ -139,6 +139,7 @@
      "📈\nLogarithmic Scale",
      "↕\nInvert Price Scale\nAlt+I",
      "📸\nTake Screenshot / Share\nAlt+S",
+     "📅\nGo to Date...\nAlt+G",
      "⚙\nChart Settings..."
     ]
    }
@@ -183,7 +184,7 @@
    "info": {
     "before": "BTCUSDT",
     "after": "SOLUSDT",
-    "bars": 500
+    "bars": 2000
    }
   },
   {
@@ -201,19 +202,19 @@
    "defects": [],
    "info": {
     "en1": {
-     "len": 859,
+     "len": 838,
      "persian": 0
     },
     "fa1": {
-     "len": 958,
+     "len": 937,
      "persian": 425
     },
     "en2": {
-     "len": 859,
+     "len": 838,
      "persian": 0
     },
     "fa2": {
-     "len": 958,
+     "len": 937,
      "persian": 425
     }
    }

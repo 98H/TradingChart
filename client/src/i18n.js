@@ -71,10 +71,10 @@ export const translations = {
     instrumentsCount: '30+ Instruments',
 
     // Indicators Modal
-    indicatorsModalTitle: 'Indicators, Metrics & Strategies (84+ Library)',
-    indicatorsSearchPlaceholder: 'Search 84+ technical indicators, metrics & scripts...',
+    indicatorsModalTitle: 'Indicators, Metrics & Strategies (114+ Library)',
+    indicatorsSearchPlaceholder: 'Search 114+ technical indicators, metrics & scripts...',
     indicatorsCountPrefix: 'Showing',
-    indicatorsCountSuffix: 'of 84 indicators',
+    indicatorsCountSuffix: 'of 114 indicators',
 
     // Settings Modal
     settingsModalTitle: 'Chart Settings & Preferences',
@@ -189,10 +189,10 @@ export const translations = {
     instrumentsCount: 'بیش از ۳۰ نماد جهانی',
 
     // Indicators Modal
-    indicatorsModalTitle: 'دایره‌المعارف اندیکاتورها و استراتژی‌ها (۸۴ ابزار تخصصی)',
-    indicatorsSearchPlaceholder: 'جستجو در بین ۸۴ اندیکاتور تکنیکال، اسمارت مانی و حجم...',
+    indicatorsModalTitle: 'دایره‌المعارف اندیکاتورها و استراتژی‌ها (۱۱۴ ابزار تخصصی)',
+    indicatorsSearchPlaceholder: 'جستجو در بین ۱۱۴ اندیکاتور تکنیکال، اسمارت مانی و حجم...',
     indicatorsCountPrefix: 'نمایش',
-    indicatorsCountSuffix: 'از ۸۴ اندیکاتور تحلیلی',
+    indicatorsCountSuffix: 'از ۱۱۴ اندیکاتور تحلیلی',
 
     // Settings Modal
     settingsModalTitle: 'تنظیمات و سفارشی‌سازی چارت',

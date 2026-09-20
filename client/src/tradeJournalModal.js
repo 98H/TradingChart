@@ -8,9 +8,10 @@ export class TradeJournalModal {
   constructor(app) {
     this.app = app;
     this.selectedSide = 'buy';
+    this.modalEl = null;
   }
 
-  open() {
+  getModalEl() {
     let modal = document.querySelector('#modal-log-trade');
     if (!modal) {
       modal = document.createElement('div');
@@ -18,15 +19,34 @@ export class TradeJournalModal {
       modal.className = 'modal-overlay';
       document.body.appendChild(modal);
     }
+    this.modalEl = modal;
+    return modal;
+  }
+
+  open() {
+    const modal = this.getModalEl();
+    this.selectedSide = 'buy';
+    this.render();
+    modal.classList.add('open');
+  }
+
+  close() {
+    const modal = document.querySelector('#modal-log-trade');
+    if (modal) modal.classList.remove('open');
+  }
+
+  render() {
+    const modal = document.querySelector('#modal-log-trade');
+    if (!modal) return;
+    this.modalEl = modal;
 
     const isFa = getLanguage() === 'fa';
     const curSymbol = this.app?.currentSymbol || 'BTCUSDT';
     const curPrice = this.app?.paperTrading?.currentPrice || 80000;
     const baseAsset = this.app?.getBaseAsset ? this.app.getBaseAsset(curSymbol) : (curSymbol.endsWith('USDT') ? curSymbol.replace('USDT', '') : 'BTC');
-    this.selectedSide = 'buy';
 
     modal.innerHTML = `
-      <div class="modal-box" style="max-width: 480px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column;">
+      <div class="modal-box" style="max-width: 480px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans), sans-serif'};">
         <!-- Header -->
         <div style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'flex-direction: row; direction: rtl;' : 'direction: ltr;'}">
           <div style="font-weight: 700; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 8px;">
@@ -47,10 +67,10 @@ export class TradeJournalModal {
               ${isFa ? 'جهت موقعیت معاملاتی' : 'Position Direction'}
             </label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-surface); padding: 4px; border-radius: 8px; border: 1px solid var(--border-subtle);">
-              <button id="side-pill-buy" type="button" class="side-pill-btn active" style="padding: 8px; font-size: 12px; font-weight: 700; border-radius: 6px; border: 1px solid var(--accent-green); background: rgba(0, 242, 176, 0.15); color: var(--accent-green); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
+              <button id="side-pill-buy" type="button" class="side-pill-btn ${this.selectedSide === 'buy' ? 'active' : ''}" style="padding: 8px; font-size: 12px; font-weight: 700; border-radius: 6px; border: 1px solid ${this.selectedSide === 'buy' ? 'var(--accent-green)' : 'transparent'}; background: ${this.selectedSide === 'buy' ? 'rgba(0, 242, 176, 0.15)' : 'transparent'}; color: ${this.selectedSide === 'buy' ? 'var(--accent-green)' : 'var(--text-dim)'}; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
                 <span>▲</span> ${isFa ? 'خرید (BUY / LONG)' : 'BUY / LONG'}
               </button>
-              <button id="side-pill-sell" type="button" class="side-pill-btn" style="padding: 8px; font-size: 12px; font-weight: 700; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
+              <button id="side-pill-sell" type="button" class="side-pill-btn ${this.selectedSide === 'sell' ? 'active' : ''}" style="padding: 8px; font-size: 12px; font-weight: 700; border-radius: 6px; border: 1px solid ${this.selectedSide === 'sell' ? 'var(--accent-red)' : 'transparent'}; background: ${this.selectedSide === 'sell' ? 'rgba(255, 77, 91, 0.15)' : 'transparent'}; color: ${this.selectedSide === 'sell' ? 'var(--accent-red)' : 'var(--text-dim)'}; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
                 <span>▼</span> ${isFa ? 'فروش (SELL / SHORT)' : 'SELL / SHORT'}
               </button>
             </div>
@@ -86,7 +106,7 @@ export class TradeJournalModal {
           <!-- Live Real-Time P&L Preview Box -->
           <div id="live-pnl-preview-box" style="background: rgba(0, 242, 176, 0.06); border: 1px solid rgba(0, 242, 176, 0.25); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;">
             <div style="font-size: 11px; font-weight: 600; color: var(--text-dim);">${isFa ? 'پیش‌نمایش سود/زیان معامله:' : 'Estimated Net P&L:'}</div>
-            <div id="live-pnl-val" style="font-size: 14px; font-weight: 800; color: var(--accent-green);" class="num-ltr">+$600.00 (+1.50%)</div>
+            <div id="log-pnl-preview" class="live-pnl-val num-ltr" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">+$600.00 (+1.50%)</div>
           </div>
 
           <!-- Row 3: Strategy Setup -->
@@ -120,8 +140,6 @@ export class TradeJournalModal {
       </div>
     `;
 
-    modal.classList.add('open');
-
     // Direction switcher
     const buyPill = modal.querySelector('#side-pill-buy');
     const sellPill = modal.querySelector('#side-pill-sell');
@@ -154,7 +172,7 @@ export class TradeJournalModal {
     const exitInput = modal.querySelector('#log-trade-exit');
     const qtyInput = modal.querySelector('#log-trade-qty');
     const pnlBox = modal.querySelector('#live-pnl-preview-box');
-    const pnlVal = modal.querySelector('#live-pnl-val');
+    const pnlVal = modal.querySelector('#log-pnl-preview, #live-pnl-val');
 
     const calcLivePnl = () => {
       const entry = parseFloat(entryInput?.value) || 1;
