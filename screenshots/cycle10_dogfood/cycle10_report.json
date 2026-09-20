@@ -1,0 +1,217 @@
+{
+  "timestamp": "2026-09-19T12:56:34.119Z",
+  "totalDefects": 0,
+  "totalValidations": 41,
+  "consoleErrorsCount": 0,
+  "pageErrorsCount": 0,
+  "defects": [],
+  "validations": [
+    {
+      "category": "Layout",
+      "title": "No Horizontal Overflow",
+      "description": "Desktop viewport matches inner width perfectly"
+    },
+    {
+      "category": "Chart",
+      "title": "Vela Canvas Active",
+      "description": "500 bars rendered for BTCUSDT (60)"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Live Pricing Populated",
+      "description": "Sell: 81,307.51, Buy: 81,312.51, Spread: $5.00, Unit: BTC"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Minimization Smooth",
+      "description": "Quick trade minimized to trigger pill cleanly"
+    },
+    {
+      "category": "DrawingToolbar",
+      "title": "Toolbar Positioned",
+      "description": "Position: top=783px, left=16px, width=452px"
+    },
+    {
+      "category": "Collision",
+      "title": "Zero Widget Collision",
+      "description": "Quick Trade and Floating Drawing Toolbar have zero geometric overlap"
+    },
+    {
+      "category": "LayoutManager",
+      "title": "Layout Options Present",
+      "description": "8 layout configurations available"
+    },
+    {
+      "category": "CompareModal",
+      "title": "Modal Opened",
+      "description": "Compare modal opened with asset selection & benchmarks"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Switched to Gold",
+      "description": "Symbol: XAUUSD, Quick Trade Unit: XAU"
+    },
+    {
+      "category": "Indicators",
+      "title": "84+ Indicator Library Verified",
+      "description": "84 indicators loaded with category navigation"
+    },
+    {
+      "category": "Indicators",
+      "title": "SMC Search Successful",
+      "description": "18 SMC indicators matching query"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Watchlist Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Alerts Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Paper Trading Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Data Window Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Object Tree Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Trade Journal Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Technical Screener Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Depth of Market Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Economic Calendar Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "SideRail",
+      "title": "Panel Market News Functional",
+      "description": "Panel opened cleanly via side rail"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab pine Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab strategy Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab propsim Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab journal Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab trackers Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab calendar Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab screener Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Tab news Active & Populated",
+      "description": "Successfully switched and rendered view"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Maximize Functional",
+      "description": "Bottom panel expanded to full view"
+    },
+    {
+      "category": "BarReplay",
+      "title": "Replay Bar Active",
+      "description": "Replay controls bar opened above canvas"
+    },
+    {
+      "category": "JournalWorkspace",
+      "title": "Journal Workspace Rendered",
+      "description": "Full-page trade journal workspace active with metrics and calendar"
+    },
+    {
+      "category": "i18n",
+      "title": "RTL Mode Verified",
+      "description": "dir=\"rtl\" and .persian-mode applied correctly"
+    },
+    {
+      "category": "i18n",
+      "title": "Topbar Labels Fully Translated",
+      "description": "All main topbar action labels translated to Persian"
+    },
+    {
+      "category": "i18n",
+      "title": "BiDi LTR Isolation",
+      "description": "589 numerical containers protected with dir=\"ltr\" / .num-ltr"
+    },
+    {
+      "category": "Mobile",
+      "title": "Zero Horizontal Overflow",
+      "description": "Mobile page fits strictly within 390px viewport"
+    },
+    {
+      "category": "Mobile",
+      "title": "Header Responsive Layout",
+      "description": "Mobile header height=48px without overflow"
+    },
+    {
+      "category": "Mobile",
+      "title": "Quick Trade Pill Thumb Ergonomics",
+      "description": "Pill positioned at bottom=786px, height=26px"
+    },
+    {
+      "category": "Mobile",
+      "title": "Panels Menu Drawer Opened",
+      "description": "Drawer displayed in mobile viewport"
+    },
+    {
+      "category": "Mobile",
+      "title": "Symbol Search Modal Fits Viewport",
+      "description": "Modal width 366.59375px fits 390px phone"
+    },
+    {
+      "category": "Mobile",
+      "title": "Mobile Language Switch",
+      "description": "Switched between Persian and English cleanly on mobile"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

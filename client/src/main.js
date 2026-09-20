@@ -33,7 +33,7 @@ import { MarketNewsView } from './marketNewsView.js';
 import { ChartStylePicker } from './chartStylePicker.js';
 import { CanvasContextMenu } from './canvasContextMenu.js';
 import { SoundEngine } from './soundEngine.js';
-import { setLanguage, getLanguage, t, localizeMoreDrawer } from './i18n.js';
+import { setLanguage, getLanguage, t, localizeMoreDrawer, toPersianDigits } from './i18n.js';
 
 class TradingChartApp {
   constructor() {
@@ -64,6 +64,9 @@ class TradingChartApp {
     this.dataExportModal = null;
     this.indicatorSettingsModal = null;
     this.timeframeManager = null;
+    // Last known-good candle series per symbol/timeframe, used to guarantee the
+    // chart and indicator engine never receive an empty series during an outage.
+    this.seriesCache = new Map();
     this.isBottomPanelCollapsed = true;
 
     this.init();
@@ -325,17 +328,21 @@ class TradingChartApp {
   }
 
   mountIndicatorTemplates(body) {
-    new TemplateManager(this, body);
+    this.templateManager = new TemplateManager(this, body);
   }
 
   mountEconomicCalendar(body) {
-    new EconomicCalendarView({
+    // Keep a reference: this instance lives in Vela's drawer/dock, so it must be
+    // reachable for language re-renders like every other surface.
+    this.economicCalendarSide = new EconomicCalendarView({
       container: body
     });
   }
 
   mountTechnicalScreener(body) {
-    new TechnicalScreenerView({
+    // Keep a reference: this instance lives in Vela's drawer/dock, so it must be
+    // reachable for language re-renders like every other surface.
+    this.technicalScreenerSide = new TechnicalScreenerView({
       container: body,
       app: this
     });
@@ -357,45 +364,54 @@ class TradingChartApp {
   }
 
   mountWorkspaces(body) {
+    this.workspacesBody = body;
+    this.renderWorkspaces();
+  }
+
+  renderWorkspaces() {
+    const body = this.workspacesBody;
+    if (!body) return;
+    const isFa = getLanguage() === 'fa';
+
     body.innerHTML = `
-      <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="padding: 12px; display: flex; flex-direction: column; gap: 14px; ${isFa ? 'direction: rtl; text-align: right;' : 'direction: ltr; text-align: left;'}">
         <div>
-          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Multi-Chart Layout Grid</div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">${isFa ? 'گرید چیدمان چندچارته' : 'Multi-Chart Layout Grid'}</div>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
-            <button class="btn-ws-layout btn-secondary" data-layout="1" style="justify-content: center; font-size: 12px; padding: 8px;">Single (1×1)</button>
-            <button class="btn-ws-layout btn-secondary" data-layout="2h" style="justify-content: center; font-size: 12px; padding: 8px;">Dual H (2×1)</button>
-            <button class="btn-ws-layout btn-secondary" data-layout="2v" style="justify-content: center; font-size: 12px; padding: 8px;">Dual V (1×2)</button>
-            <button class="btn-ws-layout btn-secondary" data-layout="4" style="justify-content: center; font-size: 12px; padding: 8px;">Quad (2×2)</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="1" style="justify-content: center; font-size: 12px; padding: 8px;">${isFa ? 'تک پنجره (1×1)' : 'Single (1×1)'}</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="2h" style="justify-content: center; font-size: 12px; padding: 8px;">${isFa ? 'دو چارت افقی (2×1)' : 'Dual H (2×1)'}</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="2v" style="justify-content: center; font-size: 12px; padding: 8px;">${isFa ? 'دو چارت عمودی (1×2)' : 'Dual V (1×2)'}</button>
+            <button class="btn-ws-layout btn-secondary" data-layout="4" style="justify-content: center; font-size: 12px; padding: 8px;">${isFa ? 'چهار چارت (2×2)' : 'Quad (2×2)'}</button>
           </div>
         </div>
 
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Chart Synchronization</div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">${isFa ? 'همگام‌سازی هوشمند چارت‌ها' : 'Chart Synchronization'}</div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
-              <span>Sync Symbol</span>
+              <span>${isFa ? 'همگام‌سازی نماد' : 'Sync Symbol'}</span>
               <input type="checkbox" id="sync-symbol-check" style="cursor: pointer;" />
             </label>
             <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
-              <span>Sync Timeframe</span>
+              <span>${isFa ? 'همگام‌سازی بازه زمانی' : 'Sync Timeframe'}</span>
               <input type="checkbox" id="sync-tf-check" style="cursor: pointer;" />
             </label>
             <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
-              <span>Sync Crosshair</span>
+              <span>${isFa ? 'همگام‌سازی کراس‌هیر' : 'Sync Crosshair'}</span>
               <input type="checkbox" id="sync-cross-check" checked style="cursor: pointer;" />
             </label>
             <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted); cursor: pointer;">
-              <span>Sync Drawings</span>
+              <span>${isFa ? 'همگام‌سازی ترسیم‌ها' : 'Sync Drawings'}</span>
               <input type="checkbox" id="sync-drawings-check" style="cursor: pointer;" />
             </label>
           </div>
         </div>
 
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">Saved Workspaces</div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px;">${isFa ? 'فضاهای کاری ذخیره‌شده' : 'Saved Workspaces'}</div>
           <div style="background: var(--bg-card); padding: 8px 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-            <span>Default Master Layout</span>
-            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 700;">ACTIVE</span>
+            <span>${isFa ? 'طرح تحلیلی پیش‌فرض' : 'Default Master Layout'}</span>
+            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 700;">${isFa ? 'فعال' : 'ACTIVE'}</span>
           </div>
         </div>
       </div>
@@ -418,21 +434,21 @@ class TradingChartApp {
 
   async loadActiveCandles() {
     try {
-      const res = await fetch(`/api/candles?symbol=${this.currentSymbol}&timeframe=${this.currentTimeframe}&limit=500`);
-      if (res.ok) {
-        const data = await res.json();
-        this.activeBars = data.candles || [];
-        this.strategyTester?.setCandles(this.activeBars);
-
-        if (this.activeBars.length > 0) {
-          const lastBar = this.activeBars[this.activeBars.length - 1];
-          this.paperTrading?.setMarket(this.currentSymbol, lastBar.close);
-          this.alertsManager?.setMarket(this.currentSymbol, lastBar.close);
-          this.updateQuickTradePrices(lastBar);
-          this.chartAlertsOverlay?.updateAlerts(this.alertsManager?.alerts, this.currentSymbol, lastBar.close);
+      // Pre-flight validation: a rejected/empty payload must never be applied.
+      const bars = await this.fetchCandlesFor(this.currentSymbol, this.currentTimeframe, 500);
+      if (!bars || bars.length === 0) {
+        console.warn('[TradingChart] Empty candles payload — retaining previous series');
+        if (!this.activeBars || this.activeBars.length === 0) {
+          const isFa = document.body.classList.contains('persian-mode');
+          this.showToast?.(isFa
+            ? 'داده‌ای از سرور دریافت نشد؛ نمایش آخرین داده معتبر'
+            : 'No data received from server; showing last valid series');
         }
+        return;
       }
+      this.applyCandles(bars);
     } catch (e) {
+      // Network/abort failures keep the last valid series on screen.
       console.warn('[TradingChart] Error loading initial candles:', e);
     }
   }
@@ -448,30 +464,105 @@ class TradingChartApp {
     return clean.slice(0, 4);
   }
 
-  switchSymbol(sym) {
-    const clean = sym.replace(/^.*:/, '').toUpperCase();
+  async switchSymbol(sym) {
+    const clean = String(sym ?? '').replace(/^.*:/, '').trim().toUpperCase();
+    const prev = this.currentSymbol;
+
+    // Reject blank / malformed tickers up front: whitespace-only input would
+    // otherwise silently blank the header, the quick-trade unit and the
+    // watchlist row without ever changing the chart (UI/state desync).
+    if (!clean || !/^[A-Z0-9._-]{2,20}$/.test(clean)) {
+      const isFa = document.body.classList.contains('persian-mode');
+      this.showToast?.(isFa
+        ? `نماد «${String(sym).trim() || '—'}» معتبر نیست`
+        : `Invalid symbol "${String(sym).trim() || '—'}"`);
+      return false;
+    }
+
+    // Pre-flight: never repoint the chart at a symbol with no data. Vela clears
+    // the series on a symbol change, and an empty series leaves the Pine
+    // indicator engine running against undefined bars. Confirm data exists first.
+    const bars = await this.fetchCandlesFor(clean, this.currentTimeframe);
+    if (!bars || bars.length === 0) {
+      const isFa = document.body.classList.contains('persian-mode');
+      this.showToast?.(isFa
+        ? `داده‌ای برای ${clean} در دسترس نیست؛ نماد فعلی حفظ شد`
+        : `No data available for ${clean}; keeping ${prev}`);
+      return false;
+    }
+
     this.currentSymbol = clean;
-    this.chartManager.setSymbol(clean);
+    this.chartManager?.setSymbol?.(clean);
     this.depthOfMarket?.setSymbol(clean);
     this.watchlist?.setSymbol(clean);
-    const lastClose = this.activeBars && this.activeBars.length > 0 ? this.activeBars[this.activeBars.length - 1].close : null;
+    const lastClose = bars[bars.length - 1].close;
     this.paperTrading?.setMarket(clean, lastClose);
 
     const unitEl = document.querySelector('.qt-unit, #quick-trade-unit');
     if (unitEl) unitEl.innerText = this.getBaseAsset(clean);
 
-    this.loadActiveCandles();
+    this.applyCandles(bars);
+    return true;
   }
 
-  setTimeframe(tf) {
+  /** Fetch a candle series for an arbitrary symbol/timeframe (pre-flight helper). */
+  async fetchCandlesFor(symbol, timeframe, limit = 500) {
+    const key = `${symbol}_${timeframe}`;
+    try {
+      const res = await fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const raw = Array.isArray(data.candles) ? data.candles : [];
+      const bars = raw.filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)));
+      if (bars.length === 0) {
+        const lastGood = this.seriesCache.get(key);
+        if (lastGood && lastGood.length) return lastGood;
+        return [];
+      }
+      this.seriesCache.set(key, bars);
+      return bars;
+    } catch (e) {
+      // Network/HTTP failure: degrade to the last known-good series (never empty).
+      const lastGood = this.seriesCache.get(key);
+      if (lastGood && lastGood.length) return lastGood;
+      return [];
+    }
+  }
+
+  /** Apply a validated candle series to every dependent surface. */
+  applyCandles(bars) {
+    if (!Array.isArray(bars) || bars.length === 0) return;
+    this.activeBars = bars;
+    this.strategyTester?.setCandles(this.activeBars);
+    const lastBar = this.activeBars[this.activeBars.length - 1];
+    this.paperTrading?.setMarket(this.currentSymbol, lastBar.close);
+    this.alertsManager?.setMarket(this.currentSymbol, lastBar.close);
+    this.updateQuickTradePrices(lastBar);
+    this.chartAlertsOverlay?.updateAlerts(this.alertsManager?.alerts, this.currentSymbol, lastBar.close);
+  }
+
+  async setTimeframe(tf) {
     const tfStr = String(tf);
+    const prev = this.currentTimeframe;
+    // Same pre-flight guarantee as symbol switching: an empty timeframe must not
+    // leave the chart/indicator engine in a broken state.
+    const bars = await this.fetchCandlesFor(this.currentSymbol, tfStr);
+    if (!bars || bars.length === 0) {
+      const isFa = document.body.classList.contains('persian-mode');
+      this.showToast?.(isFa
+        ? `داده‌ای برای تایم‌فریم ${tfStr} در دسترس نیست`
+        : `No data available for timeframe ${tfStr}`);
+      return false;
+    }
     this.currentTimeframe = tfStr;
-    this.chartManager?.setTimeframe(tfStr);
-    this.loadActiveCandles();
+    this.chartManager?.setTimeframe?.(tfStr);
+    this.applyCandles(bars);
+    return true;
   }
 
   handleSymbolChange(sym) {
-    const clean = sym.replace(/^.*:/, '').toUpperCase();
+    const clean = String(sym ?? '').replace(/^.*:/, '').trim().toUpperCase();
+    if (!clean || !/^[A-Z0-9._-]{2,20}$/.test(clean)) return;
     this.currentSymbol = clean;
     this.depthOfMarket?.setSymbol(clean);
     this.watchlist?.setSymbol(clean);
@@ -547,6 +638,11 @@ class TradingChartApp {
 
         if (panelId === 'journal' && this.activeWorkspaceView !== 'journal') {
           this.switchWorkspace('journal');
+          return;
+        }
+
+        if (panelId === 'compare') {
+          this.compareModal?.open();
           return;
         }
 
@@ -1005,14 +1101,18 @@ class TradingChartApp {
     const countBadge = document.querySelector('#sym-count-badge');
     if (!listCont) return;
 
+    const isFa = getLanguage() === 'fa';
+
     try {
       const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}`);
       if (res.ok) {
         const symbols = await res.json();
-        if (countBadge) countBadge.innerText = `${symbols.length} Instruments`;
+        if (countBadge) {
+          countBadge.innerText = isFa ? `${symbols.length} ابزار معاملاتی` : `${symbols.length} Instruments`;
+        }
 
         if (symbols.length === 0) {
-          listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 13px;">No instruments match your search.</div>`;
+          listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 13px;">${isFa ? 'هیچ نمادی مطابق با جستجوی شما یافت نشد.' : 'No instruments match your search.'}</div>`;
           return;
         }
 
@@ -1025,8 +1125,19 @@ class TradingChartApp {
           stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }
         };
 
+        const CAT_NAMES_FA = {
+          crypto: 'رمزارزها',
+          metals: 'فلزات',
+          commodities: 'کالاها',
+          forex: 'فارکس',
+          indices: 'شاخص‌ها',
+          stocks: 'سهام'
+        };
+
         listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
+          const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
+          const exchangeLabel = s.exchange || (isFa ? 'جهانی' : 'Global');
           return `
             <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
               <div style="display: flex; align-items: center; gap: 12px;">
@@ -1037,7 +1148,7 @@ class TradingChartApp {
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-weight: 800; font-size: 14px; color: #fff;">${s.symbol}</span>
                     <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
-                      ${s.category}
+                      ${catLabel}
                     </span>
                   </div>
                   <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${s.name} (${s.base}/${s.quote})</div>
@@ -1045,7 +1156,7 @@ class TradingChartApp {
               </div>
               <div style="text-align: right;">
                 <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-                  ${s.exchange || 'Global'}
+                  ${exchangeLabel}
                 </span>
               </div>
             </div>
@@ -1172,7 +1283,11 @@ class TradingChartApp {
       document.body.appendChild(toast);
     }
     const isBuy = side === 'BUY';
-    toast.innerHTML = `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ EXECUTED</span> ${side} ${qty} ${symbol} @ MARKET`;
+    const isFa = getLanguage() === 'fa';
+    const sideFa = side === 'BUY' ? 'خرید' : (side === 'SELL' ? 'فروش' : side);
+    toast.innerHTML = isFa
+      ? `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ اجرا شد</span> ${sideFa} ${toPersianDigits(String(qty))} ${symbol} @ بازار`
+      : `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ EXECUTED</span> ${side} ${qty} ${symbol} @ MARKET`;
     toast.style.opacity = '1';
     toast.style.transform = 'translateY(0)';
     setTimeout(() => {
@@ -1238,14 +1353,26 @@ class TradingChartApp {
 
   switchLanguage(lang) {
     setLanguage(lang);
-    this.chartStylePicker?.updateButtonUI();
+    // Persist the user's explicit choice so the RTL/Persian session survives
+    // a full page reload (read back on DOMContentLoaded).
+    try {
+      const s = JSON.parse(localStorage.getItem('tradingchart_user_settings') || '{}');
+      s.language = lang;
+      localStorage.setItem('tradingchart_user_settings', JSON.stringify(s));
+    } catch (e) { /* storage unavailable — session-only */ }
+    // Re-render every surface that builds HTML strings lazily so the new
+    // language applies immediately and completely (desktop + mobile).
+    this.chartStylePicker?.updateButtonUI?.();
+    this.renderWorkspaces?.();
     this.marketNewsSide?.render?.();
     this.marketNews?.render?.();
     this.tradeJournal?.render?.();
     this.fullPageJournal?.render?.();
     this.depthOfMarket?.render?.();
     this.technicalScreener?.render?.();
+    this.technicalScreenerSide?.render?.();
     this.economicCalendar?.render?.();
+    this.economicCalendarSide?.render?.();
     this.paperTrading?.render?.();
     this.barReplay?.render?.();
     this.propFirmSim?.render?.();
@@ -1255,6 +1382,19 @@ class TradingChartApp {
     this.scaleControls?.render?.();
     this.floatingDrawingToolbar?.render?.();
     this.layoutManager?.updateTopbarLabel?.();
+    // Modals & side panels that live in separate mount containers
+    this.indicatorsModal?.render?.();
+    this.settingsModal?.render?.();
+    this.dataExportModal?.render?.();
+    this.shortcutsModal?.render?.();
+    this.compareModal?.render?.();
+    this.timeframeManager?.render?.();
+    this.pineStudio?.render?.();
+    this.pineStudioSide?.render?.();
+    this.watchlist?.render?.();
+    this.alertsManager?.render?.();
+    this.marketTrackers?.render?.();
+    this.templateManager?.render?.();
     this.chartAlertsOverlay?.updateAlerts(
       this.alertsManager?.alerts,
       this.currentSymbol,
@@ -1316,4 +1456,12 @@ class TradingChartApp {
 // Instantiate on DOM load
 window.addEventListener('DOMContentLoaded', () => {
   window.app = new TradingChartApp();
+  // Restore the user's persisted language preference so an RTL/Persian session
+  // survives a full page reload (settings modal stores `tradingchart_user_settings`).
+  try {
+    const saved = JSON.parse(localStorage.getItem('tradingchart_user_settings') || '{}');
+    if (saved && saved.language && saved.language !== getLanguage()) {
+      window.app.switchLanguage(saved.language);
+    }
+  } catch (e) { /* ignore malformed storage */ }
 });

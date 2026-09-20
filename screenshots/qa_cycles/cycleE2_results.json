@@ -1,0 +1,743 @@
+{
+ "suite": "cycleE2",
+ "ts": "2026-09-20T06:06:41.505Z",
+ "results": [
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E01_initial_health_and_surfaces",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E02_roam_top_toolbars",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E03_roam_left_right_rails",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E04_timeframe_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "1m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "5m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "15m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "30m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "45m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "4h"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "1W"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E05_symbol_switch_and_invalid",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E05-symbol",
+     "kind": "no-switch",
+     "text": "BTCUSDT|TradingChart — Powered by LuxAlgo Open Ecosystem"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E06_fa_full_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E06-fa-init",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LuxAlgo - Signals & Overlays"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Toggle Side Dock / Panels",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LuxAlgo - Signals & Overlays"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:کوانت",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LuxAlgo - Signals & Overlays"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:مقایسه",
+     "kind": "overlap",
+     "a": "دیده‌بان تکنیکال",
+     "b": "مقایسه"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:مقایسه",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "BNB"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:مقایسه",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "US Dollar Index"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:ذخیره",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "✓ EXECUTED"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:ذخیره",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "tradingchart-toast",
+     "text": "LAYOUT 1 1x1 Single Chart @ MARKET"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:بازپخش",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "✓ EXECUTED"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:بازپخش",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "tradingchart-toast",
+     "text": "LAYOUT 1 1x1 Single Chart @ MARKET"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "TradingView Parity"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-compare-label",
+     "text": "Compare"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "active-layout-name",
+     "text": "1x1 Single Chart"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "layout-save-label",
+     "text": "Save"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-replay-label",
+     "text": "Replay"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-export-label",
+     "text": "Export"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Monthly Realized P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Win Rate"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Edge Score v2"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "P&L Heatmap (September 2026)"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "BUTTON",
+     "cls": "btn-primary",
+     "text": "+ Log Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Sun"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Mon"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Tue"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Wed"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Thu"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Fri"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Sat"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Weekday Attribution Breakdown"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Mon"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Tue"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Wed"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Thu"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Fri"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "FIFO Accounting"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 1"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 2"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "SHORT"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 3"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 4"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E07_responsive_widths",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "desktop",
+   "test": "E08_keyboard_and_focus",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "mobile",
+   "test": "E09_mobile_init",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "mobile",
+   "test": "E10_mobile_dock_and_sheets",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "mobile",
+   "test": "E11_mobile_fa_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast visible",
+     "text": "Percent scale: ON"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:UTC",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "mobile",
+   "test": "E12_mobile_landscape_and_320",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E12-320",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "top-nav-left",
+     "scrollW": 150,
+     "clientW": 92,
+     "text": "Quant Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E12-320",
+     "kind": "overlap",
+     "a": "Panels",
+     "b": "nav-icon-btn"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE2",
+   "viewport": "mobile",
+   "test": "E13_mobile_touch_tap_targets",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

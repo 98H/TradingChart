@@ -64,9 +64,11 @@ export class ChartStylePicker {
     if (!el) {
       el = document.createElement('div');
       el.id = 'popover-chart-style';
-      el.className = 'popover-chart-style';
+      el.className = 'popover-chart-style chart-style-picker-dropdown';
       el.style.display = 'none';
       document.body.appendChild(el);
+    } else {
+      el.classList.add('chart-style-picker-dropdown');
     }
     this.menuEl = el;
   }
@@ -115,20 +117,29 @@ export class ChartStylePicker {
   }
 
   open() {
+    if (!this.menuEl) this.createDropdownMenu();
     const btn = document.querySelector('#btn-topbar-chart-style');
-    if (!btn || !this.menuEl) return;
-
-    const rect = btn.getBoundingClientRect();
     const isFa = getLanguage() === 'fa';
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const rect = btn?.getBoundingClientRect();
+    const hasVisibleBtn = btn && rect && rect.width > 0 && rect.height > 0;
 
     this.menuEl.style.position = 'fixed';
-    this.menuEl.style.top = `${rect.bottom + 6}px`;
-    this.menuEl.style.left = isFa ? `${Math.max(10, rect.right - 180)}px` : `${rect.left}px`;
+    if (!hasVisibleBtn || isMobile) {
+      this.menuEl.style.top = '50%';
+      this.menuEl.style.left = '50%';
+      this.menuEl.style.transform = 'translate(-50%, -50%)';
+    } else {
+      this.menuEl.style.transform = 'none';
+      this.menuEl.style.top = `${rect.bottom + 6}px`;
+      this.menuEl.style.left = isFa ? `${Math.max(10, rect.right - 180)}px` : `${rect.left}px`;
+    }
     this.menuEl.style.display = 'block';
+    this.menuEl.style.zIndex = '1000001';
     this.isOpen = true;
 
     this.menuEl.innerHTML = `
-      <div class="style-menu-inner" style="background: rgba(14, 17, 23, 0.98); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-persian), sans-serif' : 'var(--font-sans)'}; min-width: 170px; z-index: 999999; direction: ${isFa ? 'rtl' : 'ltr'};">
+      <div class="style-menu-inner" style="background: rgba(14, 17, 23, 0.98); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans)'}; min-width: 170px; z-index: 1000002; direction: ${isFa ? 'rtl' : 'ltr'};">
         <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 8px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 2px; text-align: ${isFa ? 'right' : 'left'};">
           ${isFa ? 'حالت نمایش چارت' : 'Chart Style'}
         </div>
@@ -161,6 +172,14 @@ export class ChartStylePicker {
         this.close();
       });
     });
+  }
+
+  applyStyle(styleId) {
+    this.setStyle(styleId);
+  }
+
+  select(styleId) {
+    this.setStyle(styleId);
   }
 
   setStyle(styleId) {

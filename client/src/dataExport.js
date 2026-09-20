@@ -46,7 +46,7 @@ export class DataExportModal {
     const barsCount = this.app?.activeBars?.length || 0;
 
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 520px; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div class="modal-box" style="width: 520px; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-green);">

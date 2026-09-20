@@ -61,9 +61,9 @@ export class DepthOfMarketView {
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حجم سفارش:' : 'Size:'}</span>
               <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden;">
-                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: 800;">−</button>
-                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 11px;" />
-                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 2px 6px; cursor: pointer; font-weight: 800;">+</button>
+                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
+                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 11px;" aria-label="Order size" />
+                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
               </div>
             </div>
           </div>
@@ -82,8 +82,8 @@ export class DepthOfMarketView {
         </div>
 
         <!-- Table Columns Header -->
-        <div style="display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); text-align: right;">
-          <div style="text-align: left;">${isFa ? 'اردر' : 'Order'}</div>
+        <div style="display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); text-align: end;">
+          <div style="text-align: start;">${isFa ? 'اردر' : 'Order'}</div>
           <div>${isFa ? 'قیمت' : 'Price'}</div>
           <div>${isFa ? 'حجم' : 'Size'}</div>
           <div>${isFa ? 'مجموع' : 'Total'}</div>
@@ -154,14 +154,16 @@ export class DepthOfMarketView {
     buyBtn?.addEventListener('click', () => {
       if (this.app?.paperTrading) {
         this.app.paperTrading.executeOrder('buy', 'market', this.data?.lastPrice || 0, this.orderQty);
-        this.showToast(`🟢 ${this.symbol} Market Buy of ${this.orderQty} executed!`);
+        const isFa = getLanguage() === 'fa';
+        this.showToast(isFa ? `🟢 خرید مارکت به میزان ${this.orderQty} از ${this.symbol} اجرا گردید` : `🟢 ${this.symbol} Market Buy of ${this.orderQty} executed!`);
       }
     });
 
     sellBtn?.addEventListener('click', () => {
       if (this.app?.paperTrading) {
         this.app.paperTrading.executeOrder('sell', 'market', this.data?.lastPrice || 0, this.orderQty);
-        this.showToast(`🔴 ${this.symbol} Market Sell of ${this.orderQty} executed!`);
+        const isFa = getLanguage() === 'fa';
+        this.showToast(isFa ? `🔴 فروش مارکت به میزان ${this.orderQty} از ${this.symbol} اجرا گردید` : `🔴 ${this.symbol} Market Sell of ${this.orderQty} executed!`);
       }
     });
   }
@@ -200,9 +202,9 @@ export class DepthOfMarketView {
         return `
           <div class="dom-row dom-ask-row" data-price="${ask.price}" data-side="sell" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(246,70,93,0.12); pointer-events: none; z-index: 0;"></div>
-            <div style="text-align: left; z-index: 1;">
-              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 1px 6px; font-size: 9px; font-weight: 800; border-radius: 3px; cursor: pointer;">
-                − Sell
+            <div style="text-align: start; z-index: 1;">
+              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 3px 8px; font-size: 10px; min-height: 22px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'سفارش لیمیت فروش' : 'Limit Sell'}" aria-label="Limit Sell">
+                ${isFa ? '− فروش' : '− Sell'}
               </button>
             </div>
             <div style="color: #f6465d; font-weight: 700; z-index: 1;" class="num-ltr">$${formatPrice(ask.price)}</div>
@@ -218,11 +220,11 @@ export class DepthOfMarketView {
       bidsContainer.innerHTML = (this.data.bids || []).map(bid => {
         const depthPct = Math.min(100, Math.round((bid.total / maxDepth) * 100));
         return `
-          <div class="dom-row dom-bid-row" data-price="${bid.price}" data-side="buy" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <div class="dom-row dom-bid-row" data-price="${bid.price}" data-side="buy" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(14,203,129,0.12); pointer-events: none; z-index: 0;"></div>
-            <div style="text-align: left; z-index: 1;">
-              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 1px 6px; font-size: 9px; font-weight: 800; border-radius: 3px; cursor: pointer;">
-                + Buy
+            <div style="text-align: start; z-index: 1;">
+              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 3px 8px; font-size: 10px; min-height: 22px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'سفارش لیمیت خرید' : 'Limit Buy'}" aria-label="Limit Buy">
+                ${isFa ? '+ خرید' : '+ Buy'}
               </button>
             </div>
             <div style="color: #0ecb81; font-weight: 700; z-index: 1;" class="num-ltr">$${formatPrice(bid.price)}</div>
@@ -240,7 +242,8 @@ export class DepthOfMarketView {
         const price = parseFloat(btn.getAttribute('data-price'));
         if (price && this.app?.paperTrading) {
           this.app.paperTrading.executeOrder('sell', 'limit', price, this.orderQty);
-          this.showToast(`Limit Sell order placed at $${price} (${this.orderQty} ${this.symbol})`);
+          const isFa = getLanguage() === 'fa';
+          this.showToast(isFa ? `سفارش لیمیت فروش در نرخ $${price} (${this.orderQty} ${this.symbol}) ثبت گردید` : `Limit Sell order placed at $${price} (${this.orderQty} ${this.symbol})`);
         }
       });
     });
@@ -251,7 +254,8 @@ export class DepthOfMarketView {
         const price = parseFloat(btn.getAttribute('data-price'));
         if (price && this.app?.paperTrading) {
           this.app.paperTrading.executeOrder('buy', 'limit', price, this.orderQty);
-          this.showToast(`Limit Buy order placed at $${price} (${this.orderQty} ${this.symbol})`);
+          const isFa = getLanguage() === 'fa';
+          this.showToast(isFa ? `سفارش لیمیت خرید در نرخ $${price} (${this.orderQty} ${this.symbol}) ثبت گردید` : `Limit Buy order placed at $${price} (${this.orderQty} ${this.symbol})`);
         }
       });
     });

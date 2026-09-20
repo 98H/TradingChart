@@ -2,7 +2,7 @@
 // Institutional Real-Time Technical Screener for TradingChart (TradingView Parity)
 // Rigid 1:1 Column-Locked Architecture with High-Contrast WCAG AAA Typography
 
-import { getLanguage, t, toPersianDigits } from './i18n.js';
+import { getLanguage, t, toPersianDigits, localizeInstrumentName } from './i18n.js';
 
 export class TechnicalScreenerView {
   constructor(options = {}) {
@@ -144,6 +144,9 @@ export class TechnicalScreenerView {
     `;
 
     this.bindEvents();
+    if (this.items && this.items.length > 0) {
+      this.updateTable();
+    }
   }
 
   bindEvents() {
@@ -180,6 +183,10 @@ export class TechnicalScreenerView {
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.fetchData());
     }
+    // render() rebuilds the table (including the header) in the new language with
+    // an EMPTY <tbody> placeholder, so the already-fetched rows must be painted
+    // back immediately — otherwise switching language blanks the screener.
+    this.updateTable();
   }
 
   updateTable() {
@@ -242,7 +249,7 @@ export class TechnicalScreenerView {
               <span style="font-weight: 800; color: #fff; font-family: var(--font-mono); font-size: 12px;">${item.symbol}</span>
               <span style="font-size: 9px; color: var(--text-dim); background: var(--bg-card); padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${item.category.toUpperCase()}</span>
             </div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${localizeInstrumentName(item.name)}</div>
           </td>
 
           <!-- Price -->
@@ -283,7 +290,9 @@ export class TechnicalScreenerView {
           <!-- Trend -->
           <td style="padding: 7px 10px; text-align: center;">
             <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; ${item.trend === 'Bullish' ? 'color: var(--accent-green); background: rgba(14,203,129,0.1);' : 'color: var(--accent-red); background: rgba(246,70,93,0.1);'}">
-              ${item.trend === 'Bullish' ? '▲ Bull' : '▼ Bear'}
+              ${item.trend === 'Bullish'
+                ? (isFa ? '▲ صعودی' : '▲ Bull')
+                : (isFa ? '▼ نزولی' : '▼ Bear')}
             </span>
           </td>
 
@@ -296,7 +305,7 @@ export class TechnicalScreenerView {
 
           <!-- Action -->
           <td style="padding: 7px 10px; text-align: center;">
-            <button class="btn-screener-chart btn-secondary" data-symbol="${item.symbol}" style="padding: 2px 6px; font-size: 10px; border-radius: 3px;">
+            <button class="btn-screener-chart btn-secondary" data-symbol="${item.symbol}" style="padding: 4px 10px; font-size: 11px; min-height: 26px; border-radius: 4px;" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Open chart for ' + item.symbol}" aria-label="Open chart for ${item.symbol}">
               ${isFa ? 'چارت ↗' : 'Chart ↗'}
             </button>
           </td>

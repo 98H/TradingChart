@@ -136,11 +136,11 @@ export class TemplateManager {
                     <div style="font-size: 12px; font-weight: 700; color: #fff;">${ut.name}</div>
                     <div style="font-size: 10px; color: var(--text-dim);">${ut.date} &nbsp;·&nbsp; ${ut.scripts.length} ${isFa ? 'اندیکاتور' : 'indicators'}</div>
                   </div>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <button class="btn-apply-user-template btn-secondary" data-id="${ut.id}" style="font-size: 10px; padding: 3px 8px; color: var(--accent-cyan);">
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn-apply-user-template btn-secondary" data-id="${ut.id}" style="font-size: 11px; padding: 4px 10px; min-height: 28px; color: var(--accent-cyan);" title="${isFa ? 'اعمال این قالب روی چارت' : 'Apply template to chart'}" aria-label="Apply template">
                       ${isFa ? 'اعمال' : 'Apply'}
                     </button>
-                    <button class="btn-delete-user-template" data-id="${ut.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 2px 4px; font-size: 12px;" title="Delete Template">
+                    <button class="btn-delete-user-template" data-id="${ut.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 4px 8px; min-width: 28px; min-height: 28px; font-size: 12px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف قالب' : 'Delete Template'}" aria-label="Delete Template">
                       ✕
                     </button>
                   </div>

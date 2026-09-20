@@ -88,7 +88,7 @@ export class CanvasContextMenu {
     this.menuEl.style.display = 'block';
 
     this.menuEl.innerHTML = `
-      <div class="ctx-menu-inner" style="background: rgba(14, 17, 23, 0.96); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-persian), sans-serif' : 'var(--font-sans)'}; min-width: 220px; z-index: 99999; direction: ${isFa ? 'rtl' : 'ltr'};">
+      <div class="ctx-menu-inner" style="background: rgba(14, 17, 23, 0.96); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans)'}; min-width: 220px; z-index: 99999; direction: ${isFa ? 'rtl' : 'ltr'};">
         <!-- Add Alert at price -->
         <button class="ctx-item context-menu-item" id="ctx-add-alert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'}; transition: background 0.12s;">
           <div style="display: flex; align-items: center; gap: 8px;">

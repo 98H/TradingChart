@@ -2,7 +2,7 @@
 // TradingView-Grade Multi-Symbol Compare & Overlay Engine
 // Allows side-by-side comparative analysis (% Scale, Price Overlay, Benchmarks)
 
-import { getLanguage, t, toPersianDigits } from './i18n.js';
+import { getLanguage, t, toPersianDigits, localizeInstrumentName } from './i18n.js';
 
 export const POPULAR_BENCHMARKS = [
   { symbol: 'ETHUSDT', name: 'Ethereum', category: 'crypto', color: '#f59e0b', defaultChecked: false },
@@ -85,7 +85,7 @@ export class CompareModal {
     }
 
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
@@ -161,7 +161,7 @@ export class CompareModal {
                     <span style="width: 10px; height: 10px; border-radius: 50%; background: ${b.color};"></span>
                     <div>
                       <div style="font-weight: 700; font-size: 13px; color: #fff;" class="num-ltr">${b.symbol}</div>
-                      <div style="font-size: 11px; color: var(--text-dim);">${b.name}</div>
+                      <div style="font-size: 11px; color: var(--text-dim);">${localizeInstrumentName(b.name)}</div>
                     </div>
                   </div>
                   <div>

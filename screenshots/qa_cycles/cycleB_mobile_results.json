@@ -1,0 +1,53 @@
+{
+ "suite": "cycleB_mobile",
+ "ts": "2026-09-20T08:04:59.139Z",
+ "results": [
+  {
+   "suite": "cycleB_mobile",
+   "viewport": "mobile",
+   "test": "Bm01_paper_trade_mobile_flow",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "openId": "paper",
+    "found": true,
+    "cls": "vela-panel vela-panel-paper",
+    "w": 390,
+    "h": 800,
+    "overflow": false,
+    "ticketVisible": true,
+    "ticketW": 338,
+    "ticketOverflow": false
+   }
+  },
+  {
+   "suite": "cycleB_mobile",
+   "viewport": "mobile",
+   "test": "Bm02_all_panel_items_open_cleanly",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleB_mobile",
+   "viewport": "mobile",
+   "test": "Bm03_mobile_quick_trade_execution",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "open": true,
+    "before": 1,
+    "after": 2,
+    "w": 350,
+    "left": 20,
+    "right": 370
+   }
+  },
+  {
+   "suite": "cycleB_mobile",
+   "viewport": "mobile",
+   "test": "Bm04_mobile_landscape_844x390",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

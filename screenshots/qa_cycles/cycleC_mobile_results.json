@@ -1,0 +1,58 @@
+{
+ "suite": "cycleC_mobile",
+ "ts": "2026-09-20T08:11:55.866Z",
+ "results": [
+  {
+   "suite": "cycleC_mobile",
+   "viewport": "mobile",
+   "test": "Cm01_every_panel_in_drawer_i18n_and_fit",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "watchlist": 0,
+    "paper": 0,
+    "alerts": 0,
+    "pine": 0,
+    "strategy": 0,
+    "propsim": 0,
+    "trackers": 0,
+    "calendar": 0,
+    "screener": 0,
+    "dom": 0,
+    "templates": 0,
+    "news": 0,
+    "objects": 0,
+    "dataWindow": 0
+   }
+  },
+  {
+   "suite": "cycleC_mobile",
+   "viewport": "mobile",
+   "test": "Cm02_mobile_touch_targets_after_panels",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "small": 0
+   }
+  },
+  {
+   "suite": "cycleC_mobile",
+   "viewport": "mobile",
+   "test": "Cm03_mobile_no_horizontal_page_scroll",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "scrollW": 390,
+    "clientW": 390,
+    "bodyScrollW": 390
+   }
+  },
+  {
+   "suite": "cycleC_mobile",
+   "viewport": "mobile",
+   "test": "Cm04_mobile_portrait_small_320px",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

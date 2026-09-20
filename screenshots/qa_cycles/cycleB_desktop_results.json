@@ -1,0 +1,222 @@
+{
+ "suite": "cycleB_desktop",
+ "ts": "2026-09-20T08:02:17.008Z",
+ "results": [
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B01_paper_trading_order_flow",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "before": 1,
+    "after": 2,
+    "eq0": 101418.01000000001,
+    "eq1": 100614.64980000001,
+    "pos": [
+     {
+      "id": "pos-1",
+      "symbol": "BTCUSDT",
+      "side": "long",
+      "qty": 0.5,
+      "entryPrice": 77500,
+      "markPrice": 80336.02,
+      "leverage": 10,
+      "margin": 3875,
+      "unrealizedPnl": 1418.010000000002,
+      "unrealizedPnlPct": 36.593806451612956,
+      "sl": 76000,
+      "tp": 80500
+     }
+    ]
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B02_alerts_create",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "before": 3,
+    "after": 4,
+    "rows": 0
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B03_indicator_settings_persistence",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "add": {
+     "clicked": true,
+     "id": "smc_order_blocks"
+    },
+    "active": {
+     "legend": 9
+    }
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B04_chart_style_all_types",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B05_timeframe_matrix",
+   "status": "pass",
+   "defects": [],
+   "info": [
+    {
+     "tf": "1",
+     "bars": 500,
+     "cur": "1"
+    },
+    {
+     "tf": "5",
+     "bars": 500,
+     "cur": "5"
+    },
+    {
+     "tf": "15",
+     "bars": 500,
+     "cur": "15"
+    },
+    {
+     "tf": "60",
+     "bars": 500,
+     "cur": "60"
+    },
+    {
+     "tf": "240",
+     "bars": 500,
+     "cur": "240"
+    },
+    {
+     "tf": "D",
+     "bars": 500,
+     "cur": "D"
+    },
+    {
+     "tf": "W",
+     "bars": 475,
+     "cur": "W"
+    }
+   ]
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B06_header_shortcuts_and_keyboard",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "indOpen": true
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B07_drawings_and_context_menu_actions",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "count": 11,
+    "labels": [
+     "🔔\nAdd Alert at $80,314.10\nAlt+A",
+     "⚡\nBuy Limit at $80,314.10",
+     "⚡\nSell Limit at $80,314.10",
+     "📐\nAdd Indicator...\n/",
+     "⏱\nChange Timeframe...\n,",
+     "➕\nCompare Symbol...\nAlt+C",
+     "🔄\nReset Price Scale\nAlt+R",
+     "📈\nLogarithmic Scale",
+     "↕\nInvert Price Scale\nAlt+I",
+     "📸\nTake Screenshot / Share\nAlt+S",
+     "⚙\nChart Settings..."
+    ]
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B08_layout_manager_studio",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "open": true,
+    "layouts": 15,
+    "box": {
+     "l": 43.203125,
+     "r": 1396.796875,
+     "w": 1353.59375,
+     "h": 535,
+     "t": 182.5,
+     "bot": 717.5
+    }
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B09_screenshot_modal",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "found": true,
+    "imgs": 1,
+    "id": "modal-screenshot-preview"
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B10_watchlist_symbol_switch",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "before": "BTCUSDT",
+    "after": "SOLUSDT",
+    "bars": 500
+   }
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B11_bottom_panel_stress_all_tabs_twice",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleB_desktop",
+   "viewport": "desktop",
+   "test": "B12_rapid_language_toggle_lossless",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "en1": {
+     "len": 859,
+     "persian": 0
+    },
+    "fa1": {
+     "len": 958,
+     "persian": 425
+    },
+    "en2": {
+     "len": 859,
+     "persian": 0
+    },
+    "fa2": {
+     "len": 958,
+     "persian": 425
+    }
+   }
+  }
+ ]
+}

@@ -83,7 +83,9 @@ export class ScaleControls {
 
         <!-- Timezone Selector Pill -->
         <button id="btn-scale-timezone" class="scale-dock-btn tz-pill" title="${isFa ? 'منطقه زمانی چارت' : 'Chart Timezone'}">
-          <span id="scale-tz-label">${this.activeTimezone === 'Asia/Tehran' ? 'THR' : this.activeTimezone.replace('America/', '').replace('Europe/', '').replace('Asia/', '')}</span>
+          <span id="scale-tz-label">${isFa
+            ? ({ 'UTC': 'UTC', 'America/New_York': 'نیویورک', 'Asia/Tehran': 'تهران', 'Europe/London': 'لندن', 'Asia/Tokyo': 'توکیو' })[this.activeTimezone] || this.activeTimezone
+            : (this.activeTimezone === 'Asia/Tehran' ? 'THR' : this.activeTimezone.replace('America/', '').replace('Europe/', '').replace('Asia/', ''))}</span>
         </button>
       </div>
     `;
@@ -142,7 +144,9 @@ export class ScaleControls {
       this.activeTimezone = this.timezones[nextIdx];
       this.app.chartManager?.applySettings({ timezone: this.activeTimezone });
       this.render();
-      this.showToast(`Timezone: ${this.activeTimezone}`);
+      const fa = getLanguage() === 'fa';
+      const tzFa = ({ 'UTC': 'UTC', 'America/New_York': 'نیویورک', 'Asia/Tehran': 'تهران', 'Europe/London': 'لندن', 'Asia/Tokyo': 'توکیو' })[this.activeTimezone] || this.activeTimezone;
+      this.showToast(fa ? `منطقه زمانی: ${tzFa}` : `Timezone: ${this.activeTimezone}`);
     });
   }
 

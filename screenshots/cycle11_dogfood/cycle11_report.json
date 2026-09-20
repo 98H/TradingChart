@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-09-19T13:10:29.728Z",
+  "totalDefects": 0,
+  "totalValidations": 10,
+  "consoleErrorsCount": 0,
+  "pageErrorsCount": 0,
+  "defects": [],
+  "validations": [
+    {
+      "category": "ScaleControls",
+      "title": "Candle Countdown Active",
+      "description": "Live countdown ticking: 50:40"
+    },
+    {
+      "category": "PropSim",
+      "title": "PropSim Fully Localized to Persian",
+      "description": "All inputs, badges, and KPI cards in Persian"
+    },
+    {
+      "category": "StrategyTester",
+      "title": "Strategy Tester Fully Localized",
+      "description": "All metric cards and trade table headers in formal Persian"
+    },
+    {
+      "category": "TradeJournal",
+      "title": "Weekday Attribution Localized",
+      "description": "Days and breakdown header rendered in Persian"
+    },
+    {
+      "category": "TradeJournalModal",
+      "title": "Base Asset Dynamic Unit Verified",
+      "description": "Unit is BTC"
+    },
+    {
+      "category": "ChartStylePicker",
+      "title": "RTL Right-Aligned",
+      "description": "Style picker text aligns to right with rtl direction"
+    },
+    {
+      "category": "ContextMenu",
+      "title": "Context Menu RTL Right-Aligned",
+      "description": "Context menu items strictly right-aligned with rtl direction"
+    },
+    {
+      "category": "MobilePanels",
+      "title": "Mobile Feature Parity Complete",
+      "description": "Chart Style, Bar Replay and Export Data available in Mobile Drawer"
+    },
+    {
+      "category": "MobilePanels",
+      "title": "Replay Launched on Mobile",
+      "description": "Bar Replay opened smoothly from mobile panels menu"
+    },
+    {
+      "category": "MobilePanels",
+      "title": "Data Export Modal Active",
+      "description": "Export modal displayed cleanly in mobile viewport"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

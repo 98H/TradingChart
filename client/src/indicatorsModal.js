@@ -45,7 +45,7 @@ export class IndicatorsModal {
     const isFa = getLanguage() === 'fa';
 
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 720px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div class="modal-box" dir="${isFa ? 'rtl' : 'ltr'}" style="width: 720px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), var(--font-sans);' : 'direction: ltr; text-align: left;'}">
         <!-- Header -->
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px;">

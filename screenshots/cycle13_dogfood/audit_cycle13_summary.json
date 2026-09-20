@@ -1,0 +1,229 @@
+{
+  "cycle": 13,
+  "timestamp": "2026-09-19T13:14:37.310Z",
+  "defects": [
+    {
+      "category": "ChartStyle",
+      "title": "Popover Fail",
+      "description": "Chart style popover failed to open",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Symbol Sync Mismatch",
+      "description": "Expected SOL symbol, got BTCUSDT",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Pine Editor Tab Fail",
+      "description": "Bottom tab failed to activate properly: pine",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Strategy Tester Tab Fail",
+      "description": "Bottom tab failed to activate properly: strategy",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Prop-Firm Simulator Tab Fail",
+      "description": "Bottom tab failed to activate properly: propsim",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Trade Journal Tab Fail",
+      "description": "Bottom tab failed to activate properly: journal",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Technical Screener Tab Fail",
+      "description": "Bottom tab failed to activate properly: screener",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Economic Calendar Tab Fail",
+      "description": "Bottom tab failed to activate properly: calendar",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Market News Tab Fail",
+      "description": "Bottom tab failed to activate properly: news",
+      "severity": "MEDIUM"
+    }
+  ],
+  "validations": [
+    {
+      "category": "Core",
+      "title": "Canvas Initialized",
+      "description": "Found 7 active canvas layers"
+    },
+    {
+      "category": "Workspace",
+      "title": "Journal View",
+      "description": "Switched to full page Trade Journal workspace"
+    },
+    {
+      "category": "Workspace",
+      "title": "Quant View",
+      "description": "Switched back to Quant chart workspace"
+    },
+    {
+      "category": "Workspace",
+      "title": "Panels Menu",
+      "description": "Panels quick menu modal opened"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Modal Open",
+      "description": "Symbol search modal opened"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Category Filters",
+      "description": "Cycled through all asset category filter tabs"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Widget Elements Intact",
+      "description": "Buy, Sell, Spread, and Qty elements verified"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Buy Execution",
+      "description": "Executed Quick Buy market order"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Sell Execution",
+      "description": "Executed Quick Sell market order"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Minimize Widget",
+      "description": "Quick trade minimized to trigger pill"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Restore Widget",
+      "description": "Quick trade restored from collapsed trigger pill"
+    },
+    {
+      "category": "Indicators",
+      "title": "Modal Open",
+      "description": "Indicators library modal (84+ indicators) opened"
+    },
+    {
+      "category": "Indicators",
+      "title": "RSI Added",
+      "description": "Added RSI indicator to chart"
+    },
+    {
+      "category": "SideRail",
+      "title": "Watchlist",
+      "description": "Watchlist panel mounted and active"
+    },
+    {
+      "category": "SideRail",
+      "title": "Alerts",
+      "description": "Alerts panel mounted and active"
+    },
+    {
+      "category": "SideRail",
+      "title": "Paper Trading",
+      "description": "Paper Trading panel mounted and active"
+    },
+    {
+      "category": "PaperTrading",
+      "title": "Positions Active",
+      "description": "Verified 3 open position(s) from Quick-Trade"
+    },
+    {
+      "category": "SideRail",
+      "title": "Technical Screener",
+      "description": "Technical Screener panel mounted and active"
+    },
+    {
+      "category": "SideRail",
+      "title": "Depth of Market",
+      "description": "Depth of Market panel mounted and active"
+    },
+    {
+      "category": "SideRail",
+      "title": "Economic Calendar",
+      "description": "Economic Calendar panel mounted and active"
+    },
+    {
+      "category": "SideRail",
+      "title": "Market News",
+      "description": "Market News panel mounted and active"
+    },
+    {
+      "category": "StrategyTester",
+      "title": "Backtest Executed",
+      "description": "Strategy simulation run and metrics verified"
+    },
+    {
+      "category": "PropFirmSim",
+      "title": "Monte Carlo Ran",
+      "description": "10,000 paths simulated, pass odds: N/A"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "Collapse Panel",
+      "description": "Bottom panel smoothly collapsed for maximum chart space"
+    },
+    {
+      "category": "BarReplay",
+      "title": "Replay Bar Visible",
+      "description": "Bar Replay floating control bar active"
+    },
+    {
+      "category": "BarReplay",
+      "title": "Step Forward",
+      "description": "Simulated 1 bar step forward"
+    },
+    {
+      "category": "i18n",
+      "title": "RTL Direction Active",
+      "description": "Strict RTL applied on root document & body"
+    },
+    {
+      "category": "i18n",
+      "title": "Persian Microcopy",
+      "description": "Header & Quick-Trade translated: Buy=خرید, Sell=فروش"
+    },
+    {
+      "category": "Mobile",
+      "title": "Zero Overflow",
+      "description": "Clean mobile viewport with 0px horizontal scroll"
+    },
+    {
+      "category": "Mobile",
+      "title": "Panels Drawer Open",
+      "description": "Mobile panels menu opened on touch"
+    },
+    {
+      "category": "Mobile",
+      "title": "Panel Selected",
+      "description": "Watchlist opened from mobile panels drawer"
+    },
+    {
+      "category": "Mobile",
+      "title": "Quick Trade Pill",
+      "description": "Quick trade expanded from mobile pill trigger"
+    },
+    {
+      "category": "Mobile",
+      "title": "English Mode Parity",
+      "description": "Verified English mobile viewport"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

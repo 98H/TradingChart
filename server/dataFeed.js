@@ -5,6 +5,21 @@ const BINANCE_VISION_BASE = 'https://data-api.binance.vision/api/v3';
 const BINANCE_API_BASE = 'https://api.binance.com/api/v3';
 const BINANCE_US_BASE = 'https://api.binance.us/api/v3';
 
+import { SYMBOL_CATALOG } from './symbolCatalog.js';
+
+/** Is this ticker a real, servable instrument? Unknown tickers must never be
+ *  answered with fabricated candles (a chart for a nonexistent symbol is
+ *  indistinguishable from real data and corrupts trading decisions). */
+const KNOWN_SYMBOLS = new Set(SYMBOL_CATALOG.map(s => String(s.symbol).toUpperCase()));
+function isKnownSymbol(sym) {
+  const clean = String(sym || '').replace(/^.*:/, '').toUpperCase();
+  if (!clean) return false;
+  if (KNOWN_SYMBOLS.has(clean)) return true;
+  // Allow any Binance-listed crypto pair; the fetch itself is the validator —
+  // a 400 from Binance tells us the market does not exist.
+  return clean.endsWith('USDT');
+}
+
 // Cache for recent candle requests to prevent rate-limit churn
 const candleCache = new Map();
 const CACHE_TTL_MS = 3000; // 3 seconds micro-cache
@@ -69,6 +84,7 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
   ];
 
   let lastError = null;
+  let marketNotFound = false;
   for (const ep of endpoints) {
     try {
       const url = new URL(ep);
@@ -96,10 +112,21 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
             closeTime: Number(b[6])
           }));
         }
+      } else if (res.status === 400 || res.status === 404) {
+        // Binance rejects the symbol itself: this market does not exist.
+        // Remember it so the caller does NOT substitute synthetic candles.
+        marketNotFound = true;
+        lastError = new Error(`market "${cleanSymbol}" not found (HTTP ${res.status})`);
       }
     } catch (e) {
       lastError = e;
     }
+  }
+
+  if (marketNotFound) {
+    const err = new Error(`Unknown market: ${cleanSymbol}`);
+    err.code = 'MARKET_NOT_FOUND';
+    throw err;
   }
 
   throw new Error(`Failed to fetch Binance klines for ${cleanSymbol}: ${lastError?.message || 'Unknown error'}`);
@@ -176,16 +203,31 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
 
   let candles = [];
   const isCrypto = cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC') || cleanSymbol.endsWith('ETH');
+  const known = isKnownSymbol(cleanSymbol);
 
   if (isCrypto) {
     try {
       candles = await fetchBinanceKlines(cleanSymbol, timeframe, limit, fromTime, toTime);
     } catch (e) {
-      console.warn(`[DataFeed] Binance primary fetch error: ${e.message}, falling back to synthetic`);
+      // ONLY a real outage justifies synthetic data for a known instrument.
+      // An unknown ticker must never be given invented candles: the client
+      // would render a chart for a symbol that does not exist, which is
+      // indistinguishable from real data and is a financial-UI integrity bug.
+      if (e.code === 'MARKET_NOT_FOUND' || !known) {
+        console.warn(`[DataFeed] Unknown symbol "${cleanSymbol}" rejected: ${e.message}`);
+        candleCache.set(cacheKey, { ts: Date.now(), data: [] });
+        return [];
+      }
+      console.warn(`[DataFeed] Binance primary fetch error for ${cleanSymbol}: ${e.message}, falling back to synthetic`);
       candles = generateSyntheticBars(cleanSymbol, timeframe, limit, toTime || Date.now());
     }
   } else {
-    // Non-crypto assets (Forex, Metals, Indices)
+    if (!known) {
+      console.warn(`[DataFeed] Unknown non-crypto symbol "${cleanSymbol}" rejected`);
+      candleCache.set(cacheKey, { ts: Date.now(), data: [] });
+      return [];
+    }
+    // Non-crypto assets (Forex, Metals, Indices) are modelled synthetically.
     candles = generateSyntheticBars(cleanSymbol, timeframe, limit, toTime || Date.now());
   }
 

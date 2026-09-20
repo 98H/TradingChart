@@ -1,0 +1,180 @@
+{
+ "suite": "cycleA_desktop",
+ "ts": "2026-09-20T07:48:34.592Z",
+ "results": [
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D01_static_layout",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "overflow": 0,
+    "overlaps": 0,
+    "innerClip": 0
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D02_console_and_errors",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D03_lang_toggle_persian_rtl",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "untranslated": 0,
+    "brandKept": 0,
+    "rtlMisalign": 0
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D04_panels_menu_all_items",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "items": 20,
+    "panels": [
+     "watchlist",
+     "paper",
+     "alerts",
+     "pine",
+     "strategy",
+     "propsim",
+     "journal",
+     "trackers",
+     "calendar",
+     "screener",
+     "dom",
+     "compare",
+     "templates",
+     "workspaces",
+     "news",
+     "objects",
+     "dataWindow",
+     "chartStyle",
+     "barReplay",
+     "dataExport"
+    ]
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D05_watchlist",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "count": 31,
+    "sample": [
+     "همه",
+     "🔴",
+     "🟢",
+     "🔵",
+     "🟡"
+    ]
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D06_indicators_modal",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "display": "flex",
+    "cats": 84,
+    "items": 84,
+    "text": "دایره‌المعارف اندیکاتورها و استراتژی‌ها (۸۴+ ابزار)\nهمه دسته‌بندی‌ها (۸۴)\nاسمارت مانی و ICT\nدنبال‌کننده روند\nاسیلاتورها\n"
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D07_symbol_search",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "results": 1,
+    "sample": [
+     "SOLUSDT"
+    ],
+    "badge": "1 ابزار معاملاتی"
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D08_chart_style_picker",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "vis": "block",
+    "opts": 6,
+    "txt": "حالت نمایش چارت کندل‌استیک ✓ میله‌ای (OHLC) هیکن‌آشی خطی ناحیه‌ای (Area) خط پایه"
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D09_compare_export_shortcuts_settings_profile",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D10_bottom_panel_tabs",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D11_replay_contextmenu",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "contextmenu": {
+     "exists": true,
+     "vis": "block",
+     "items": 11,
+     "txt": "🔔 ثبت هشدار روی $80,340.88 Alt+A ⚡ سفارش لیمیت خرید روی $80,340.88 ⚡ سفارش لیمی"
+    },
+    "replay": {
+     "exists": true,
+     "vis": "flex",
+     "cls": "visible",
+     "innerClip": false,
+     "w": 571
+    }
+   }
+  },
+  {
+   "suite": "cycleA_desktop",
+   "viewport": "desktop",
+   "test": "D12_timeframes_and_quicktrade",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "tf": {
+     "exists": true,
+     "btns": 15
+    },
+    "quick": {
+     "qtExists": true,
+     "buy": true,
+     "sell": true,
+     "qtVis": "flex"
+    }
+   }
+  }
+ ]
+}

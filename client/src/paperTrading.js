@@ -71,7 +71,7 @@ export class PaperTrading {
                 $${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 10px; padding: 3px 8px; color: var(--text-dim);" title="Reset balance to $100,000">
+            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; min-height: 26px; color: var(--text-dim); font-weight: 700; border-radius: 4px;" title="${isFa ? 'بازنشانی موجودی به ۱۰۰،۰۰۰ دلار' : 'Reset balance to $100,000'}" aria-label="Reset account balance">
               ${isFa ? 'بازنشانی' : 'Reset'}
             </button>
           </div>
@@ -317,6 +317,16 @@ export class PaperTrading {
   }
 
   executeOrder(side, type = 'market', price = null, qty = 0.1) {
+    if (typeof side === 'object' && side !== null) {
+      const opts = side;
+      side = opts.side;
+      type = opts.type || 'market';
+      price = opts.price || null;
+      qty = opts.qty || opts.quantity || 0.1;
+      if (opts.symbol && opts.symbol !== this.symbol) {
+        this.setMarket(opts.symbol, opts.price || this.currentPrice);
+      }
+    }
     const normalizedSide = (side === 'buy' || side === 'long') ? 'long' : 'short';
     const execPrice = (type === 'market' || !price) ? this.currentPrice : Number(price);
     this.openPosition(normalizedSide, Number(qty) || 0.1, 10, execPrice);
@@ -418,7 +428,7 @@ export class PaperTrading {
                 ${p.side.toUpperCase()} ${p.leverage}x
               </span>
             </div>
-            <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 2px 8px; font-size: 10px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.4);">
+            <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 3px 10px; font-size: 11px; min-height: 26px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.4); font-weight: 700; border-radius: 4px;" title="${isFa ? 'بستن پوزیشن' : 'Close position'}" aria-label="Close position">
               ${isFa ? 'بستن' : 'Close'}
             </button>
           </div>
@@ -429,7 +439,7 @@ export class PaperTrading {
               <span style="color: var(--text-dim);">${isFa ? 'حجم:' : 'Size:'}</span>
               <span class="num-ltr" style="font-weight: 700; color: var(--text-main); margin-left: 2px;">${p.qty}</span>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: end;">
               <span style="color: var(--text-dim);">${isFa ? 'ورود:' : 'Entry:'}</span>
               <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
@@ -437,7 +447,7 @@ export class PaperTrading {
               <span style="color: var(--text-dim);">${isFa ? 'قیمت جاری:' : 'Mark:'}</span>
               <span class="num-ltr" style="font-weight: 600; color: var(--text-main); margin-left: 2px;">$${p.markPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: end;">
               <span style="color: var(--text-dim);">${isFa ? 'سود/زیان:' : 'P&L:'}</span>
               <span class="num-ltr" style="font-weight: 800; color: ${color}; margin-left: 2px;">
                 ${isWin ? '+' : ''}$${p.unrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${isWin ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
@@ -449,8 +459,12 @@ export class PaperTrading {
     }).join('');
 
     wrap.querySelectorAll('.close-pos-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.closePosition(e.target.getAttribute('data-id'));
+      btn.addEventListener('click', () => {
+        // Always read the id from the button itself — `e.target` can be the
+        // button's text/child, which carries no data-id and would no-op.
+        const id = btn.getAttribute('data-id');
+        if (!id) return;
+        this.closePosition(id);
       });
     });
   }

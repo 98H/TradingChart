@@ -39,7 +39,7 @@ export class ShortcutsModal {
   render() {
     const isFa = getLanguage() === 'fa';
     this.modalEl.innerHTML = `
-      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div class="modal-box" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
@@ -133,7 +133,7 @@ export class ShortcutsModal {
               </div>
               <div class="shortcut-row">
                 <span>${isFa ? 'حالت آهنربا (Magnet)' : 'Magnet Mode'}</span>
-                <span class="keys"><kbd>Ctrl</kbd> (hold)</span>
+                <span class="keys"><kbd>Ctrl</kbd> ${isFa ? '(نگه‌داشتن)' : '(hold)'}</span>
               </div>
             </div>
           </div>

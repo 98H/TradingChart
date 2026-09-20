@@ -353,8 +353,9 @@ export class AlertsManager {
     });
 
     this.container.querySelectorAll('.toggle-alert-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        if (!id) return;
         const alertItem = this.alerts.find(a => a.id === id);
         if (alertItem) {
           alertItem.active = !alertItem.active;
@@ -365,7 +366,10 @@ export class AlertsManager {
 
     this.container.querySelectorAll('.delete-alert-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
+        // Read the id off the BUTTON, not the event target: clicking any child
+        // (icon/label) would otherwise yield null and silently delete nothing.
+        const id = btn.getAttribute('data-id') || e.currentTarget.getAttribute('data-id');
+        if (!id) return;
         this.alerts = this.alerts.filter(a => a.id !== id);
         this.render();
       });

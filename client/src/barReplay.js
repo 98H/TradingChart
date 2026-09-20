@@ -123,15 +123,15 @@ export class BarReplay {
           ${isFa ? 'بازپخش کندل' : 'REPLAY'}
         </span>
 
-        <button id="btn-replay-playpause" class="btn-primary" style="padding: 3px 8px; font-size: 11px;">
+        <button id="btn-replay-playpause" class="btn-primary" style="padding: 4px 10px; font-size: 11px; min-height: 26px; border-radius: 4px;" aria-label="Play or Pause Replay">
           ${this.isPlaying ? (isFa ? 'توقف' : 'Pause') : (isFa ? 'پخش' : 'Play')}
         </button>
 
-        <button id="btn-replay-step" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">
+        <button id="btn-replay-step" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; min-height: 26px; border-radius: 4px;" aria-label="Step Forward">
           ${isFa ? 'گام بعدی →' : 'Step →'}
         </button>
 
-        <select id="sel-replay-speed" style="padding: 2px 4px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;">
+        <select id="sel-replay-speed" style="padding: 2px 6px; font-size: 11px; min-height: 26px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" aria-label="Replay Speed">
           <option value="0.5">0.5x</option>
           <option value="1.0" selected>1.0x</option>
           <option value="2.0">2.0x</option>
@@ -146,18 +146,18 @@ export class BarReplay {
         <div style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 2px;"></div>
 
         <!-- Simulated Trading Execution in Replay -->
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <button id="btn-replay-buy" style="background: var(--accent-green); border: none; color: #fff; padding: 3px 8px; font-size: 10px; font-weight: 800; border-radius: 3px; cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button id="btn-replay-buy" style="background: var(--accent-green); border: none; color: #fff; padding: 4px 10px; font-size: 11px; min-height: 26px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'خرید شبیه‌سازی‌شده' : 'Simulated Buy'}" aria-label="Simulated Buy">
             BUY
           </button>
-          <button id="btn-replay-sell" style="background: var(--accent-red); border: none; color: #fff; padding: 3px 8px; font-size: 10px; font-weight: 800; border-radius: 3px; cursor: pointer;">
+          <button id="btn-replay-sell" style="background: var(--accent-red); border: none; color: #fff; padding: 4px 10px; font-size: 11px; min-height: 26px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'فروش شبیه‌سازی‌شده' : 'Simulated Sell'}" aria-label="Simulated Sell">
             SELL
           </button>
         </div>
 
         <div id="replay-pos-wrap" style="display: none; align-items: center; gap: 6px;"></div>
 
-        <button id="btn-replay-exit" class="btn-secondary" style="padding: 3px 8px; font-size: 11px; color: var(--accent-red); border-color: rgba(246,70,93,0.3); margin-left: auto;">
+        <button id="btn-replay-exit" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; min-height: 26px; border-radius: 4px; color: var(--accent-red); border-color: rgba(246,70,93,0.3); margin-left: auto;" title="${isFa ? 'خروج از حالت بازپخش' : 'Exit Replay'}" aria-label="Exit Replay">
           ✕ ${isFa ? 'خروج' : 'Exit'}
         </button>
       </div>

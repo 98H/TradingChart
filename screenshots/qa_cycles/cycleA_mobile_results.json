@@ -1,0 +1,68 @@
+{
+ "suite": "cycleA_mobile",
+ "ts": "2026-09-20T07:50:40.050Z",
+ "results": [
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M01_static_layout_overflow",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "overflow": 0,
+    "overlaps": 0,
+    "bodyScrollW": 390,
+    "clientW": 390
+   }
+  },
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M02_touch_targets",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "small": 0
+   }
+  },
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M03_mobile_drawer_panels",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "vis": "flex",
+    "items": 20,
+    "w": 390,
+    "h": 844
+   }
+  },
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M04_mobile_persian_rtl",
+   "status": "pass",
+   "defects": [],
+   "info": {
+    "untranslated": 0,
+    "overflow": 0,
+    "rtlMisalign": 0
+   }
+  },
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M05_mobile_modals_fit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleA_mobile",
+   "viewport": "mobile",
+   "test": "M06_mobile_bottom_panel",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

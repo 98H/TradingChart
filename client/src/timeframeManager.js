@@ -45,12 +45,14 @@ export class TimeframeManager {
   }
 
   createModal() {
-    let el = document.querySelector('#modal-timeframes');
+    let el = document.querySelector('#modal-timeframes, #modal-custom-timeframe');
     if (!el) {
       el = document.createElement('div');
       el.id = 'modal-timeframes';
-      el.className = 'modal-overlay';
+      el.className = 'modal-overlay modal-custom-timeframe';
       document.body.appendChild(el);
+    } else {
+      el.classList.add('modal-custom-timeframe');
     }
     this.modalEl = el;
   }
@@ -60,6 +62,10 @@ export class TimeframeManager {
       this.render();
       this.modalEl.classList.add('open');
     }
+  }
+
+  openCustomModal() {
+    this.open();
   }
 
   close() {
@@ -146,7 +152,7 @@ export class TimeframeManager {
                 ${this.customTimeframes.map(ctf => `
                   <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 4px 8px; border-radius: 4px; font-size: 12px;">
                     <span class="btn-select-tf" data-id="${ctf.id}" style="font-weight: 700; color: var(--accent-cyan); cursor: pointer;">${ctf.label}</span>
-                    <button class="btn-delete-custom-tf" data-id="${ctf.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; font-size: 11px;">✕</button>
+                    <button class="btn-delete-custom-tf" data-id="${ctf.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 2px 6px; min-width: 22px; min-height: 22px; font-size: 12px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف این تایم‌فریم سفارشی' : 'Delete custom timeframe'}" aria-label="Delete custom timeframe">✕</button>
                   </div>
                 `).join('')}
               </div>
@@ -205,8 +211,11 @@ export class TimeframeManager {
 
     // Delete custom timeframe
     this.modalEl.querySelectorAll('.btn-delete-custom-tf').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetBtn = e.target.closest('.btn-delete-custom-tf');
+        const id = targetBtn?.getAttribute('data-id') || btn.getAttribute('data-id');
+        if (!id) return;
         this.customTimeframes = this.customTimeframes.filter(x => x.id !== id);
         this.saveCustomTimeframes();
         this.render();

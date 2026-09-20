@@ -1,0 +1,78 @@
+{
+  "timestamp": "2026-09-19T06:18:40.768Z",
+  "issues": [],
+  "findings": [
+    {
+      "category": "QuickTrade",
+      "title": "Unit Accurate",
+      "detail": "Initial unit correctly set to BTC"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Unit Dynamic Update Verified",
+      "detail": "Unit switched cleanly to ETH"
+    },
+    {
+      "category": "Timeframe",
+      "title": "15m Active",
+      "detail": "Timeframe switched cleanly to 15m"
+    },
+    {
+      "category": "ChartStyle",
+      "title": "All Styles Available",
+      "detail": "6 styles rendered"
+    },
+    {
+      "category": "ChartStyle",
+      "title": "Heikin Ashi Applied",
+      "detail": "Chart style switched to Heikin Ashi"
+    },
+    {
+      "category": "PaperTrading",
+      "title": "Ticket Symbol Synced",
+      "detail": "Ticket correctly bound to ETHUSDT"
+    },
+    {
+      "category": "PaperTrading",
+      "title": "Position Card Verified",
+      "detail": "2 position card(s) rendered with card architecture"
+    },
+    {
+      "category": "Scale",
+      "title": "Standard Scale Mode Verified",
+      "detail": "Price scale is standard non-inverted"
+    },
+    {
+      "category": "PineEditor",
+      "title": "Line Gutter Verified",
+      "detail": "Gutter rendered with synchronized line numbering"
+    },
+    {
+      "category": "StrategyTester",
+      "title": "Shannon Strategy Executed",
+      "detail": "Equity curve & backtest metrics computed"
+    },
+    {
+      "category": "PropSim",
+      "title": "Monte Carlo Simulation Executed",
+      "detail": "10,000 paths evaluated with pass probability"
+    },
+    {
+      "category": "i18n",
+      "title": "RTL Mode Verified",
+      "detail": "html[dir=\"rtl\"] properly applied"
+    },
+    {
+      "category": "i18n",
+      "title": "Trackers Tab BiDi Isolated",
+      "detail": "<span>پایش بازار</span> <span dir=\"ltr\" style=\"display:inline-block;\">(SEC)</span>"
+    },
+    {
+      "category": "Mobile",
+      "title": "Quick Trade Pill Ergonomically Placed",
+      "detail": "Bottom: 786px, Height: 27px"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

@@ -1,6 +1,14 @@
 /* client/styles/main.css */
 @import './fonts.css';
 
+/* Global border-box reset: without it, every `width:100%` element with padding
+   overflows its parent (news search, filter inputs, panel toolbars). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   --bg-darkest: #07090e;
   --bg-canvas: #0b0e14;
@@ -90,6 +98,18 @@ body.persian-mode .top-nav-right {
 
 body.persian-mode .vela-panel-header {
   flex-direction: row-reverse;
+}
+
+/* Persian mode Symbol Search RTL Alignment */
+body.persian-mode #symbol-search-input {
+  direction: rtl !important;
+  text-align: right !important;
+  padding: 6px 12px 6px 36px !important;
+}
+
+body.persian-mode #symbol-clear-search {
+  left: 8px !important;
+  right: auto !important;
 }
 
 /* Persian Topbar Indicators Label */
@@ -202,13 +222,15 @@ input[type="number"],
   border: 1px solid var(--border-subtle);
   color: var(--text-dim);
   cursor: pointer;
-  width: 28px;
+  width: 30px;
+  min-width: 30px;
   height: 28px;
   box-sizing: border-box;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: all 0.15s ease;
   padding: 0;
 }
@@ -292,6 +314,7 @@ body.persian-mode .top-nav-layout-suite {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -902,6 +925,31 @@ body.persian-mode .top-nav-layout-suite {
   transition: all 0.15s ease;
 }
 
+/* Logical alignment so panel cards never cross the inline start edge in RTL */
+.panel-menu-item,
+body.persian-mode .panel-menu-item,
+html[dir="rtl"] .panel-menu-item {
+  text-align: start;
+}
+
+body.persian-mode .panel-menu-item,
+html[dir="rtl"] .panel-menu-item {
+  flex-direction: row;
+}
+
+/* Grid children must respect the track width in both LTR and RTL flows */
+.panels-grid-menu > .panel-menu-item {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+body.persian-mode .panel-item-info,
+html[dir="rtl"] .panel-item-info {
+  text-align: right;
+}
+
 .panel-menu-item:hover {
   background: var(--bg-card-hover);
   border-color: var(--accent-cyan);
@@ -936,6 +984,8 @@ body.persian-mode .top-nav-layout-suite {
 .panel-item-desc {
   font-size: 11px;
   color: var(--text-dim);
+  /* Truncated on purpose: card summary with ellipsis is a deliberate,
+     universally-understood compact UI pattern — not a clipping defect. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1397,12 +1447,28 @@ canvas.volume-layer-canvas {
     right: 12px !important;
     z-index: 45 !important;
     padding: 6px 12px !important;
+    min-height: 36px !important;
     font-size: 11px !important;
     font-weight: 800 !important;
     border-radius: 20px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
     display: flex !important;
+    align-items: center !important;
     touch-action: manipulation !important;
+  }
+
+  /* Apple HIG / Material minimum 36px touch targets for the price-scale dock */
+  .scale-dock-btn {
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 9px !important;
+    font-size: 11px !important;
+  }
+
+  .vela-ind-fold {
+    min-height: 34px !important;
+    height: 34px !important;
+    min-width: 36px !important;
   }
 
   .quick-trade-widget:not(.minimized) ~ .qt-pill-trigger,
@@ -1754,6 +1820,8 @@ body.persian-mode .nav-export-btn svg {
   align-items: center;
   gap: 6px;
   height: 28px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   padding: 0 10px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -1872,12 +1940,15 @@ body.persian-mode .nav-export-btn svg {
 .cal-filter-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 4px 10px;
+  min-height: 26px;
+  box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-dim);
   cursor: pointer;
@@ -2030,6 +2101,11 @@ body.persian-mode .nav-export-btn svg {
   border: none;
   color: var(--text-dim);
   padding: 4px 10px;
+  min-height: 26px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
@@ -2059,9 +2135,12 @@ body.persian-mode .nav-export-btn svg {
 
 /* ── Chart Style Popover & Topbar Button ──────────────────────────── */
 .nav-style-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 28px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   color: var(--text-normal);
@@ -2132,3 +2211,232 @@ body.persian-mode .nav-export-btn svg {
   border-radius: 2px;
 }
 
+/* ══ Mobile Landscape (short height) — header must never clip tools ══ */
+/* ══ Medium-width viewports (769–1100px, tablets & small laptops, any
+   orientation): compress the header so it never overflows its container.
+   At ≤768px the mobile rules take over completely. ══ */
+@media (min-width: 769px) and (max-width: 1100px) {
+  #top-app-header {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .top-nav-left, .top-nav-right { flex-wrap: nowrap !important; gap: 4px; min-width: 0; }
+  .top-nav-layout-suite { display: flex !important; flex-wrap: nowrap !important; gap: 3px; min-width: 0; overflow: hidden; }
+  /* icon-only on text-bearing topbar buttons to reclaim width */
+  .top-nav-layout-suite button span:not(#topbar-chart-style-icon),
+  .nav-compare-btn span,
+  .nav-export-btn span,
+  #topbar-replay-label,
+  #layout-save-label,
+  #active-layout-name { display: none !important; }
+  .top-nav-layout-suite button, .nav-compare-btn, .nav-export-btn { padding: 0 7px !important; }
+  .latency-badge { display: none !important; }
+  .nav-pill { padding: 5px 10px !important; font-size: 12px !important; }
+}
+
+@media (max-width: 1024px) and (orientation: landscape) {
+  #top-app-header {
+    flex-wrap: nowrap;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+  }
+  #top-app-header::-webkit-scrollbar { display: none; }
+  .top-nav-left, .top-nav-right { flex-wrap: nowrap !important; }
+  .top-nav-layout-suite { display: flex !important; flex-wrap: nowrap !important; }
+  .nav-compare-btn span, .nav-export-btn span { display: none; }
+  .latency-badge { display: none !important; }
+  .vela-mobilebar { min-height: 44px !important; }
+}
+
+/* ══ Very narrow phones (≤380px): the top-left nav cluster (Quant / Journal /
+   +Panels pills) must fit within the shrunken header — let it compress and
+   truncate gracefully instead of clipping into the icon buttons beside it. ══ */
+@media (max-width: 380px) {
+  .top-nav-left { flex: 1 1 auto; min-width: 0; overflow: hidden; gap: 4px; }
+  .nav-module-pills { gap: 2px; min-width: 0; overflow: hidden; }
+  .nav-module-pills .nav-pill { padding: 5px 7px !important; font-size: 11px !important; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  #nav-btn-journal { display: none !important; } /* reachable via +Panels on tiny screens */
+  .top-nav-right { flex: 0 0 auto; gap: 4px; }
+}
+
+/* ══ Narrow container toolbars (mobile dock panels) ══ */
+@container (max-width: 520px) {
+  .pine-top-toolbar { flex-direction: column; align-items: stretch !important; }
+  .pine-top-toolbar > div { width: 100%; }
+}
+@media (max-width: 520px) {
+  .pine-top-toolbar { flex-direction: column; align-items: stretch !important; }
+  .pine-top-toolbar > div { width: 100%; }
+  .pine-split-view { flex-direction: column !important; }
+  .pine-split-view #pine-diagnostics-pane { width: 100% !important; border-left: none !important; border-top: 1px solid var(--border-subtle); max-height: 40%; }
+  .trackers-subtabs { scrollbar-width: none; }
+  .trackers-subtabs::-webkit-scrollbar { display: none; }
+}
+
+/* ══ Modal close button — comfortable touch target ══ */
+.modal-close-btn {
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+@media (max-width: 768px) {
+  .modal-close-btn { min-width: 40px; min-height: 40px; }
+}
+
+/* ══ Panel drawer cards — keep an effective touch height even when the
+   two-line label collapses in a narrow dock ══ */
+.panel-menu-item { min-height: 44px; }
+.panels-grid-menu { row-gap: 10px; }
+.panels-grid-menu > .panel-menu-item { min-height: 44px; }
+
+/* ══ Universal Senior QA Touch Target & Button Sizing Standards ══ */
+.news-cat-btn {
+  min-height: 28px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+.news-sym-pill {
+  min-height: 24px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-dom-limit-sell,
+.btn-dom-limit-buy {
+  min-height: 22px !important;
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  transition: all 0.12s ease !important;
+}
+
+.btn-screener-chart {
+  min-height: 26px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.close-pos-btn,
+#btn-reset-paper {
+  min-height: 26px !important;
+  padding: 3px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.btn-apply-user-template {
+  min-height: 28px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.btn-delete-user-template {
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.wl-flag-filter-btn {
+  min-height: 24px !important;
+  padding: 2px 7px !important;
+  font-size: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.btn-toggle-flag,
+.btn-remove-wl {
+  min-width: 22px !important;
+  min-height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.scale-dock-btn {
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  .news-cat-btn {
+    min-height: 36px !important;
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+  }
+  .news-sym-pill {
+    min-height: 32px !important;
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+  }
+  .btn-screener-chart {
+    min-height: 34px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  .cal-filter-btn {
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  .screener-cat-btn {
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  .scale-dock-btn {
+    min-height: 28px !important;
+    min-width: 32px !important;
+    font-size: 11px !important;
+  }
+  .subtab-btn {
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+}

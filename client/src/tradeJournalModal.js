@@ -33,7 +33,7 @@ export class TradeJournalModal {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>${isFa ? 'ثبت معامله جدید در ژورنال' : 'Log New Trade Execution'}</span>
           </div>
-          <button id="btn-close-log-trade" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+          <button id="btn-close-log-trade" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center;" title="${isFa ? 'بستن پنجره' : 'Close modal'}" aria-label="${isFa ? 'بستن' : 'Close'}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

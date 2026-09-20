@@ -77,7 +77,7 @@ export class PropFirmSimulator {
     const isFa = getLanguage() === 'fa';
 
     this.container.innerHTML = `
-      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Top Parameter Bar -->
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--bg-darkest); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
           <div style="display: flex; flex-direction: column; gap: 4px;">

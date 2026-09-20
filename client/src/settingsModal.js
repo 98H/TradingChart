@@ -50,7 +50,7 @@ export class SettingsModal {
     const isFa = getLanguage() === 'fa';
 
     this.modalEl.innerHTML = `
-      <div class="modal-box settings-modal-box" style="width: 580px; max-height: 90vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div class="modal-box settings-modal-box" style="width: 580px; max-height: 90vh; display: flex; flex-direction: column; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Header -->
         <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-darkest); ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -281,10 +281,11 @@ export class SettingsModal {
       if (tz) this.settings.timezone = tz.value;
       if (grid) this.settings.gridLines = grid.value;
       if (theme) this.settings.theme = theme.value;
-      if (lang) this.settings.language = lang.value;
-      if (snd) this.settings.soundEffects = snd.checked;
-      if (cfm) this.settings.orderConfirm = cfm.checked;
-      if (cd) this.settings.countdownEnabled = cd.checked;
+      if (lang) {
+        this.settings.language = lang.value;
+      } else {
+        this.settings.language = getLanguage();
+      }
 
       localStorage.setItem('tradingchart_user_settings', JSON.stringify(this.settings));
       this.onApplySettings(this.settings);

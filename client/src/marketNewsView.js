@@ -62,13 +62,13 @@ export class MarketNewsView {
           </div>
 
           <!-- Category Filter Pills -->
-          <div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px;">
-            <button class="news-cat-btn active" data-cat="all" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff; cursor: pointer;">${isFa ? 'همه' : 'All'}</button>
-            <button class="news-cat-btn" data-cat="crypto" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'ارز دیجیتال' : 'Crypto'}</button>
-            <button class="news-cat-btn" data-cat="metals" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فلزات' : 'Metals'}</button>
-            <button class="news-cat-btn" data-cat="forex" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فارکس' : 'Forex'}</button>
-            <button class="news-cat-btn" data-cat="equities" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'سهام' : 'Equities'}</button>
-            <button class="news-cat-btn" data-cat="commodities" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'کالاها' : 'Commodities'}</button>
+          <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
+            <button class="news-cat-btn active" data-cat="all" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff; cursor: pointer;">${isFa ? 'همه' : 'All'}</button>
+            <button class="news-cat-btn" data-cat="crypto" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'ارز دیجیتال' : 'Crypto'}</button>
+            <button class="news-cat-btn" data-cat="metals" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فلزات' : 'Metals'}</button>
+            <button class="news-cat-btn" data-cat="forex" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فارکس' : 'Forex'}</button>
+            <button class="news-cat-btn" data-cat="equities" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'سهام' : 'Equities'}</button>
+            <button class="news-cat-btn" data-cat="commodities" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'کالاها' : 'Commodities'}</button>
           </div>
 
           <!-- Quick Search Filter -->
@@ -87,6 +87,9 @@ export class MarketNewsView {
     this.bindEvents();
     this.updateNewsList();
   }
+
+  /** Re-render the news list so language switches apply immediately. */
+  renderLocalized() { this.render(); }
 
   bindEvents() {
     // Category pills
@@ -157,7 +160,7 @@ export class MarketNewsView {
         <div class="news-feed-card" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.15s ease;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <button class="news-sym-pill num-ltr" data-symbol="${item.symbol}" title="${isFa ? 'مشاهده چارت' : 'Switch Chart'}" style="background: rgba(0,242,176,0.12); color: var(--accent-green); border: 1px solid rgba(0,242,176,0.25); border-radius: 3px; font-weight: 800; font-size: 10px; padding: 1px 5px; cursor: pointer;">
+              <button class="news-sym-pill num-ltr" data-symbol="${item.symbol}" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Switch Chart to ' + item.symbol}" aria-label="Switch Chart to ${item.symbol}" style="background: rgba(0,242,176,0.12); color: var(--accent-green); border: 1px solid rgba(0,242,176,0.25); border-radius: 4px; font-weight: 800; font-size: 11px; min-height: 24px; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center;">
                 ${item.symbol}
               </button>
               <span style="font-size: 10px; color: var(--text-dim);">${item.source}</span>

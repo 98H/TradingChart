@@ -32,6 +32,10 @@ export class UniversalMarketProvider {
     this.ws = null;
     this.subscribers = new Map(); // ticker -> Set<{ timeframe, onBar, currentBar }>
     this.lastBarsCache = new Map(); // `${ticker}_${timeframe}` -> Bar
+    // Last known-good full series per symbol/timeframe. During a data outage the
+    // indicator engine must never receive an empty series (PineTS scripts read
+    // bar.openTime and would throw), so we replay the last valid series instead.
+    this.seriesCache = new Map(); // `${ticker}_${timeframe}` -> Bar[]
     this.initWebSocket();
   }
 
@@ -128,26 +132,41 @@ export class UniversalMarketProvider {
       const res = await fetch(`/api/candles?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const bars = (data.candles || []).map(b => ({
-        time: Number(b.time),
-        open: Number(b.open),
-        high: Number(b.high),
-        low: Number(b.low),
-        close: Number(b.close),
-        volume: Number(b.volume || 0)
-      }));
+      const raw = Array.isArray(data.candles) ? data.candles : [];
+      // Ignore malformed bars that would break the indicator engine downstream.
+      const bars = raw
+        .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
+        .map(b => ({
+          time: Number(b.time),
+          open: Number(b.open),
+          high: Number(b.high),
+          low: Number(b.low),
+          close: Number(b.close),
+          volume: Number(b.volume || 0)
+        }));
 
-      if (bars.length > 0) {
-        const last = bars[bars.length - 1];
-        const cacheKey = `${clean}_${timeframe}`;
-        this.lastBarsCache.set(cacheKey, { ...last });
+      const cacheKey = `${clean}_${timeframe}`;
 
-        const subs = this.subscribers.get(clean);
-        if (subs) {
-          for (const sub of subs) {
-            if (String(sub.timeframe) === String(timeframe)) {
-              sub.currentBar = { ...last };
-            }
+      if (bars.length === 0) {
+        // Data outage: serve the last known-good series rather than nothing.
+        const lastGood = this.seriesCache.get(cacheKey);
+        if (lastGood && lastGood.length) {
+          console.warn(`[UniversalProvider] Empty payload for ${clean} ${timeframe} — serving last known-good series`);
+          return lastGood.map(b => ({ ...b }));
+        }
+        return [];
+      }
+
+      this.seriesCache.set(cacheKey, bars.map(b => ({ ...b })));
+
+      const last = bars[bars.length - 1];
+      this.lastBarsCache.set(cacheKey, { ...last });
+
+      const subs = this.subscribers.get(clean);
+      if (subs) {
+        for (const sub of subs) {
+          if (String(sub.timeframe) === String(timeframe)) {
+            sub.currentBar = { ...last };
           }
         }
       }
@@ -155,6 +174,10 @@ export class UniversalMarketProvider {
       return bars;
     } catch (e) {
       console.warn(`[UniversalProvider] Error fetching ${ticker} ${timeframe}:`, e.message);
+      // Network failure: degrade to the last known-good series instead of empty.
+      const cacheKey = `${clean}_${timeframe}`;
+      const lastGood = this.seriesCache.get(cacheKey);
+      if (lastGood && lastGood.length) return lastGood.map(b => ({ ...b }));
       return [];
     }
   }

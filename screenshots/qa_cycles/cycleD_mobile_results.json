@@ -1,0 +1,76 @@
+{
+ "suite": "cycleD_mobile",
+ "ts": "2026-09-20T08:17:53.569Z",
+ "results": [
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D01_alerts_create_and_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D02_drawing_tools_all_activate",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D03_compare_add_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D04_watchlist_add_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D05_utility_modals_open",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D06_accessibility_labels",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D07_invalid_symbol_input",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D08_rapid_interaction_stress",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D09_tablet_breakpoint_fit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_mobile",
+   "viewport": "mobile",
+   "test": "D10_long_text_no_clip",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

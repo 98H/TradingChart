@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-09-19T06:04:41.417Z",
+  "issues": [
+    {
+      "category": "PaperTrading",
+      "title": "Order Placement",
+      "detail": "Position card not rendered after buy click",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "Runtime",
+      "title": "Uncaught Fatal Exception",
+      "detail": "ProtocolError: Protocol error (Runtime.callFunctionOn): Argument should belong to the same JavaScript world as target object\n    at <instance_members_initializer> (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/common/CallbackRegistry.js:103:14)\n    at new Callback (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/common/CallbackRegistry.js:107:16)\n    at CallbackRegistry.create (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/common/CallbackRegistry.js:25:26)\n    at Connection._rawSend (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Connection.js:108:26)\n    at CdpCDPSession.send (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/CdpSession.js:74:33)\n    at #evaluate (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/ExecutionContext.js:363:50)\n    at ExecutionContext.evaluate (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/ExecutionContext.js:277:36)\n    at IsolatedWorld.evaluate (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/IsolatedWorld.js:105:30)\n    at CdpJSHandle.evaluate (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/api/JSHandle.js:149:37)\n    at CdpElementHandle.evaluate (/root/TradingChart/node_modules/puppeteer-core/lib/cjs/puppeteer/api/ElementHandle.js:347:38)",
+      "severity": "CRITICAL"
+    }
+  ],
+  "findings": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

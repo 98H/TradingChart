@@ -84,12 +84,12 @@ export class EconomicCalendarView {
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 14px;">${nextUpcoming.flag}</span>
               <div>
-                <div style="font-size: 11px; font-weight: 700; color: #fff;">${isFa ? nextUpcoming.eventFa : nextUpcoming.event}</div>
-                <div style="font-size: 10px; color: var(--text-dim);">${nextUpcoming.date} &nbsp;·&nbsp; Prev: ${nextUpcoming.previous} &nbsp;·&nbsp; Exp: ${nextUpcoming.forecast}</div>
+                <div style="font-size: 11px; font-weight: 700; color: #fff;">${isFa ? (nextUpcoming.eventFa || nextUpcoming.event) : nextUpcoming.event}</div>
+                <div style="font-size: 10px; color: var(--text-dim);">${nextUpcoming.date} &nbsp;·&nbsp; ${isFa ? 'قبلی:' : 'Prev:'} ${nextUpcoming.previous} &nbsp;·&nbsp; ${isFa ? 'پیش‌بینی:' : 'Exp:'} ${nextUpcoming.forecast}</div>
               </div>
             </div>
             <span class="badge-high-impact" style="font-size: 9px; font-weight: 800; background: rgba(255, 77, 91, 0.2); color: var(--accent-red); padding: 2px 6px; border-radius: 3px;">
-              ${nextUpcoming.impact}
+              ${isFa ? (nextUpcoming.impact === 'HIGH' ? 'اثر شدید' : nextUpcoming.impact === 'MED' ? 'متوسط' : 'کم') : nextUpcoming.impact}
             </span>
           </div>
         ` : ''}
@@ -97,7 +97,7 @@ export class EconomicCalendarView {
         <!-- Events List Container -->
         <div style="flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">
           ${this.isLoading ? `
-            <div style="text-align: center; padding: 30px 0; color: var(--text-dim); font-size: 12px;">Loading Economic Calendar...</div>
+            <div style="text-align: center; padding: 30px 0; color: var(--text-dim); font-size: 12px;">${isFa ? 'در حال دریافت تقویم اقتصادی...' : 'Loading Economic Calendar...'}</div>
           ` : filtered.length === 0 ? `
             <div style="text-align: center; padding: 30px 0; color: var(--text-dim); font-size: 12px;">${isFa ? 'هیچ رویدادی مطابق با فیلتر یافت نشد' : 'No economic events match the current filter'}</div>
           ` : filtered.map(e => {
@@ -115,7 +115,7 @@ export class EconomicCalendarView {
                     <span style="font-size: 10px; color: var(--text-dim); font-family: monospace;">${e.date.split(' ')[1]}</span>
                   </div>
                   <span style="font-size: 9px; font-weight: 800; color: ${impactColor}; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px;">
-                    ${e.impact}
+                    ${isFa ? (isHigh ? 'بالا' : isMed ? 'متوسط' : 'پایین') : e.impact}
                   </span>
                 </div>
 

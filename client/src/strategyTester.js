@@ -24,7 +24,7 @@ export class StrategyTester {
     if (!this.container) return;
     const isFa = getLanguage() === 'fa';
     this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); flex-direction: column; gap: 12px; padding: 24px; text-align: center; ${isFa ? 'direction: rtl; font-family: var(--font-persian), sans-serif;' : 'direction: ltr;'}">
+      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); flex-direction: column; gap: 12px; padding: 24px; text-align: center; ${isFa ? 'direction: rtl; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr;'}">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-cyan);"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 21v-4"/></svg>
         <div style="font-size: 14px; font-weight: 700; color: #fff;">${isFa ? 'هنوز نتیجه بک‌تستی برای استراتژی ثبت نشده است' : 'No Strategy Backtest Results Yet'}</div>
         <div style="font-size: 12px; max-width: 440px; color: var(--text-muted); line-height: 1.5;">${isFa ? 'تب ویرایشگر پاین را باز کنید، یک قالب استراتژی (مانند استراتژی بازتعادل شنون) را انتخاب کرده و روی دکمه «بک‌تست استراتژی» کلیک کنید.' : 'Open the Pine Editor tab, select a strategy template (like Shannon Rebalance Strategy), and click <b>\'Backtest Strategy\'</b>.'}</div>
@@ -174,7 +174,7 @@ export class StrategyTester {
     const linePath = pts.length > 1 ? `M ${pts.join(' L ')}` : '';
 
     this.container.innerHTML = `
-      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-persian), sans-serif;' : 'direction: ltr; text-align: left;'}">
+      <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
         <!-- Key Metrics Strip -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 12px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle);">
           <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
@@ -200,10 +200,10 @@ export class StrategyTester {
             <div style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
           </div>
           <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center; border: 1px solid var(--border-subtle);">
-            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%; font-weight: 700;">
+            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 10px; min-height: 28px; width: 100%; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'انتقال نتایج به شبیه‌ساز پراپ' : 'Export results to Prop-Sim'}" aria-label="Export to Prop-Sim">
               ${isFa ? 'انتقال به شبیه‌ساز پراپ →' : 'Export to Prop-Sim →'}
             </button>
-            <button id="btn-export-csv" class="btn-secondary" style="font-size: 10px; padding: 3px 6px; width: 100%;">
+            <button id="btn-export-csv" class="btn-secondary" style="font-size: 11px; padding: 5px 10px; min-height: 26px; width: 100%; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'دانلود دفتر کل معاملات به صورت CSV' : 'Download CSV Ledger'}" aria-label="Download CSV Ledger">
               ${isFa ? 'دریافت دفتر کل CSV' : 'Download CSV Ledger'}
             </button>
           </div>

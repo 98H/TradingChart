@@ -32,20 +32,20 @@ export class MarketTrackersView {
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow: hidden;">
         <!-- Subtabs -->
-        <div style="height: 36px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 4px; padding: 0 12px;">
-          <button class="subtab-btn ${this.activeSubTab === 'congress' ? 'active' : ''}" data-sub="congress" style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: ${this.activeSubTab === 'congress' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; cursor: pointer; border-radius: 4px;">
+        <div class="trackers-subtabs" style="min-height: 36px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 4px; padding: 0 12px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none;">
+          <button class="subtab-btn ${this.activeSubTab === 'congress' ? 'active' : ''}" data-sub="congress" style="background: transparent; border: none; font-size: 11px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; color: ${this.activeSubTab === 'congress' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px;" aria-label="Congressional Stock Trades">
             ${isFa ? 'معاملات نمایندگان کنگره آمریکا' : 'Congressional Stock Trades'}
           </button>
-          <button class="subtab-btn ${this.activeSubTab === 'insider' ? 'active' : ''}" data-sub="insider" style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: ${this.activeSubTab === 'insider' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; cursor: pointer; border-radius: 4px;">
+          <button class="subtab-btn ${this.activeSubTab === 'insider' ? 'active' : ''}" data-sub="insider" style="background: transparent; border: none; font-size: 11px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; color: ${this.activeSubTab === 'insider' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px;" aria-label="SEC Form 4 Insider Trades">
             ${isFa ? 'معاملات مدیران ارشد (Form 4)' : 'SEC Form 4 Insider Trades'}
           </button>
-          <button class="subtab-btn ${this.activeSubTab === '13f' ? 'active' : ''}" data-sub="13f" style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: ${this.activeSubTab === '13f' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; cursor: pointer; border-radius: 4px;">
+          <button class="subtab-btn ${this.activeSubTab === '13f' ? 'active' : ''}" data-sub="13f" style="background: transparent; border: none; font-size: 11px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; color: ${this.activeSubTab === '13f' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px;" aria-label="Hedge Fund 13F Portfolios">
             ${isFa ? 'پرتفوی صندوق‌های تامینی (13F)' : 'Hedge Fund 13F Portfolios'}
           </button>
-          <button class="subtab-btn ${this.activeSubTab === 'short_vol' ? 'active' : ''}" data-sub="short_vol" style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: ${this.activeSubTab === 'short_vol' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; cursor: pointer; border-radius: 4px;">
+          <button class="subtab-btn ${this.activeSubTab === 'short_vol' ? 'active' : ''}" data-sub="short_vol" style="background: transparent; border: none; font-size: 11px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; color: ${this.activeSubTab === 'short_vol' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 4px 10px; min-height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px;" aria-label="FINRA Short Sale Volume">
             ${isFa ? 'حجم معاملات شورت FINRA' : 'FINRA Short Sale Volume'}
           </button>
-          <input type="text" id="tracker-filter-input" placeholder="${isFa ? 'جستجوی نماد یا نام شخص...' : 'Search ticker or name...'}" style="margin-inline-start: auto; height: 26px; padding: 2px 8px; font-size: 11px; width: 180px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff;" />
+          <input type="text" id="tracker-filter-input" placeholder="${isFa ? 'جستجوی نماد یا نام شخص...' : 'Search ticker or name...'}" style="margin-inline-start: auto; height: 26px; padding: 2px 8px; font-size: 11px; width: min(180px, 42vw); flex: 0 1 auto; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff;" />
         </div>
 
         <!-- Body Area -->
@@ -75,6 +75,10 @@ export class MarketTrackersView {
         this.updateContent();
       });
     });
+
+    if (this.data) {
+      this.updateContent();
+    }
   }
 
   updateContent() {

@@ -1,0 +1,76 @@
+{
+ "suite": "cycleD_desktop",
+ "ts": "2026-09-20T08:14:51.340Z",
+ "results": [
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D01_alerts_create_and_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D02_drawing_tools_all_activate",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D03_compare_add_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D04_watchlist_add_remove",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D05_utility_modals_open",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D06_accessibility_labels",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D07_invalid_symbol_input",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D08_rapid_interaction_stress",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D09_tablet_breakpoint_fit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleD_desktop",
+   "viewport": "desktop",
+   "test": "D10_long_text_no_clip",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

@@ -2,6 +2,7 @@
 // In-browser Pine Script v5/v6 IDE & execution studio powered by pinets
 
 import { Indicator } from 'pinets';
+import { getLanguage, t } from './i18n.js';
 
 export const PINE_TEMPLATES = {
   smc_pro: {
@@ -125,35 +126,36 @@ export class PineStudio {
 
   render() {
     if (!this.container) return;
+    const isFa = getLanguage() === 'fa';
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; direction: ltr !important;">
         <!-- Top Toolbar -->
-        <div style="height: 38px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; direction: ltr !important;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <select id="pine-template-select" style="padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 4px;">
-              <option value="smc_pro">Nexus SMC Pro (Order Blocks & BOS)</option>
-              <option value="supertrend">Supertrend Multi-ATR</option>
-              <option value="rsi_divergence">RSI Momentum Oscillator</option>
-              <option value="ma_cross">EMA Triple Ribbon (20/50/200)</option>
-              <option value="rebalance_shannon">Shannon Rebalance Strategy</option>
+        <div class="pine-top-toolbar" style="min-height: 38px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 12px; direction: ltr !important;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0;">
+            <select id="pine-template-select" style="max-width: 100%; padding: 4px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 4px;">
+              <option value="smc_pro">${isFa ? 'اردربلاک و ساختار مارکت (SMC Pro)' : 'Nexus SMC Pro (Order Blocks & BOS)'}</option>
+              <option value="supertrend">${isFa ? 'سوپرترند چندگانه (Supertrend Multi-ATR)' : 'Supertrend Multi-ATR'}</option>
+              <option value="rsi_divergence">${isFa ? 'اسیلاتور واگرایی (RSI Momentum)' : 'RSI Momentum Oscillator'}</option>
+              <option value="ma_cross">${isFa ? 'روبان میانگین متحرک (EMA Triple 20/50/200)' : 'EMA Triple Ribbon (20/50/200)'}</option>
+              <option value="rebalance_shannon">${isFa ? 'استراتژی بازتعادل شنون (Shannon Rebalance)' : 'Shannon Rebalance Strategy'}</option>
             </select>
-            <button id="btn-pine-new" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">New</button>
-            <button id="btn-pine-save" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">Save</button>
+            <button id="btn-pine-new" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">${isFa ? 'کد جدید' : 'New'}</button>
+            <button id="btn-pine-save" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">${isFa ? 'ذخیره' : 'Save'}</button>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button id="btn-pine-compile" class="btn-primary" style="padding: 4px 12px; font-size: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button id="btn-pine-compile" class="btn-primary" style="padding: 4px 12px; font-size: 12px; white-space: nowrap;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              Add to Chart
+              ${isFa ? 'افزودن به چارت' : 'Add to Chart'}
             </button>
-            <button id="btn-pine-backtest" class="btn-secondary" style="padding: 4px 12px; font-size: 12px; border-color: var(--accent-gold); color: var(--accent-gold);">
+            <button id="btn-pine-backtest" class="btn-secondary" style="padding: 4px 12px; font-size: 12px; white-space: nowrap; border-color: var(--accent-gold); color: var(--accent-gold);">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Backtest Strategy
+              ${isFa ? 'بک‌تست استراتژی' : 'Backtest Strategy'}
             </button>
           </div>
         </div>
 
         <!-- Split View: Editor + Line Numbers + Diagnostics -->
-        <div style="flex: 1; display: flex; overflow: hidden; direction: ltr !important;">
+        <div class="pine-split-view" style="flex: 1; display: flex; overflow: hidden; direction: ltr !important; min-height: 0;">
           <!-- Line Numbers Gutter -->
           <div id="pine-line-gutter" class="pine-line-gutter line-gutter" style="width: 42px; background: #06080d; color: #475569; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; text-align: right; padding: 12px 6px 12px 0; user-select: none; border-right: 1px solid var(--border-subtle); overflow: hidden;">
             1

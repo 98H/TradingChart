@@ -1,0 +1,1427 @@
+{
+ "suite": "cycleE",
+ "ts": "2026-09-20T05:48:44.227Z",
+ "results": [
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E01_initial_health_and_surfaces",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E02_roam_top_toolbars",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 209,
+     "clientW": 186,
+     "text": "Live quotes, multi-asset search, categories"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 205,
+     "clientW": 186,
+     "text": "Virtual execution, market/limit orders, P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 220,
+     "clientW": 186,
+     "text": "PineTS backtest engine, Sharpe, drawdowns"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 216,
+     "clientW": 186,
+     "text": "Monthly P&L calendar, edge score, analytics"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 243,
+     "clientW": 186,
+     "text": "Congressional trades, Insiders, 13F Hedge Fun"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 226,
+     "clientW": 186,
+     "text": "FOMC, CPI, NFP, GDP, Central Bank releases"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 207,
+     "clientW": 186,
+     "text": "Live multi-asset RSI, SMA crosses, ratings"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 198,
+     "clientW": 186,
+     "text": "Level-2 order book ladder & 1-click limits"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 218,
+     "clientW": 186,
+     "text": "Multi-symbol return % overlay & benchmarks"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 237,
+     "clientW": 186,
+     "text": "Breaking headlines, sentiment & macro catalys"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 246,
+     "clientW": 186,
+     "text": "Real-time cursor OHLC, volume & indicator val"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 234,
+     "clientW": 186,
+     "text": "Candles, Bars, Heikin Ashi, Line, Area, Basel"
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 246,
+     "clientW": 186,
+     "text": "Historical rewind, step execution & strategy "
+    },
+    {
+     "severity": "medium",
+     "area": "E02:Panels",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 253,
+     "clientW": 186,
+     "text": "Download historical candles in CSV or JSON fo"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E03_roam_left_right_rails",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E04_timeframe_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "1m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "5m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "15m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "30m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "45m"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "4h"
+    },
+    {
+     "severity": "low",
+     "area": "E04-tf",
+     "kind": "tf-missing",
+     "text": "1W"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E05_symbol_switch_and_invalid",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E05-symbol",
+     "kind": "no-switch",
+     "text": "TradingChart — Powered by LuxAlgo Open Ecosystem|کوانت\nدفترچه جامع معاملات\n+ پنل‌ها\nکندل‌ا"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E06_fa_full_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E06-fa:کوانت",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LuxAlgo - Signals & Overlays"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 214,
+     "clientW": 186,
+     "text": "نرخ لحظه‌ای، جستجوی چندبازاره و دسته‌بندی‌ها"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 289,
+     "clientW": 186,
+     "text": "اجرای سفارش‌های مارکت و لیمیت، مدیریت مارجین "
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 217,
+     "clientW": 186,
+     "text": "تریگرهای تقاطع قیمت و ارسال سیگنال وب‌هوک"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 247,
+     "clientW": 186,
+     "text": "محیط توسعه IDE پاین نسخه ۵ و ۶ همراه کامپایلر"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 268,
+     "clientW": 186,
+     "text": "موتور شبیه‌سازی پاین، محاسبه نسبت شارپ و افت "
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 236,
+     "clientW": 186,
+     "text": "۱۰،۰۰۰ مسیر شبیه‌سازی مونت‌کارلو و احتمال قبو"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 244,
+     "clientW": 186,
+     "text": "تقویم حرارتی سود/زیان، امتیاز مهارت و تحلیل ع"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 247,
+     "clientW": 186,
+     "text": "معاملات نمایندگان کنگره، اینسایدرها و صندوق‌ه"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 269,
+     "clientW": 186,
+     "text": "رویدادهای ماکرو، FOMC، تورم و تصمیمات بانک‌ها"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 250,
+     "clientW": 186,
+     "text": "پایش لایو اندیکاتورها، RSI، تقاطع میانگین‌ها "
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 250,
+     "clientW": 186,
+     "text": "دفتر سفارشات لول ۲، اسپرد لایو و اردر لیمیت ی"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 200,
+     "clientW": 186,
+     "text": "مقایسه همبستگی و بازدهی درصدی چند نماد"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 263,
+     "clientW": 186,
+     "text": "اعمال با یک کلیک ستاپ‌های تحلیل تکنیکال و اسم"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 201,
+     "clientW": 186,
+     "text": "گرید چندچارته و کلیدهای همگام‌سازی ابزارها"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 244,
+     "clientW": 186,
+     "text": "سرخط اخبار فوری، شاخص سنتیمنت و متغیرهای کلان"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 223,
+     "clientW": 186,
+     "text": "مدیریت و پنهان‌سازی ترسیم‌ها و لایه‌های اندیک"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 240,
+     "clientW": 186,
+     "text": "مقادیر دقیق OHLCV و اندیکاتورها در نقطه کراس‌"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 217,
+     "clientW": 186,
+     "text": "کندل‌استیک، میله‌ای، هیکن‌آشی، خطی و ناحیه‌ای"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 225,
+     "clientW": 186,
+     "text": "برگشت به گذشته، تست سناریو و اجرای گام‌به‌گام"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 219,
+     "clientW": 186,
+     "text": "دریافت داده‌های OHLCV در قالب CSV و JSON"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "overlap",
+     "a": "پایش بازار (SEC)",
+     "b": "قالب‌های منتخب اندیکاتور\n"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "overlap",
+     "a": "تقویم اقتصادی",
+     "b": "فضاهای کاری و چیدمان (Wor"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:+ پنل‌ها",
+     "kind": "overlap",
+     "a": "دیده‌بان تکنیکال",
+     "b": "فضاهای کاری و چیدمان (Wor"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:مقایسه",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "BNB"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:مقایسه",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "US Dollar Index"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:ذخیره",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "✓ EXECUTED"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:ذخیره",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "tradingchart-toast",
+     "text": "LAYOUT 1 1x1 Single Chart @ MARKET"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:خروجی",
+     "kind": "overlap",
+     "a": "میز ژورنال معاملات",
+     "b": "دریافت پرونده خروجی (Down"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:خروجی",
+     "kind": "overlap",
+     "a": "پایش بازار (SEC)",
+     "b": "دریافت پرونده خروجی (Down"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:خروجی",
+     "kind": "overlap",
+     "a": "تقویم اقتصادی",
+     "b": "دریافت پرونده خروجی (Down"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:خروجی",
+     "kind": "overlap",
+     "a": "دیده‌بان تکنیکال",
+     "b": "دریافت پرونده خروجی (Down"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Ctrl+K"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+T"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+H"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+V"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+F"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+B"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+P"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+C"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+E"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+R"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+I"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Ctrl"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Ctrl+Z"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Ctrl+Y"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Alt+S"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "KBD",
+     "cls": "",
+     "text": "Shift+F"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:Keyboard Shortcuts (?)",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "TradingView Parity"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-compare-label",
+     "text": "Compare"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "active-layout-name",
+     "text": "1x1 Single Chart"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "layout-save-label",
+     "text": "Save"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-replay-label",
+     "text": "Replay"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "topbar-export-label",
+     "text": "Export"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Monthly Realized P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Win Rate"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Edge Score v2"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "P&L Heatmap (September 2026)"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "BUTTON",
+     "cls": "btn-primary",
+     "text": "+ Log Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Sun"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Mon"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Tue"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Wed"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Thu"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Fri"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Sat"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Weekday Attribution Breakdown"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Mon"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Tue"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Wed"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Thu"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "",
+     "text": "Fri"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "FIFO Accounting"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 1"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 2"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "SHORT"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 3"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Net P&L"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "LONG"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Sep 4"
+    },
+    {
+     "severity": "medium",
+     "area": "E06-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Entry → Exit"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E07_responsive_widths",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E07-w800",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "app-container",
+     "cls": "",
+     "scrollW": 1152,
+     "clientW": 800,
+     "text": "Quant Journal Workspace Panels Candles Compar"
+    },
+    {
+     "severity": "medium",
+     "area": "E07-w800",
+     "kind": "inner-clip",
+     "tag": "HEADER",
+     "id": "top-app-header",
+     "cls": "",
+     "scrollW": 1152,
+     "clientW": 800,
+     "text": "Quant Journal Workspace Panels Candles Compar"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "desktop",
+   "test": "E08_keyboard_and_focus",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "mobile",
+   "test": "E09_mobile_init",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "mobile",
+   "test": "E10_mobile_dock_and_sheets",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "mobile",
+   "test": "E11_mobile_fa_sweep",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E11-fa-init",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa-init",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:کوانت",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:کوانت",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 289,
+     "clientW": 247,
+     "text": "اجرای سفارش‌های مارکت و لیمیت، مدیریت مارجین "
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 268,
+     "clientW": 247,
+     "text": "موتور شبیه‌سازی پاین، محاسبه نسبت شارپ و افت "
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 269,
+     "clientW": 247,
+     "text": "رویدادهای ماکرو، FOMC، تورم و تصمیمات بانک‌ها"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "panel-item-desc",
+     "scrollW": 263,
+     "clientW": 247,
+     "text": "اعمال با یک کلیک ستاپ‌های تحلیل تکنیکال و اسم"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:+ پنل‌ها",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:Sound Muted",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:Sound Muted",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:Toggle Fullscreen",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:Toggle Fullscreen",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:FA / EN",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast",
+     "text": "Timezone: America/New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "New_York"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:%",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast visible",
+     "text": "Percent scale: OFF"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "nav-label-panels",
+     "text": "Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "qt-pill-label",
+     "text": "Trade"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "vela-sl-meta",
+     "text": "· UNIVERSAL · 1h"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Auto"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Log"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "",
+     "text": "Inv"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "SPAN",
+     "cls": "scale-tz-label",
+     "text": "THR"
+    },
+    {
+     "severity": "medium",
+     "area": "E11-fa:New_York",
+     "kind": "untranslated",
+     "tag": "DIV",
+     "cls": "app-floating-toast visible",
+     "text": "Timezone: Asia/Tehran"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "mobile",
+   "test": "E12_mobile_landscape_and_320",
+   "status": "fail",
+   "defects": [
+    {
+     "severity": "medium",
+     "area": "E12-320",
+     "kind": "inner-clip",
+     "tag": "DIV",
+     "id": "",
+     "cls": "top-nav-left",
+     "scrollW": 150,
+     "clientW": 92,
+     "text": "Quant Panels"
+    },
+    {
+     "severity": "medium",
+     "area": "E12-320",
+     "kind": "overlap",
+     "a": "Panels",
+     "b": "nav-icon-btn"
+    }
+   ]
+  },
+  {
+   "suite": "cycleE",
+   "viewport": "mobile",
+   "test": "E13_mobile_touch_tap_targets",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

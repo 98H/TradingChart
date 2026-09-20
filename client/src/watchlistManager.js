@@ -152,12 +152,12 @@ export class WatchlistManager {
           <!-- Color Flag Filter Pills -->
           <div style="display: flex; align-items: center; gap: 4px; padding: 2px 0;">
             <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">${isFa ? 'برچسب:' : 'Flag:'}</span>
-            <button class="wl-flag-filter-btn active" data-flag="all" style="padding: 1px 6px; font-size: 10px; border-radius: 3px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; cursor: pointer;">All</button>
-            <button class="wl-flag-filter-btn" data-flag="red" style="padding: 1px 5px; font-size: 10px; border-radius: 3px; background: rgba(246,70,93,0.2); border: 1px solid #f6465d; cursor: pointer;" title="Red Flag">🔴</button>
-            <button class="wl-flag-filter-btn" data-flag="green" style="padding: 1px 5px; font-size: 10px; border-radius: 3px; background: rgba(14,203,129,0.2); border: 1px solid #0ecb81; cursor: pointer;" title="Green Flag">🟢</button>
-            <button class="wl-flag-filter-btn" data-flag="blue" style="padding: 1px 5px; font-size: 10px; border-radius: 3px; background: rgba(56,189,248,0.2); border: 1px solid #38bdf8; cursor: pointer;" title="Blue Flag">🔵</button>
-            <button class="wl-flag-filter-btn" data-flag="yellow" style="padding: 1px 5px; font-size: 10px; border-radius: 3px; background: rgba(250,204,21,0.2); border: 1px solid #facc15; cursor: pointer;" title="Yellow Flag">🟡</button>
-            <button class="wl-flag-filter-btn" data-flag="purple" style="padding: 1px 5px; font-size: 10px; border-radius: 3px; background: rgba(192,132,252,0.2); border: 1px solid #c084fc; cursor: pointer;" title="Purple Flag">🟣</button>
+            <button class="wl-flag-filter-btn active" data-flag="all" style="padding: 2px 8px; font-size: 11px; min-height: 24px; border-radius: 4px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; cursor: pointer;">${isFa ? 'همه' : 'All'}</button>
+            <button class="wl-flag-filter-btn" data-flag="red" style="padding: 2px 6px; font-size: 11px; min-height: 24px; border-radius: 4px; background: rgba(246,70,93,0.2); border: 1px solid #f6465d; cursor: pointer;" title="Red Flag" aria-label="Red Flag">🔴</button>
+            <button class="wl-flag-filter-btn" data-flag="green" style="padding: 2px 6px; font-size: 11px; min-height: 24px; border-radius: 4px; background: rgba(14,203,129,0.2); border: 1px solid #0ecb81; cursor: pointer;" title="Green Flag" aria-label="Green Flag">🟢</button>
+            <button class="wl-flag-filter-btn" data-flag="blue" style="padding: 2px 6px; font-size: 11px; min-height: 24px; border-radius: 4px; background: rgba(56,189,248,0.2); border: 1px solid #38bdf8; cursor: pointer;" title="Blue Flag" aria-label="Blue Flag">🔵</button>
+            <button class="wl-flag-filter-btn" data-flag="yellow" style="padding: 2px 6px; font-size: 11px; min-height: 24px; border-radius: 4px; background: rgba(250,204,21,0.2); border: 1px solid #facc15; cursor: pointer;" title="Yellow Flag" aria-label="Yellow Flag">🟡</button>
+            <button class="wl-flag-filter-btn" data-flag="purple" style="padding: 2px 6px; font-size: 11px; min-height: 24px; border-radius: 4px; background: rgba(192,132,252,0.2); border: 1px solid #c084fc; cursor: pointer;" title="Purple Flag" aria-label="Purple Flag">🟣</button>
           </div>
 
           <!-- Quick Add Symbol -->
@@ -292,7 +292,7 @@ export class WatchlistManager {
       return `
         <div class="wl-item" data-symbol="${sym}" style="display: grid; grid-template-columns: 24px 1fr 1fr 1fr 20px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; cursor: pointer; transition: background 0.15s;">
           <!-- Flag Toggle Button -->
-          <button class="btn-toggle-flag" data-symbol="${sym}" title="Change Flag Tag" style="background: transparent; border: none; font-size: 11px; cursor: pointer; padding: 0; color: ${currentFlag !== 'none' ? 'inherit' : 'var(--text-dim)'}; opacity: ${currentFlag !== 'none' ? '1' : '0.4'};">
+          <button class="btn-toggle-flag" data-symbol="${sym}" title="${isFa ? 'تغییر برچسب رنگی' : 'Change Flag Tag'}" aria-label="Change flag for ${sym}" style="background: transparent; border: none; font-size: 12px; cursor: pointer; padding: 2px 4px; min-width: 22px; min-height: 22px; display: inline-flex; align-items: center; justify-content: center; color: ${currentFlag !== 'none' ? 'inherit' : 'var(--text-dim)'}; opacity: ${currentFlag !== 'none' ? '1' : '0.5'};">
             ${flagDisplay}
           </button>
 
@@ -314,7 +314,7 @@ export class WatchlistManager {
           </div>
 
           <!-- Remove Button -->
-          <button class="btn-remove-wl" data-symbol="${sym}" title="${isFa ? 'حذف نماد از دیده‌بان' : 'Remove symbol'}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0; font-size: 11px; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity 0.15s;">
+          <button class="btn-remove-wl" data-symbol="${sym}" title="${isFa ? 'حذف نماد از دیده‌بان' : 'Remove symbol'}" aria-label="Remove ${sym} from watchlist" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; min-width: 22px; min-height: 22px; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.15s;">
             ✕
           </button>
         </div>

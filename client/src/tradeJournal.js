@@ -123,7 +123,7 @@ export class TradeJournal {
             <div style="font-size: 13px; font-weight: 700; color: #fff;">${isFa ? 'تقویم حرارتی سود/زیان (سپتامبر ۲۰۲۶)' : 'P&L Heatmap (September 2026)'}</div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <span style="color: var(--accent-cyan); font-weight: 600; font-size: 11px;">${trips.length} ${isFa ? 'معامله بسته‌شده' : 'Closed Trades'}</span>
-              <button id="btn-journal-add" class="btn-primary" style="font-size: 11px; padding: 4px 10px; border-radius: 4px;">${isFa ? '+ ثبت معامله' : '+ Log Trade'}</button>
+              <button id="btn-journal-add" class="btn-primary" style="font-size: 11px; padding: 5px 12px; min-height: 28px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'ثبت معامله جدید' : 'Log new trade'}" aria-label="Log new trade">${isFa ? '+ ثبت معامله' : '+ Log Trade'}</button>
             </div>
           </div>
 

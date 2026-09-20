@@ -1,0 +1,134 @@
+{
+  "cycle": 14,
+  "timestamp": "2026-09-19T13:24:26.371Z",
+  "defects": [],
+  "validations": [
+    {
+      "category": "Core",
+      "title": "Canvas Engine",
+      "description": "Mounted 7 active canvas layers (WebGL2 Vela architecture)"
+    },
+    {
+      "category": "ChartStyle",
+      "title": "Popover Open",
+      "description": "Chart style popover rendered cleanly"
+    },
+    {
+      "category": "ChartStyle",
+      "title": "Heikin Ashi Applied",
+      "description": "Switched price series style to Heikin Ashi"
+    },
+    {
+      "category": "ChartStyle",
+      "title": "Candles Restored",
+      "description": "Switched back to standard candlesticks"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Modal Open",
+      "description": "Symbol search modal opened"
+    },
+    {
+      "category": "SymbolSearch",
+      "title": "Symbol Switched",
+      "description": "Switched chart symbol to SOLUSDT"
+    },
+    {
+      "category": "Timeframe",
+      "title": "Modal Open",
+      "description": "Timeframe manager modal opened"
+    },
+    {
+      "category": "Timeframe",
+      "title": "Timeframe Switched",
+      "description": "Successfully switched timeframe to 15m with live candles fetched"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Buy Execution",
+      "description": "Executed Quick Buy market order"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Sell Execution",
+      "description": "Executed Quick Sell market order"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Minimize Widget",
+      "description": "Minimized to trigger pill"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Restore Widget",
+      "description": "Restored from trigger pill"
+    },
+    {
+      "category": "Watchlist",
+      "title": "Add & Remove Symbol",
+      "description": "Verified addSymbol and removeSymbol functionality with custom persistence"
+    },
+    {
+      "category": "DOM",
+      "title": "Market Order Execution",
+      "description": "DOM MARKET BUY executed and opened position in Paper Trading"
+    },
+    {
+      "category": "PaperTrading",
+      "title": "Close Position & Sync",
+      "description": "Closed paper position and recorded to history & journal"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "STRATEGY Tab",
+      "description": "strategy tab mounted and active"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "PROPSIM Tab",
+      "description": "propsim tab mounted and active"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "JOURNAL Tab",
+      "description": "journal tab mounted and active"
+    },
+    {
+      "category": "BottomSuite",
+      "title": "PINE Tab",
+      "description": "pine tab mounted and active"
+    },
+    {
+      "category": "Compare",
+      "title": "Modal Open",
+      "description": "Compare & Overlay modal open"
+    },
+    {
+      "category": "i18n",
+      "title": "Persian RTL Mode",
+      "description": "Strict RTL layout, font, and Persian vocabulary active"
+    },
+    {
+      "category": "Mobile",
+      "title": "Zero Overflow",
+      "description": "Clean mobile viewport with 0px horizontal scroll"
+    },
+    {
+      "category": "Mobile",
+      "title": "Panels Menu Open",
+      "description": "Mobile panels drawer opened on touch"
+    },
+    {
+      "category": "Mobile",
+      "title": "Watchlist Panel",
+      "description": "Watchlist opened from mobile panels drawer"
+    },
+    {
+      "category": "Mobile",
+      "title": "English Mode",
+      "description": "Switched cleanly to English on mobile"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

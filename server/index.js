@@ -56,6 +56,17 @@ app.get('/api/candles', async (req, res) => {
     const toTime = req.query.to_time ? Number(req.query.to_time) : null;
 
     const candles = await getCandles(symbol, timeframe, limit, fromTime, toTime);
+    // An empty series means the instrument is unknown/unsupported — say so
+    // explicitly (404) rather than returning a silently empty 200 payload.
+    if (candles.length === 0) {
+      return res.status(404).json({
+        symbol,
+        timeframe,
+        count: 0,
+        candles: [],
+        error: `No market data available for "${symbol}"`
+      });
+    }
     res.json({
       symbol,
       timeframe,

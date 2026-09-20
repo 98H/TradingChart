@@ -1,0 +1,40 @@
+{
+  "defects": [
+    {
+      "category": "SymbolSearch",
+      "title": "Button Missing",
+      "description": "Could not locate symbol picker button",
+      "severity": "MEDIUM"
+    },
+    {
+      "category": "QuickTrade",
+      "title": "Widget Defect",
+      "description": "Quick trade widget incomplete or missing buttons",
+      "severity": "MEDIUM"
+    }
+  ],
+  "validations": [
+    {
+      "category": "Core",
+      "title": "Canvas Engine",
+      "description": "Vela WebGL2 Canvas successfully mounted"
+    },
+    {
+      "category": "Drawings",
+      "title": "Toolbar Tools",
+      "description": "9 drawing tools available"
+    },
+    {
+      "category": "Drawings",
+      "title": "Floating Favorite Toolbar",
+      "description": "Floating drawing toolbar mounted in DOM"
+    },
+    {
+      "category": "Mobile",
+      "title": "No Overflow",
+      "description": "Horizontal scrollbar eliminated on 390x844"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

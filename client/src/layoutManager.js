@@ -213,7 +213,7 @@ export class LayoutManager {
     });
     this.saveSavedLayouts();
 
-    this.app.showExecutionToast('LAYOUT', 1, this.activeLayoutName);
+    this.app.showExecutionToast(getLanguage() === 'fa' ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
 
     setTimeout(() => {
       if (label) label.innerText = isFa ? 'ذخیره' : 'Save';
@@ -300,14 +300,16 @@ export class LayoutManager {
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'modal-layout-studio';
-      modal.className = 'modal-overlay';
+      modal.className = 'modal-overlay layout-manager-menu layout-dropdown';
       document.body.appendChild(modal);
+    } else {
+      modal.classList.add('layout-manager-menu', 'layout-dropdown');
     }
 
     const isFa = getLanguage() === 'fa';
 
     modal.innerHTML = `
-      <div class="modal-box layout-studio-modal" style="max-width: 680px; width: 95vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; ${isFa ? 'font-family: var(--font-persian), sans-serif;' : ''}">
+      <div class="modal-box layout-studio-modal" style="max-width: 680px; width: 95vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; ${isFa ? 'font-family: var(--font-vazirmatn), sans-serif;' : ''}">
         <!-- Modal Header with correct RTL/LTR symmetry -->
         <div class="modal-header" style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #fff;">
