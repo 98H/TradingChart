@@ -62,7 +62,7 @@ export class DepthOfMarketView {
               <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حجم سفارش:' : 'Size:'}</span>
               <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden;">
                 <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
-                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 11px;" aria-label="Order size" />
+                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 11px; padding: 0 2px; appearance: textfield; -moz-appearance: textfield;" aria-label="Order size" />
                 <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
               </div>
             </div>

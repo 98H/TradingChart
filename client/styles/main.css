@@ -35,6 +35,43 @@
   --shadow-popup: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 1px rgba(0, 242, 176, 0.25);
 }
 
+/* Light theme — TradingView-parity day mode. Overrides the core surface tokens. */
+:root[data-theme="light"] {
+  --bg-darkest: #eef1f6;
+  --bg-canvas: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-card: #f0f3f9;
+  --bg-card-hover: #e4e9f2;
+  --border-subtle: #d3dae6;
+  --border-active: #b4c0d4;
+  --text-main: #0f1720;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --accent-cyan: #0891b2;
+  --accent-green: #059669;
+  --shadow-popup: 0 16px 40px rgba(15, 23, 32, 0.18), 0 0 1px rgba(8, 145, 178, 0.2);
+}
+:root[data-theme="light"] body { background: var(--bg-canvas); color: var(--text-main); }
+:root[data-theme="light"] #app-header, :root[data-theme="light"] .topbar, :root[data-theme="light"] header { background: var(--bg-surface) !important; color: var(--text-main) !important; }
+:root[data-theme="light"] .modal-box { background: #ffffff !important; color: var(--text-main) !important; }
+
+/* App chrome follows the theme — header, rails, panels, bottom bar. */
+:root[data-theme="light"] body,
+:root[data-theme="light"] #app,
+:root[data-theme="light"] .app-shell { background: var(--bg-canvas) !important; color: var(--text-main) !important; }
+:root[data-theme="light"] .topbar, :root[data-theme="light"] #app-header, :root[data-theme="light"] header,
+:root[data-theme="light"] .right-rail, :root[data-theme="light"] .left-rail, :root[data-theme="light"] .bottom-bar,
+:root[data-theme="light"] .status-bar, :root[data-theme="light"] .panel, :root[data-theme="light"] .panel-header,
+:root[data-theme="light"] .toolbar, :root[data-theme="light"] .drawing-toolbar { background: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-subtle) !important; }
+:root[data-theme="light"] .btn-secondary, :root[data-theme="light"] button:not(.btn-primary) { color: var(--text-main) !important; }
+:root[data-theme="light"] .vela-legend, :root[data-theme="light"] .watchlist, :root[data-theme="light"] .watchlist-row { background: var(--bg-surface) !important; color: var(--text-main) !important; }
+/* Named chrome containers + floating toolbars */
+:root[data-theme="light"] #desktop-side-rail, :root[data-theme="light"] #bottom-panel,
+:root[data-theme="light"] .panel-header-strip, :root[data-theme="light"] .fav-toolbar-inner,
+:root[data-theme="light"] .scale-dock-inner, :root[data-theme="light"] .floating-toolbar,
+:root[data-theme="light"] .quick-trade-panel, :root[data-theme="light"] #chart-quick-trade { background: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-subtle) !important; }
+:root[data-theme="light"] #desktop-side-rail *, :root[data-theme="light"] #bottom-panel *, :root[data-theme="light"] .panel-header-strip * { color: var(--text-main) !important; }
+
 html, body {
   box-sizing: border-box;
   margin: 0;
@@ -2068,6 +2105,101 @@ body.persian-mode .nav-export-btn svg {
   margin: 0 3px;
 }
 
+/* ══ Drawing Tools Library modal ══ */
+.dtl-box {
+  width: 720px;
+  max-width: 94vw;
+  height: 78vh;
+}
+.dtl-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.dtl-search {
+  flex: 1;
+  margin: 0 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  min-width: 0;
+}
+.dtl-search:focus { border-color: var(--accent-blue, #2962ff); }
+.dtl-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 18px 18px;
+  min-height: 0;
+}
+.dtl-group { margin-bottom: 16px; }
+.dtl-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dtl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 6px;
+}
+.dtl-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: start;
+  min-width: 0;
+  position: relative;
+  transition: background 0.12s, border-color 0.12s;
+}
+.dtl-tool:hover { background: rgba(255, 255, 255, 0.08); }
+.dtl-tool.active { border-color: var(--accent-blue, #2962ff); background: rgba(41, 98, 255, 0.12); }
+.dtl-icon { flex: 0 0 auto; color: var(--accent-blue, #4c9aff); display: flex; }
+.dtl-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dtl-star {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.dtl-star:hover { color: #ffd54f; }
+.dtl-star.fav { color: #ffd54f; }
+.dtl-footer {
+  padding: 9px 18px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.dtl-empty { text-align: center; color: var(--text-dim); padding: 40px 0; font-size: 13px; }
+@media (max-width: 768px) {
+  .dtl-box { width: 100vw; max-width: 100vw !important; height: 92vh; border-radius: 12px 12px 0 0; }
+  .dtl-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+  .dtl-search { margin: 0 8px; }
+}
+
 .fav-minimize-btn {
   background: transparent;
   border: none;
@@ -2211,6 +2343,9 @@ body.persian-mode .nav-export-btn svg {
   border-radius: 2px;
 }
 
+#dom-order-qty::-webkit-inner-spin-button,
+#dom-order-qty::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
 /* ══ Mobile Landscape (short height) — header must never clip tools ══ */
 /* ══ Medium-width viewports (769–1100px, tablets & small laptops, any
    orientation): compress the header so it never overflows its container.
@@ -2223,6 +2358,13 @@ body.persian-mode .nav-export-btn svg {
     gap: 4px;
   }
   .top-nav-left, .top-nav-right { flex-wrap: nowrap !important; gap: 4px; min-width: 0; }
+  .top-nav-left { overflow: hidden; }
+  /* Suite buttons are flex-shrink:0, so when the left zone is squeezed the
+     suite clips its LAST buttons (magnet / fullscreen). Hide the least
+     critical ones at this width instead of painting them clipped or letting
+     them bleed into the right-hand zone. */
+  .top-nav-layout-suite #btn-magnet,
+  .top-nav-layout-suite #btn-fullscreen { display: none !important; }
   .top-nav-layout-suite { display: flex !important; flex-wrap: nowrap !important; gap: 3px; min-width: 0; overflow: hidden; }
   /* icon-only on text-bearing topbar buttons to reclaim width */
   .top-nav-layout-suite button span:not(#topbar-chart-style-icon),
@@ -2249,6 +2391,15 @@ body.persian-mode .nav-export-btn svg {
   .nav-compare-btn span, .nav-export-btn span { display: none; }
   .latency-badge { display: none !important; }
   .vela-mobilebar { min-height: 44px !important; }
+}
+
+/* Suppress Vela duplicate native indicator dialog in favor of the unified comprehensive modal */
+[id*="vela-dialog"][data-scope="dialog"]:has(.vela-ip-searchrow),
+[id*="vela-dialog"][data-scope="dialog"]:has(.vela-ip-item),
+[id*="vela-dialog:positioner"]:has(.vela-ip-searchrow) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* ══ Very narrow phones (≤380px): the top-left nav cluster (Quant / Journal /
