@@ -2688,6 +2688,34 @@ body.persian-mode .nav-export-btn svg {
   color: #fff;
 }
 
+/* Light Theme Multi-Chart Cell Strip Adaptation */
+[data-theme="light"] #multi-chart-cell-strip {
+  background: rgba(248, 250, 252, 0.95) !important;
+  border: 1px solid rgba(0, 168, 120, 0.35) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
+}
+[data-theme="light"] .cell-strip-pill {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+[data-theme="light"] .cell-strip-pill:hover,
+[data-theme="light"] .cell-strip-pill.active {
+  background: rgba(0, 180, 130, 0.15) !important;
+  border-color: var(--accent-cyan) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .cell-strip-pill.overview-pill {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #2563eb !important;
+}
+[data-theme="light"] .cell-strip-pill.overview-pill.active {
+  background: rgba(59, 130, 246, 0.22) !important;
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+}
+
 /* Custom UI Dialog Animations */
 @keyframes dialogFadeIn {
   from { opacity: 0; transform: scale(0.96) translateY(-8px); }

@@ -641,13 +641,16 @@ export class UserProfileModal {
           if (!data || data.__tradingchart_full_backup !== true) {
             throw new Error('Invalid backup file');
           }
-          if (data.profile) {
+          if (data.profile && typeof data.profile === 'object' && !Array.isArray(data.profile)) {
             this.profile = { ...this.profile, ...data.profile };
             this.saveProfile();
           }
           if (Array.isArray(data.layouts)) {
             localStorage.setItem('tradingchart_user_layouts', JSON.stringify(data.layouts));
-            if (this.app?.layoutManager) this.app.layoutManager.savedLayouts = data.layouts;
+            if (this.app?.layoutManager) {
+              this.app.layoutManager.savedLayouts = data.layouts;
+              this.app.layoutManager.updateSavedLayoutsCount?.();
+            }
           }
           if (data.currentLayout && data.currentLayout.layoutId) {
             localStorage.setItem('tradingchart_current_layout', JSON.stringify(data.currentLayout));
@@ -664,9 +667,9 @@ export class UserProfileModal {
             localStorage.setItem('tradingchart_theme', data.theme);
             this.app?.applyStoredTheme?.();
           }
-          if (data.paperBalance && this.app?.paperTrading) {
+          if (typeof data.paperBalance === 'number' && !isNaN(data.paperBalance) && this.app?.paperTrading) {
             this.app.paperTrading.balance = data.paperBalance;
-            this.app.paperTrading.positions = data.paperPositions || [];
+            this.app.paperTrading.positions = Array.isArray(data.paperPositions) ? data.paperPositions : [];
             this.app.paperTrading.updatePositionsView();
           }
           this.app?.showToast(isFa ? 'ورک‌استیشن با موفقیت از پشتیبان بازیابی شد' : 'Workstation restored from backup', 'success');

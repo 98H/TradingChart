@@ -1470,6 +1470,7 @@ class TradingChartApp {
       const apply = (cell) => { try { cell?.chart?.setTheme?.(cellThemes); } catch (e) {} };
       if (ws?.cellsById) ws.cellsById.forEach(apply);
       else if (ws?.active) apply(ws.active);
+      this.layoutManager?.updateCellStrip?.();
     } catch (e) {}
   }
 
