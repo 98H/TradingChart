@@ -42,6 +42,11 @@ class TradingChartApp {
   constructor() {
     this.currentSymbol = 'BTCUSDT';
     this.currentTimeframe = '60';
+    try {
+      const prof = JSON.parse(localStorage.getItem('tradingchart_user_profile') || '{}');
+      if (prof.defaultAsset) this.currentSymbol = prof.defaultAsset.replace(/^.*:/, '').toUpperCase();
+      if (prof.defaultTimeframe) this.currentTimeframe = String(prof.defaultTimeframe);
+    } catch (e) {}
     this.activeBars = [];
     this.activeWorkspaceView = 'quant'; // 'quant' or 'journal'
     this.chartManager = null;

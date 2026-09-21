@@ -635,7 +635,7 @@ export class LayoutManager {
               <span style="font-size: 11px; color: var(--accent-cyan); font-weight: 600;">${isFa ? 'پشتیبانی تا ۸ چارت همزمان' : 'Up to 8 Charts'}</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+            <div class="layout-preset-grid-responsive">
               ${DEFAULT_LAYOUT_PRESETS.map(preset => {
                 const isActive = preset.layoutId === this.activeLayoutId;
                 return `
@@ -666,7 +666,7 @@ export class LayoutManager {
               ${isFa ? 'تعیین کنید چه ویژگی‌هایی میان پنجره‌های چارت همگام باشند (تغییر نماد، تایم‌فریم، ماوس، محدوده زوم، ابزارهای رسم و استایل):' : 'Configure which parameters mirror across all chart panes in the active multi-grid:'}
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
+            <div class="layout-sync-grid-responsive">
               ${[
                 { key: 'symbol', labelEn: 'Symbol', labelFa: 'نماد دارایی' },
                 { key: 'timeframe', labelEn: 'Interval', labelFa: 'تایم‌فریم' },
@@ -705,16 +705,18 @@ export class LayoutManager {
               <input type="text" id="layout-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجو در نام و مشخصات چیدمان‌ها...' : 'Search layouts by name...'}" style="width: 100%; box-sizing: border-box; padding: 6px 12px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; outline: none;" />
             </div>
 
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <div class="layout-save-action-row">
               <input type="text" id="new-layout-name-input" value="${isFa ? (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId)?.nameFa || this.activeLayoutName) : (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId)?.nameEn || this.activeLayoutName)}" placeholder="${isFa ? 'نام چیدمان جدید...' : 'New Layout Name...'}" style="flex: 1; padding: 6px 12px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;" />
-              <button id="btn-save-as-new-layout" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 14px; font-size: 12px; white-space: nowrap; cursor: pointer;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                <span>${isFa ? 'ذخیره چیدمان جاری' : 'Save Current'}</span>
-              </button>
-              <button id="btn-import-layout" class="btn-secondary" title="${isFa ? 'ورود چیدمان از فایل JSON' : 'Import layout JSON'}" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; cursor: pointer;">
-                ⤒ ${isFa ? 'ورود' : 'Import'}
-              </button>
-              <input type="file" id="import-layout-file" accept=".json,application/json" style="display:none;" />
+              <div class="layout-save-btn-group">
+                <button id="btn-save-as-new-layout" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 14px; font-size: 12px; white-space: nowrap; cursor: pointer;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  <span>${isFa ? 'ذخیره چیدمان جاری' : 'Save Current'}</span>
+                </button>
+                <button id="btn-import-layout" class="btn-secondary" title="${isFa ? 'ورود چیدمان از فایل JSON' : 'Import layout JSON'}" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; cursor: pointer;">
+                  ⤒ ${isFa ? 'ورود' : 'Import'}
+                </button>
+                <input type="file" id="import-layout-file" accept=".json,application/json" style="display:none;" />
+              </div>
             </div>
 
             <div class="saved-layouts-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">
@@ -904,23 +906,23 @@ export class LayoutManager {
     return filteredLayouts.map(l => {
       const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
       return `
-      <div style="display: flex; justify-content: space-between; align-items: center; background: ${isCurrent ? 'rgba(0, 242, 176, 0.05)' : 'var(--bg-surface)'}; border: 1px solid ${isCurrent ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 6px; padding: 8px 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px;">
+      <div class="saved-layout-card ${isCurrent ? 'active' : ''}">
+        <div class="saved-layout-card-header">
+          <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px; flex-shrink: 0;">
             ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
           </span>
-          <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'};">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
-          ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #fff; background: var(--accent-cyan); color: #000; padding: 1px 5px; border-radius: 10px;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
-          <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
+          <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'}; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
+          ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #000; background: var(--accent-cyan); padding: 1px 6px; border-radius: 10px; flex-shrink: 0;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
+          <span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0;" class="num-ltr">${l.date}</span>
         </div>
-        <div style="display: flex; gap: 4px; align-items: center;">
-          <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
+        <div class="saved-layout-card-actions">
+          <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 4px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
             ${isFa ? 'بارگذاری' : 'Load'}
           </button>
-          <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 3px 7px; font-size: 11px;">✏️</button>
-          <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 3px 7px; font-size: 11px;">⧉</button>
-          <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 3px 7px; font-size: 11px;">⤓</button>
-          <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
+          <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 4px 8px; font-size: 11px;">✏️</button>
+          <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 4px 8px; font-size: 11px;">⧉</button>
+          <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 4px 8px; font-size: 11px;">⤓</button>
+          <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 4px 9px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
             ✕
           </button>
         </div>

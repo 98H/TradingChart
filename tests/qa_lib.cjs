@@ -70,7 +70,7 @@ async function launch(viewportName = 'desktop') {
 }
 
 async function boot(ctx, { lang = null, settle = 3500 } = {}) {
-  await ctx.page.goto(BASE, { waitUntil: 'networkidle2', timeout: 60000 });
+  await ctx.page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, settle));
   await ctx.page.evaluate((l) => {
     const app = window.__TRADING_APP__;

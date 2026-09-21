@@ -4,6 +4,7 @@
 
 import { getLanguage, t, toPersianDigits } from './i18n.js';
 import { showConfirmDialog } from './uiDialog.js';
+import { buildRoundTrips } from '@luxalgo/journal-core';
 
 export const AVATAR_PRESETS = [
   { id: 'mecha', icon: '🦾', nameEn: 'Mecha Nexus', nameFa: 'مکا نکسوس' },
@@ -84,21 +85,32 @@ export class UserProfileModal {
     const netPnlPct = (netPnl / startCap) * 100;
     const isProfit = netPnl >= 0;
 
-    // Get sample or real executions from TradeJournal
-    let winRate = 68.4;
-    let totalTrades = 38;
-    let winCount = 26;
-    let lossCount = 12;
-    let profitFactor = 2.14;
-    let edgeScore = 88.4;
+    let winRate = 0;
+    let totalTrades = 0;
+    let winCount = 0;
+    let lossCount = 0;
+    let profitFactor = 1.0;
+    let edgeScore = 50;
 
     const journal = this.app?.tradeJournal;
-    if (journal && Array.isArray(journal.sampleExecutions)) {
-      totalTrades = 19;
-      winCount = 15;
-      lossCount = 4;
-      winRate = 78.9;
-      profitFactor = 2.45;
+    const executions = journal?.sampleExecutions || [];
+    if (Array.isArray(executions) && executions.length > 0) {
+      try {
+        const trips = buildRoundTrips(executions, { method: 'fifo' });
+        totalTrades = trips.length;
+        const wins = trips.filter(t => (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry)) > 0);
+        const losses = trips.filter(t => (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry)) < 0);
+        winCount = wins.length;
+        lossCount = losses.length;
+        winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+
+        const grossWin = wins.reduce((sum, t) => sum + (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * (t.quantity || 1)), 0);
+        const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * (t.quantity || 1)), 0));
+        profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? grossWin : 1.0);
+        edgeScore = Math.min(100, Math.max(0, Math.round((winRate * 0.6) + (Math.min(profitFactor, 4) * 10))));
+      } catch (e) {
+        console.warn('[Profile] trips computation fallback:', e);
+      }
     }
 
     const openPositions = this.app?.paperTrading?.positions?.length || 0;
@@ -441,9 +453,12 @@ export class UserProfileModal {
   bindEvents(modal, isFa) {
     const close = () => modal.classList.remove('open');
     modal.querySelector('#btn-close-user-profile')?.addEventListener('click', close);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) close();
-    });
+    if (!modal.__hasOverlayListener) {
+      modal.__hasOverlayListener = true;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+      });
+    }
 
     // Tab switching
     modal.querySelectorAll('.profile-tab-btn').forEach(btn => {
@@ -563,9 +578,11 @@ export class UserProfileModal {
         onConfirm: () => {
           try {
             localStorage.removeItem('tradingchart_user_layouts');
+            localStorage.removeItem('tradingchart_current_layout');
             if (this.app?.layoutManager) {
               this.app.layoutManager.savedLayouts = this.app.layoutManager.loadSavedLayouts();
               this.app.layoutManager.saveSavedLayouts();
+              this.app.layoutManager.setLayout('1', '1x1 Single Chart');
             }
             this.app?.showToast(isFa ? 'چیدمان‌ها به تنظیمات اولیه بازگشت' : 'Layouts reset to defaults', 'success');
             this.open(this.activeTab);
@@ -624,6 +641,11 @@ export class UserProfileModal {
           }
           if (data.currentLayout && data.currentLayout.layoutId) {
             localStorage.setItem('tradingchart_current_layout', JSON.stringify(data.currentLayout));
+            if (this.app?.layoutManager) {
+              this.app.layoutManager.setLayout(data.currentLayout.layoutId, data.currentLayout.name, {
+                state: data.currentLayout.state
+              });
+            }
           }
           if (Array.isArray(data.templates)) {
             localStorage.setItem('tradingchart_user_templates', JSON.stringify(data.templates));

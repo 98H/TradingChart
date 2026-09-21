@@ -2,6 +2,7 @@
 // Institutional Paper Trading Terminal & Order Execution Manager with Level 2 DOM (Depth of Market)
 
 import { getLanguage, t } from './i18n.js';
+import { showConfirmDialog } from './uiDialog.js';
 
 export class PaperTrading {
   constructor(options = {}) {
@@ -207,11 +208,22 @@ export class PaperTrading {
     const btnReset = this.container.querySelector('#btn-reset-paper');
     btnReset?.addEventListener('click', () => {
       const isFa = getLanguage() === 'fa';
-      if (confirm(isFa ? 'آیا از بازنشانی حساب دمو و بستن تمام پوزیشن‌ها اطمینان دارید؟' : 'Are you sure you want to reset your paper account balance and close all open positions?')) {
-        this.balance = 100000.0;
-        this.positions = [];
-        this.updatePositionsView();
-      }
+      const defaultCap = window.__TRADING_APP__?.userProfileModal?.profile?.defaultStartingCapital || 100000.0;
+      showConfirmDialog({
+        title: isFa ? 'بازنشانی حساب دمو' : 'Reset Paper Account',
+        message: isFa 
+          ? `آیا از بازنشانی موجودی حساب دمو به $${Number(defaultCap).toLocaleString()} و بستن تمام پوزیشن‌ها اطمینان دارید؟`
+          : `Are you sure you want to reset your paper account balance to $${Number(defaultCap).toLocaleString()} and close all open positions?`,
+        confirmText: isFa ? 'بازنشانی حساب دمو' : 'Reset Paper Account',
+        cancelText: isFa ? 'انصراف' : 'Cancel',
+        danger: true,
+        onConfirm: () => {
+          this.balance = Number(defaultCap);
+          this.positions = [];
+          this.updatePositionsView();
+          window.__TRADING_APP__?.showToast?.(isFa ? 'حساب دمو بازنشانی شد' : 'Paper account reset', 'success');
+        }
+      });
     });
   }
 

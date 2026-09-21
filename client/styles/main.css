@@ -2696,3 +2696,103 @@ body.persian-mode .nav-export-btn svg {
 .custom-dialog-box {
   animation: dialogFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ── Layout Studio Responsive Grids & Cards ──────────────────────── */
+.layout-preset-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.layout-sync-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.layout-save-action-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.layout-save-btn-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.saved-layout-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: all 0.15s ease;
+}
+
+.saved-layout-card.active {
+  background: rgba(0, 242, 176, 0.05);
+  border-color: var(--accent-cyan);
+}
+
+.saved-layout-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.saved-layout-card-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .layout-preset-grid-responsive {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .layout-sync-grid-responsive {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .layout-save-action-row {
+    flex-direction: column !important;
+  }
+  .layout-save-action-row > input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .layout-save-btn-group {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  .layout-save-btn-group > button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+  .saved-layout-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+  .saved-layout-card-header {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .saved-layout-card-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-top: 8px !important;
+    gap: 6px !important;
+  }
+  .saved-layout-card-actions .btn-load-layout {
+    flex: 1 !important;
+  }
+}
