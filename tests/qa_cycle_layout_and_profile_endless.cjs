@@ -155,6 +155,42 @@ function fail(msg, details) {
       ? pass('layout names are strictly HTML-escaped to prevent script injection')
       : fail('XSS escape failure');
 
+    // 7. Auto-save execution integrity check
+    const autoSaveOk = await ctx.page.evaluate(() => {
+      const lm = window.__TRADING_APP__.layoutManager;
+      lm.autoSaveEnabled = true;
+      const success = lm.executeAutoSave();
+      const stored = JSON.parse(localStorage.getItem('tradingchart_current_layout') || '{}');
+      return success && stored.layoutId && stored.timestamp > 0;
+    });
+    autoSaveOk
+      ? pass('auto-save captures workspace state and timestamp cleanly')
+      : fail('auto-save execution integrity');
+
+    // 8. Profile Avatar & Badge Dynamic Sync
+    const avatarSyncOk = await ctx.page.evaluate(() => {
+      const prof = window.__TRADING_APP__.userProfileModal;
+      prof.profile.avatar = '⚡';
+      prof.saveProfile();
+      const circle = document.querySelector('.avatar-circle');
+      const badge = document.querySelector('.user-avatar-badge');
+      return circle?.innerText === '⚡' && badge?.title.includes('@nexus_lead');
+    });
+    avatarSyncOk
+      ? pass('avatar selection updates topbar avatar circle and metadata badge')
+      : fail('avatar sync failure');
+
+    // 9. Multi-chart cell strip action pill & responsive attributes
+    const stripActionPillOk = await ctx.page.evaluate(() => {
+      const lm = window.__TRADING_APP__.layoutManager;
+      lm.setLayout('2h', 'Dual 2H');
+      const maxBtn = document.querySelector('#btn-strip-toggle-max');
+      return maxBtn?.classList.contains('action-pill');
+    });
+    stripActionPillOk
+      ? pass('multi-chart cell strip distinguishes action controls with action-pill class')
+      : fail('cell strip action-pill class missing');
+
     // Clean console check
     const errors = errorsOf(ctx);
     errors.length === 0 ? pass('clean console with zero exceptions') : fail('console errors', errors);

@@ -291,34 +291,40 @@ export class LayoutManager {
     });
   }
 
+  executeAutoSave() {
+    if (!this.autoSaveEnabled) return false;
+    const state = this.captureWorkspaceState();
+    if (!state) return false;
+    
+    // 1. Always persist the active workspace state for seamless reload recovery
+    try {
+      localStorage.setItem('tradingchart_current_layout', JSON.stringify({
+        layoutId: this.activeLayoutId,
+        name: this.activeLayoutName,
+        state,
+        sync: { ...this.syncOpts },
+        timestamp: Date.now()
+      }));
+    } catch (e) {}
+
+    // 2. If the active layout corresponds to a saved layout item, update its state too
+    const activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
+    if (activeIdx !== -1) {
+      this.savedLayouts[activeIdx].state = state;
+      this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
+      this.saveSavedLayouts();
+    }
+
+    // 3. Briefly show subtle saving -> saved indicator
+    this.flashAutoSaveStatus();
+    return true;
+  }
+
   setupAutoSave() {
     if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+    if (!this.autoSaveEnabled) return;
     this.autoSaveTimer = setInterval(() => {
-      if (!this.autoSaveEnabled) return;
-      const state = this.captureWorkspaceState();
-      if (!state) return;
-      
-      // 1. Always persist the active workspace state for seamless reload recovery
-      try {
-        localStorage.setItem('tradingchart_current_layout', JSON.stringify({
-          layoutId: this.activeLayoutId,
-          name: this.activeLayoutName,
-          state,
-          sync: { ...this.syncOpts },
-          timestamp: Date.now()
-        }));
-      } catch (e) {}
-
-      // 2. If the active layout corresponds to a saved layout item, update its state too
-      const activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
-      if (activeIdx !== -1) {
-        this.savedLayouts[activeIdx].state = state;
-        this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
-        this.saveSavedLayouts();
-      }
-
-      // 3. Briefly show subtle saving -> saved indicator
-      this.flashAutoSaveStatus();
+      this.executeAutoSave();
     }, 25000);
   }
 
@@ -487,9 +493,12 @@ export class LayoutManager {
     if (ws.maximizedId) {
       ws.clearMaximized();
       this.isMaximizedCell = false;
-    } else if (ws.active?.id) {
-      ws.maximizeCell(ws.active.id);
-      this.isMaximizedCell = true;
+    } else {
+      const targetId = ws.active?.id || (ws.cellsById && ws.cellsById.size > 0 ? ws.cellsById.keys().next().value : null);
+      if (targetId) {
+        ws.maximizeCell(targetId);
+        this.isMaximizedCell = true;
+      }
     }
     this.updateCellStrip();
   }
@@ -541,7 +550,7 @@ export class LayoutManager {
           </button>
         `;
       }).join('')}
-      <button class="cell-strip-pill" id="btn-strip-toggle-max" title="${isFa ? 'بزرگنمایی چارت فعال (Alt+Enter)' : 'Maximize Active Chart (Alt+Enter)'}">
+      <button class="cell-strip-pill action-pill ${isGridMaximized ? 'active' : ''}" id="btn-strip-toggle-max" title="${isFa ? 'بزرگنمایی چارت فعال (Alt+Enter)' : 'Maximize Active Chart (Alt+Enter)'}">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         <span>${isGridMaximized ? (isFa ? 'خروج از زوم' : 'Restore') : (isFa ? 'تمام‌صفحه' : 'Maximize')}</span>
       </button>
@@ -743,6 +752,12 @@ export class LayoutManager {
       e.stopPropagation();
       this.autoSaveEnabled = !this.autoSaveEnabled;
       localStorage.setItem('tradingchart_layout_autosave', String(this.autoSaveEnabled));
+      if (this.autoSaveEnabled) {
+        this.executeAutoSave();
+        this.setupAutoSave();
+      } else {
+        if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+      }
       const btn = modal.querySelector('#btn-toggle-autosave');
       if (btn) {
         btn.style.background = this.autoSaveEnabled ? 'rgba(0, 242, 176, 0.12)' : 'rgba(255,255,255,0.05)';
