@@ -998,6 +998,15 @@ class TradingChartApp {
           return;
         }
 
+        // TradingView Parity: Escape restores maximized chart cell in multi-grid
+        const ws = this.chartManager?.workspace;
+        if (ws?.maximizedId) {
+          e.preventDefault();
+          ws.clearMaximized();
+          this.layoutManager?.updateCellStrip();
+          return;
+        }
+
         this.chartManager?.clearDrawingTool();
         this.chartStylePicker?.close();
         this.contextMenu?.close();

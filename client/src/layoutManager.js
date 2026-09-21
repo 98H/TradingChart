@@ -679,8 +679,8 @@ export class LayoutManager {
                 return `
                   <button class="sync-switch-btn ${isOn ? 'active' : ''}" data-sync="${item.key}" style="background: ${isOn ? 'rgba(0, 242, 176, 0.12)' : 'var(--bg-surface)'}; border: 1px solid ${isOn ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 6px; padding: 8px 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #fff;">
                     <span style="font-weight: 600;">${isFa ? item.labelFa : item.labelEn}</span>
-                    <div style="width: 28px; height: 16px; border-radius: 8px; background: ${isOn ? 'var(--accent-cyan)' : '#26334d'}; position: relative; transition: all 0.2s ease; display: inline-flex; align-items: center; padding: 2px; box-sizing: border-box;">
-                      <div style="width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: all 0.2s ease; transform: ${isOn ? (isFa ? 'translateX(-12px)' : 'translateX(12px)') : 'translateX(0)'};"></div>
+                    <div class="sync-switch-track" style="width: 28px; height: 16px; border-radius: 8px; background: ${isOn ? 'var(--accent-cyan)' : '#26334d'}; position: relative; transition: all 0.2s ease; display: inline-flex; align-items: center; padding: 2px; box-sizing: border-box;">
+                      <div class="sync-switch-thumb" style="width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: all 0.2s ease; transform: ${isOn ? (isFa ? 'translateX(-12px)' : 'translateX(12px)') : 'translateX(0)'};"></div>
                     </div>
                   </button>
                 `;
@@ -692,7 +692,8 @@ export class LayoutManager {
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
-                ${isFa ? 'چیدمان‌های ذخیره‌شده کاربر' : 'Saved User Layouts'} (${filteredLayouts.length})
+                <span>${isFa ? 'چیدمان‌های ذخیره‌شده کاربر' : 'Saved User Layouts'}</span>
+                <span id="saved-layouts-count">(${filteredLayouts.length})</span>
               </div>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <button id="btn-sort-date" class="btn-secondary" style="font-size: 10px; padding: 3px 8px; ${this.sortBy === 'date' ? 'color: var(--accent-cyan); border-color: var(--accent-cyan);' : ''}">${isFa ? 'تاریخ' : 'Date'}</button>
@@ -759,6 +760,7 @@ export class LayoutManager {
       if (list) {
         list.innerHTML = this.renderSavedLayoutsList(isFa);
         this.bindSavedLayoutRowEvents(modal, isFa);
+        this.updateSavedLayoutsCount();
       }
     });
 
@@ -813,11 +815,10 @@ export class LayoutManager {
         btn.style.background = nextState ? 'rgba(0, 242, 176, 0.12)' : 'var(--bg-surface)';
         btn.style.borderColor = nextState ? 'var(--accent-cyan)' : 'var(--border-subtle)';
         btn.style.color = nextState ? '#fff' : 'var(--text-dim)';
-        const checkSpan = btn.querySelector('span:last-child');
-        if (checkSpan) {
-          checkSpan.innerText = nextState ? '✓' : '—';
-          checkSpan.style.color = nextState ? 'var(--accent-cyan)' : 'var(--text-dim)';
-        }
+        const track = btn.querySelector('.sync-switch-track');
+        const thumb = btn.querySelector('.sync-switch-thumb');
+        if (track) track.style.background = nextState ? 'var(--accent-cyan)' : '#26334d';
+        if (thumb) thumb.style.transform = nextState ? (isFa ? 'translateX(-12px)' : 'translateX(12px)') : 'translateX(0)';
       });
     });
 
@@ -843,6 +844,7 @@ export class LayoutManager {
       if (list) {
         list.innerHTML = this.renderSavedLayoutsList(isFa);
         this.bindSavedLayoutRowEvents(modal, isFa);
+        this.updateSavedLayoutsCount();
       }
       this.app?.showToast?.(isFa ? 'چیدمان با موفقیت ذخیره شد' : 'Layout saved', 'success');
     });
@@ -865,6 +867,7 @@ export class LayoutManager {
           if (list) {
             list.innerHTML = this.renderSavedLayoutsList(isFa);
             this.bindSavedLayoutRowEvents(modal, isFa);
+            this.updateSavedLayoutsCount();
           }
         } else {
           this.app?.showToast?.(isFa ? 'فایل چیدمان نامعتبر است' : 'Invalid layout file', 'error');
@@ -876,6 +879,21 @@ export class LayoutManager {
 
     // Bind saved layout rows
     this.bindSavedLayoutRowEvents(modal, isFa);
+  }
+
+  updateSavedLayoutsCount() {
+    const el = document.querySelector('#saved-layouts-count');
+    if (!el) return;
+    let count = this.savedLayouts.length;
+    if (this.searchQuery && this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      count = this.savedLayouts.filter(l => 
+        (l.name && l.name.toLowerCase().includes(q)) ||
+        (l.nameFa && l.nameFa.toLowerCase().includes(q)) ||
+        (l.badge && l.badge.toLowerCase().includes(q))
+      ).length;
+    }
+    el.innerText = `(${count})`;
   }
 
   renderSavedLayoutsList(isFa) {
@@ -903,26 +921,30 @@ export class LayoutManager {
       `;
     }
 
+    const escapeHtml = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     return filteredLayouts.map(l => {
       const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
+      const rawTitle = (isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x');
+      const safeTitle = escapeHtml(rawTitle);
       return `
       <div class="saved-layout-card ${isCurrent ? 'active' : ''}">
         <div class="saved-layout-card-header">
           <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px; flex-shrink: 0;">
             ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
           </span>
-          <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'}; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
+          <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'}; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeTitle}</span>
           ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #000; background: var(--accent-cyan); padding: 1px 6px; border-radius: 10px; flex-shrink: 0;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
           <span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0;" class="num-ltr">${l.date}</span>
         </div>
         <div class="saved-layout-card-actions">
-          <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 4px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
+          <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${escapeHtml(l.name)}" style="padding: 4px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
             ${isFa ? 'بارگذاری' : 'Load'}
           </button>
-          <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 4px 8px; font-size: 11px;">✏️</button>
+          <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${escapeHtml(rawTitle)}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 4px 8px; font-size: 11px;">✏️</button>
           <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 4px 8px; font-size: 11px;">⧉</button>
           <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 4px 8px; font-size: 11px;">⤓</button>
-          <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 4px 9px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
+          <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${escapeHtml(rawTitle)}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 4px 9px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
             ✕
           </button>
         </div>
@@ -942,6 +964,11 @@ export class LayoutManager {
         const name = btn.getAttribute('data-name');
         const id = btn.getAttribute('data-id');
         const saved = this.savedLayouts.find(l => l.id === id);
+        if (saved?.sync) {
+          this.syncOpts = { ...this.syncOpts, ...saved.sync };
+          try { localStorage.setItem('tradingchart_layout_sync', JSON.stringify(this.syncOpts)); } catch (err) {}
+          this.applyAllSyncOptions();
+        }
         this.setLayout(layoutId, name, saved?.state ? { state: saved.state, stateName: name } : {});
         close();
       });
@@ -967,6 +994,7 @@ export class LayoutManager {
               if (list) {
                 list.innerHTML = this.renderSavedLayoutsList(isFa);
                 this.bindSavedLayoutRowEvents(modal, isFa);
+                this.updateSavedLayoutsCount();
               }
             }
           }
@@ -983,7 +1011,9 @@ export class LayoutManager {
         if (list) {
           list.innerHTML = this.renderSavedLayoutsList(isFa);
           this.bindSavedLayoutRowEvents(modal, isFa);
+          this.updateSavedLayoutsCount();
         }
+        this.app?.showToast?.(isFa ? 'چیدمان با موفقیت تکثیر گردید' : 'Layout duplicated', 'success');
       });
     });
 
@@ -1023,7 +1053,9 @@ export class LayoutManager {
             if (list) {
               list.innerHTML = this.renderSavedLayoutsList(isFa);
               this.bindSavedLayoutRowEvents(modal, isFa);
+              this.updateSavedLayoutsCount();
             }
+            this.app?.showToast?.(isFa ? 'چیدمان حذف گردید' : 'Layout deleted', 'success');
           }
         });
       });

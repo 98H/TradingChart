@@ -98,15 +98,21 @@ export class UserProfileModal {
       try {
         const trips = buildRoundTrips(executions, { method: 'fifo' });
         totalTrades = trips.length;
-        const wins = trips.filter(t => (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry)) > 0);
-        const losses = trips.filter(t => (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry)) < 0);
+        const getPnl = (t) => {
+          if (Number.isFinite(t.netPnl)) return t.netPnl;
+          if (Number.isFinite(t.grossPnl)) return t.grossPnl;
+          const diff = t.direction === 'short' ? (t.avgEntry - t.avgExit) : (t.avgExit - t.avgEntry);
+          return (Number.isFinite(diff) ? diff : 0) * (t.quantity || 1);
+        };
+        const wins = trips.filter(t => t.status === 'win' || getPnl(t) > 0);
+        const losses = trips.filter(t => t.status === 'loss' || getPnl(t) < 0);
         winCount = wins.length;
         lossCount = losses.length;
         winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
 
-        const grossWin = wins.reduce((sum, t) => sum + (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * (t.quantity || 1)), 0);
-        const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.netPnl !== undefined ? t.netPnl : (t.avgExit - t.avgEntry) * (t.quantity || 1)), 0));
-        profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? grossWin : 1.0);
+        const grossWin = wins.reduce((sum, t) => sum + Math.max(0, getPnl(t)), 0);
+        const grossLoss = Math.abs(losses.reduce((sum, t) => sum + Math.min(0, getPnl(t)), 0));
+        profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? 3.5 : 1.0);
         edgeScore = Math.min(100, Math.max(0, Math.round((winRate * 0.6) + (Math.min(profitFactor, 4) * 10))));
       } catch (e) {
         console.warn('[Profile] trips computation fallback:', e);
@@ -470,9 +476,13 @@ export class UserProfileModal {
 
     // Copy Account ID
     modal.querySelector('#btn-copy-acc-id')?.addEventListener('click', () => {
-      navigator.clipboard.writeText('TC-8942-INST');
-      this.app.showExecutionToast('COPY', 1, 'Account ID');
-      this.app.showToast(isFa ? 'شناسه حساب کپی شد' : 'Account ID copied', 'success');
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText('TC-8942-INST').catch(() => {});
+        }
+      } catch (e) {}
+      this.app?.showExecutionToast?.('COPY', 1, 'Account ID');
+      this.app?.showToast?.(isFa ? 'شناسه حساب کپی شد' : 'Account ID copied', 'success');
     });
 
     // Avatar pick

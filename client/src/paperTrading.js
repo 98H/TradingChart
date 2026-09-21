@@ -58,6 +58,8 @@ export class PaperTrading {
   render() {
     if (!this.container) return;
     const isFa = getLanguage() === 'fa';
+    const defaultCap = window.__TRADING_APP__?.userProfileModal?.profile?.defaultStartingCapital || 100000;
+    const defaultLev = window.__TRADING_APP__?.userProfileModal?.profile?.defaultLeverage || 10;
 
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px;">
@@ -72,7 +74,7 @@ export class PaperTrading {
                 $${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; min-height: 26px; color: var(--text-dim); font-weight: 700; border-radius: 4px;" title="${isFa ? 'بازنشانی موجودی به ۱۰۰،۰۰۰ دلار' : 'Reset balance to $100,000'}" aria-label="Reset account balance">
+            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; min-height: 26px; color: var(--text-dim); font-weight: 700; border-radius: 4px;" title="${isFa ? `بازنشانی موجودی به $${Number(defaultCap).toLocaleString()}` : `Reset balance to $${Number(defaultCap).toLocaleString()}`}" aria-label="Reset account balance">
               ${isFa ? 'بازنشانی' : 'Reset'}
             </button>
           </div>
@@ -137,11 +139,11 @@ export class PaperTrading {
             <div>
               <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'اهرم (Leverage)' : 'Leverage'}</label>
               <select id="order-lev-sel" style="width: 100%; padding: 4px 6px; font-size: 11px;">
-                <option value="1">1x (Spot)</option>
-                <option value="5">5x</option>
-                <option value="10" selected>10x</option>
-                <option value="20">20x</option>
-                <option value="50">50x</option>
+                <option value="1" ${defaultLev === 1 ? 'selected' : ''}>1x (Spot)</option>
+                <option value="5" ${defaultLev === 5 ? 'selected' : ''}>5x</option>
+                <option value="10" ${defaultLev === 10 ? 'selected' : ''}>10x</option>
+                <option value="20" ${defaultLev === 20 ? 'selected' : ''}>20x</option>
+                <option value="50" ${defaultLev === 50 ? 'selected' : ''}>50x</option>
               </select>
             </div>
           </div>
