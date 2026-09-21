@@ -156,6 +156,15 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     if (this.workspace?.active) {
       this.workspace.active.setSymbol(`universal:${clean}`);
     }
+    // Propagate when symbol sync is enabled across multi-chart grid
+    if (this.app?.layoutManager?.syncOpts?.symbol && this.workspace?.cellsById) {
+      for (const cell of this.workspace.cellsById.values()) {
+        if (cell && cell !== this.workspace.active && typeof cell.setSymbol === 'function') {
+          try { cell.setSymbol(`universal:${clean}`); } catch (e) {}
+        }
+      }
+    }
+    this.app?.layoutManager?.updateCellStrip?.();
   }
 
   setTimeframe(tf) {
@@ -165,15 +174,40 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
       // on every switch (setTimeframe alone keeps Vela's default window).
       const cell = this.workspace.active;
       if (cell && typeof cell.setMarket === 'function') {
-        try { cell.setMarket({ timeframe: String(tf), bars: 2000 }); return; } catch (e) {}
+        try { cell.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
+      } else if (cell && typeof cell.setTimeframe === 'function') {
+        try { cell.setTimeframe(String(tf)); } catch (e) {}
+      } else {
+        this.workspace.setActiveTimeframe(String(tf));
       }
-      this.workspace.setActiveTimeframe(String(tf));
+
+      // Propagate when timeframe sync is enabled across multi-chart grid
+      if (this.app?.layoutManager?.syncOpts?.timeframe && this.workspace?.cellsById) {
+        for (const c of this.workspace.cellsById.values()) {
+          if (c && c !== this.workspace.active) {
+            if (typeof c.setMarket === 'function') {
+              try { c.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
+            } else if (typeof c.setTimeframe === 'function') {
+              try { c.setTimeframe(String(tf)); } catch (e) {}
+            }
+          }
+        }
+      }
     }
+    this.app?.layoutManager?.updateCellStrip?.();
   }
 
   setPriceStyle(style) {
     if (this.workspace?.active) {
       this.workspace.active.setPriceStyle(style);
+    }
+    // Propagate when style sync is enabled across multi-chart grid
+    if (this.app?.layoutManager?.syncOpts?.style && this.workspace?.cellsById) {
+      for (const c of this.workspace.cellsById.values()) {
+        if (c && c !== this.workspace.active && typeof c.setPriceStyle === 'function') {
+          try { c.setPriceStyle(style); } catch (e) {}
+        }
+      }
     }
   }
 

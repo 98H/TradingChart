@@ -90,6 +90,8 @@ const EVID = path.resolve(__dirname, '../screenshots/qa_cycles');
       if (!target) return { err: 'not found' };
       const before = lm.savedLayouts.length;
       document.querySelector(`.btn-del-layout[data-id="${target.id}"]`)?.click();
+      await new Promise(r => setTimeout(r, 200));
+      document.querySelector('#btn-dialog-confirm')?.click();
       await new Promise(r => setTimeout(r, 500));
       return { before, after: lm.savedLayouts.length, gone: !lm.savedLayouts.some(l => l.name === 'QA Test Layout') };
     });

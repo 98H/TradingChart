@@ -2555,6 +2555,12 @@ body.persian-mode .nav-export-btn svg {
 }
 
 @media (max-width: 768px) {
+  .desktop-only-action {
+    display: none !important;
+  }
+  .user-profile-box {
+    max-height: 90vh !important;
+  }
   .news-cat-btn {
     min-height: 36px !important;
     padding: 6px 14px !important;
@@ -2590,4 +2596,88 @@ body.persian-mode .nav-export-btn svg {
     padding: 6px 12px !important;
     font-size: 12px !important;
   }
+}
+
+/* ── Multi-Chart Active Cell & Splitters (TradingView Parity) ─────── */
+.vela-cell[data-active="1"] {
+  outline: 2px solid var(--accent-cyan) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 242, 176, 0.4), 0 0 16px rgba(0, 242, 176, 0.15) !important;
+  z-index: 2 !important;
+}
+
+.vela-ws-splitter {
+  background: rgba(255, 255, 255, 0.1) !important;
+  z-index: 10 !important;
+  transition: background 0.15s ease !important;
+}
+
+.vela-ws-splitter:hover {
+  background: var(--accent-cyan) !important;
+  box-shadow: 0 0 8px var(--accent-cyan) !important;
+}
+
+/* Multi-Chart Cell Strip / Carousel (Mobile + Desktop) */
+#multi-chart-cell-strip {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 85;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(11, 15, 23, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 242, 176, 0.3);
+  border-radius: 20px;
+  padding: 4px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+  max-width: 92vw;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#multi-chart-cell-strip::-webkit-scrollbar {
+  display: none;
+}
+.cell-strip-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+.cell-strip-pill:hover,
+.cell-strip-pill.active {
+  background: rgba(0, 242, 176, 0.18);
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+.cell-strip-pill.overview-pill {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+}
+.cell-strip-pill.overview-pill.active {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+  color: #fff;
+}
+
+/* Custom UI Dialog Animations */
+@keyframes dialogFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.custom-dialog-box {
+  animation: dialogFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

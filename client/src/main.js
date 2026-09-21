@@ -663,6 +663,11 @@ class TradingChartApp {
         const panelId = btn.getAttribute('data-panel');
         modalPanelsMenu?.classList.remove('open');
 
+        if (panelId === 'layouts') {
+          this.layoutManager?.openLayoutStudio();
+          return;
+        }
+
         if (panelId === 'journal' && this.activeWorkspaceView !== 'journal') {
           this.switchWorkspace('journal');
           return;
@@ -708,6 +713,11 @@ class TradingChartApp {
     // 4. User Profile Modal Trigger on Avatar
     document.querySelector('.user-avatar-badge')?.addEventListener('click', () => {
       this.userProfileModal?.open();
+    });
+
+    // Mobile layout button
+    document.querySelector('#btn-mobile-layout')?.addEventListener('click', () => {
+      this.layoutManager?.openLayoutStudio();
     });
 
     // 4b. Keyboard Shortcuts Reference & Language Switcher (FA / EN)
@@ -1011,6 +1021,9 @@ class TradingChartApp {
         const root = document.documentElement;
         if (!document.fullscreenElement) root.requestFullscreen?.().catch(() => {});
         else document.exitFullscreen?.().catch(() => {});
+      } else if (e.altKey && e.key === 'Enter') {
+        e.preventDefault();
+        this.layoutManager?.toggleMaximizeActiveCell();
       } else if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         this.openSymbolSearch();

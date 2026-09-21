@@ -1,9 +1,10 @@
 // client/src/layoutManager.js
 // TradingView-Grade Multi-Chart Layout Management Studio
-// Supports 1x1, 2H, 2V, 2x2, 3H, 3V, 3x2, 4x2 grids, Symbol/Interval/Crosshair/Style Sync,
-// Layout Presets, Save/Rename/Delete, and Active Cell Isolation.
+// Supports 1x1, 2H, 2V, 2x2, 3H, 3V, 3x2, 4x2 grids, 6-Axis Sync (Symbol, Timeframe, Crosshair, Viewport, Drawings, Style),
+// Layout Presets, Search/Sort, Auto-Save Engine, Custom Glassmorphism Dialogs, and Mobile Multi-Chart Cell Strip.
 
 import { getLanguage, t, toPersianDigits } from './i18n.js';
+import { showPromptDialog, showConfirmDialog } from './uiDialog.js';
 
 export const DEFAULT_LAYOUT_PRESETS = [
   {
@@ -94,15 +95,29 @@ export class LayoutManager {
     this.activeLayoutId = '1';
     this.activeLayoutName = '1x1 Single Chart';
     this.isMaximizedCell = false;
+    this.searchQuery = '';
+    this.sortBy = 'date'; // 'date' | 'name'
+    
+    // TradingView 6-Axis Sync
     this.syncOpts = {
       symbol: false,
       timeframe: false,
       crosshair: true,
+      viewport: true,
+      drawings: false,
       style: false
     };
+
+    // Auto-Save Engine
+    this.autoSaveEnabled = localStorage.getItem('tradingchart_layout_autosave') !== 'false';
+    this.isDirty = false;
+    this.autoSaveTimer = null;
+
     this.savedLayouts = this.loadSavedLayouts();
     this.restoreCurrentLayout();
     this.initDOM();
+    this.setupAutoSave();
+    this.setupCellStrip();
   }
 
   // Restore the last-active grid after a page reload (TradingView parity).
@@ -112,17 +127,11 @@ export class LayoutManager {
       if (!raw) return;
       const { layoutId, name } = JSON.parse(raw);
       if (layoutId && layoutId !== '1') {
-        // Defer until chartManager exists; main.js re-calls after init too.
         this.activeLayoutId = layoutId;
         if (name) this.activeLayoutName = name;
       }
     } catch (e) {}
   }
-
-// TradingView parity: capture / restore the FULL trading setup per layout —
-// not just the grid shape. A saved layout stores each cell's symbol, timeframe,
-// price style, indicators (with input deltas), and drawings via Vela's
-// getState/applyState. This is exactly TradingView's "Save Layout" behavior.
 
   captureWorkspaceState() {
     try {
@@ -137,6 +146,7 @@ export class LayoutManager {
       const ws = this.app?.chartManager?.workspace;
       if (!ws || typeof ws.applyState !== 'function' || !state) return false;
       ws.applyState(state);
+      this.updateCellStrip();
       return true;
     } catch (e) {
       console.warn('[Layout] applyState failed, falling back to grid-only:', e.message);
@@ -144,28 +154,41 @@ export class LayoutManager {
     }
   }
 
-  // TradingView parity: rename / duplicate / export / import saved layouts.
   renameLayout(id, newName) {
     const l = this.savedLayouts.find(x => x.id === id);
     if (!l) return false;
-    l.name = newName; l.nameFa = newName;
+    l.name = newName;
+    l.nameFa = newName;
     this.saveSavedLayouts();
+    if (this.activeLayoutId === l.layoutId) {
+      this.activeLayoutName = newName;
+      this.updateTopbarLabel();
+    }
     return true;
   }
+
   duplicateLayout(id) {
     const l = this.savedLayouts.find(x => x.id === id);
     if (!l) return null;
-    const copy = { ...l, id: 'usr_' + Date.now(), name: l.name + ' (Copy)', nameFa: (l.nameFa || l.name) + ' (کپی)', date: new Date().toISOString().split('T')[0] };
+    const copy = {
+      ...l,
+      id: 'usr_' + Date.now(),
+      name: l.name + ' (Copy)',
+      nameFa: (l.nameFa || l.name) + ' (کپی)',
+      date: new Date().toISOString().split('T')[0]
+    };
     if (l.state) copy.state = JSON.parse(JSON.stringify(l.state));
     this.savedLayouts.unshift(copy);
     this.saveSavedLayouts();
     return copy;
   }
+
   exportLayout(id) {
     const l = this.savedLayouts.find(x => x.id === id);
     if (!l) return null;
     return JSON.stringify({ __tradingchart_layout: true, ...l }, null, 2);
   }
+
   importLayout(json) {
     try {
       const obj = typeof json === 'string' ? JSON.parse(json) : json;
@@ -189,7 +212,7 @@ export class LayoutManager {
           layoutId: '4',
           badge: '4 Charts',
           badgeFa: '۴ چارت',
-          sync: { symbol: false, timeframe: false, crosshair: true, style: false },
+          sync: { symbol: false, timeframe: false, crosshair: true, viewport: true, drawings: false, style: false },
           date: new Date().toISOString().split('T')[0]
         },
         {
@@ -199,12 +222,11 @@ export class LayoutManager {
           layoutId: '2h',
           badge: '2 Charts',
           badgeFa: '۲ چارت',
-          sync: { symbol: false, timeframe: true, crosshair: true, style: false },
+          sync: { symbol: false, timeframe: true, crosshair: true, viewport: true, drawings: false, style: false },
           date: new Date().toISOString().split('T')[0]
         }
       ];
 
-      // Clean deduplication by layout name & normalize typography
       const seen = new Set();
       layouts = layouts.filter(l => {
         const cleanName = (l.name || '').replace(/×/g, 'x').trim();
@@ -245,8 +267,13 @@ export class LayoutManager {
   }
 
   bindTopbarEvents() {
-    // Open Layout Studio Modal
+    // Open Layout Studio Modal (Desktop topbar)
     document.querySelector('#btn-layout-manager')?.addEventListener('click', () => {
+      this.openLayoutStudio();
+    });
+
+    // Mobile Topbar Layout Button
+    document.querySelector('#btn-mobile-layout')?.addEventListener('click', () => {
       this.openLayoutStudio();
     });
 
@@ -254,6 +281,23 @@ export class LayoutManager {
     document.querySelector('#btn-layout-save')?.addEventListener('click', () => {
       this.quickSaveLayout();
     });
+  }
+
+  setupAutoSave() {
+    if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+    this.autoSaveTimer = setInterval(() => {
+      if (!this.autoSaveEnabled) return;
+      const state = this.captureWorkspaceState();
+      if (!state) return;
+      
+      // Auto-save the active layout state into localStorage
+      const activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
+      if (activeIdx !== -1) {
+        this.savedLayouts[activeIdx].state = state;
+        this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
+        this.saveSavedLayouts();
+      }
+    }, 30000);
   }
 
   quickSaveLayout() {
@@ -273,7 +317,6 @@ export class LayoutManager {
     const badgeText = count === 1 ? '1 Chart' : `${count} Charts`;
     const badgeFa = count === 1 ? '۱ چارت' : `${toPersianDigits(count)} چارت`;
 
-    // Deduplicate: replace existing layout with the same name if exists
     this.savedLayouts = this.savedLayouts.filter(l => l.name !== layoutNameEn);
     this.savedLayouts.unshift({
       id: 'usr_' + Date.now(),
@@ -288,7 +331,7 @@ export class LayoutManager {
     });
     this.saveSavedLayouts();
 
-    this.app.showExecutionToast(getLanguage() === 'fa' ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
+    this.app.showExecutionToast(isFa ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
 
     setTimeout(() => {
       if (label) label.innerText = isFa ? 'ذخیره' : 'Save';
@@ -299,26 +342,9 @@ export class LayoutManager {
     }, 2000);
   }
 
-  toggleReplay() {
-    const replayBar = document.querySelector('#replay-bar');
-    if (!replayBar) return;
-    const isVisible = replayBar.classList.contains('visible');
-    const replayBtn = document.querySelector('#btn-topbar-replay');
-
-    if (isVisible) {
-      this.app.barReplay?.stopReplay();
-      replayBtn?.classList.remove('active');
-    } else {
-      const total = this.app.activeBars?.length || 500;
-      this.app.barReplay?.startReplay(total, Math.floor(total * 0.7));
-      replayBtn?.classList.add('active');
-    }
-  }
-
   setLayout(layoutId, layoutName, opts = {}) {
     this.activeLayoutId = layoutId;
     if (layoutName) this.activeLayoutName = layoutName;
-    // Persist current layout so it survives reload (TradingView parity).
     if (!opts.skipPersist) {
       try { localStorage.setItem('tradingchart_current_layout', JSON.stringify({ layoutId, name: this.activeLayoutName })); } catch (e) {}
     }
@@ -333,18 +359,15 @@ export class LayoutManager {
         this.app?.restoreQuickTrade?.();
       }
 
-      // FULL-SETUP RESTORE (TradingView parity): if this layout carries a saved
-      // workspace state (symbols/TFs/indicators/drawings per cell), apply it.
-      // Wait for the grid to be built first so applyState lands on every cell.
       if (opts.state) {
         const applyFull = () => {
           const ok = this.applyWorkspaceState(opts.state);
           if (ok && this.app?.showToast) {
             const isFa = getLanguage() === 'fa';
-            this.app.showToast(isFa ? `ستاپ «${opts.stateName || ''}» کامل بازیابی شد` : 'Full layout setup restored', 'success');
+            this.app.showToast(isFa ? `ستاپ «${opts.stateName || ''}» با موفقیت بازیابی شد` : 'Full layout setup restored', 'success');
           }
+          this.updateCellStrip();
         };
-        // Multi-cell grids build cells async; wait for them before applying.
         const expected = (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.cols || 1) *
                          (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.rows || 1);
         let tries = 0;
@@ -358,22 +381,19 @@ export class LayoutManager {
         return;
       }
 
-      // Intelligent multi-cell diversification. Cell creation is async, so we
-      // wait until the grid is fully built before assigning symbols — otherwise
-      // a cell that appears after our timeout keeps its default market and the
-      // symbol assignment is silently lost (a pane renders the wrong/blank chart).
       if (layoutId !== '1') {
         const expected = (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.cols || 1) *
                          (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.rows || 1);
         const assign = () => {
           const ws = this.app.chartManager.workspace;
           const cells = Array.from(ws?.cellsById?.values() || []);
-          const defaultSymbols = ['universal:BTCUSDT', 'universal:ETHUSDT', 'universal:SOLUSDT', 'universal:BNBUSDT'];
+          const defaultSymbols = ['universal:BTCUSDT', 'universal:ETHUSDT', 'universal:SOLUSDT', 'universal:BNBUSDT', 'universal:XAUUSD', 'universal:EURUSD'];
           cells.forEach((cell, idx) => {
             if (idx > 0 && defaultSymbols[idx] && cell.setSymbol) {
               cell.setSymbol(defaultSymbols[idx]);
             }
           });
+          this.updateCellStrip();
         };
         let tries = 0;
         const waitForCells = () => {
@@ -382,6 +402,8 @@ export class LayoutManager {
           setTimeout(waitForCells, 150);
         };
         setTimeout(waitForCells, 300);
+      } else {
+        this.updateCellStrip();
       }
     }
     window.dispatchEvent(new Event('resize'));
@@ -396,11 +418,95 @@ export class LayoutManager {
   }
 
   toggleMaximizeActiveCell() {
-    this.isMaximizedCell = !this.isMaximizedCell;
-    const chart = this.app?.chartManager?.workspace?.active?.chart;
-    if (chart?.panes) {
-      chart.panes.maximize(this.isMaximizedCell ? chart.panes.activeId : null);
+    const ws = this.app?.chartManager?.workspace;
+    if (!ws) return;
+    if (ws.maximizedId) {
+      ws.clearMaximized();
+      this.isMaximizedCell = false;
+    } else if (ws.active?.id) {
+      ws.maximizeCell(ws.active.id);
+      this.isMaximizedCell = true;
     }
+    this.updateCellStrip();
+  }
+
+  setupCellStrip() {
+    let strip = document.querySelector('#multi-chart-cell-strip');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'multi-chart-cell-strip';
+      const chartArea = document.querySelector('#chart-area');
+      if (chartArea) {
+        chartArea.appendChild(strip);
+      }
+    }
+    this.updateCellStrip();
+  }
+
+  updateCellStrip() {
+    const strip = document.querySelector('#multi-chart-cell-strip');
+    if (!strip) return;
+
+    if (this.activeLayoutId === '1') {
+      strip.style.display = 'none';
+      return;
+    }
+
+    strip.style.display = 'flex';
+    const isFa = getLanguage() === 'fa';
+    const ws = this.app?.chartManager?.workspace;
+    const cells = Array.from(ws?.cellsById?.values() || []);
+    const isGridMaximized = !!ws?.maximizedId;
+
+    strip.innerHTML = `
+      <button class="cell-strip-pill overview-pill ${!isGridMaximized ? 'active' : ''}" id="btn-strip-overview" title="${isFa ? 'نمایش تمام چارت‌ها در گرید' : 'View all charts in grid'}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>${isFa ? 'گرید کامل' : 'All Grid'}</span>
+      </button>
+      ${cells.map((cell, idx) => {
+        const isActive = ws?.active === cell;
+        const isMaxed = ws?.maximizedId === cell.id;
+        const sym = (cell.symbol || 'BTCUSDT').replace(/^.*:/, '');
+        const tf = cell.timeframe || '15m';
+        return `
+          <button class="cell-strip-pill ${(isActive || isMaxed) ? 'active' : ''}" data-cell-id="${cell.id}" title="${isFa ? `فوکوس روی چارت ${idx + 1}` : `Focus Chart ${idx + 1}`}">
+            <span style="font-weight: 800; color: var(--accent-cyan);">#${idx + 1}</span>
+            <span style="font-weight: 700;">${sym}</span>
+            <span style="font-size: 10px; opacity: 0.8;" class="num-ltr">${tf}</span>
+          </button>
+        `;
+      }).join('')}
+      <button class="cell-strip-pill" id="btn-strip-toggle-max" title="${isFa ? 'بزرگنمایی چارت فعال (Alt+Enter)' : 'Maximize Active Chart (Alt+Enter)'}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <span>${isGridMaximized ? (isFa ? 'خروج از زوم' : 'Restore') : (isFa ? 'تمام‌صفحه' : 'Maximize')}</span>
+      </button>
+    `;
+
+    strip.querySelector('#btn-strip-overview')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ws?.clearMaximized?.();
+      this.updateCellStrip();
+    });
+
+    strip.querySelector('#btn-strip-toggle-max')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleMaximizeActiveCell();
+    });
+
+    strip.querySelectorAll('[data-cell-id]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cid = btn.getAttribute('data-cell-id');
+        if (cid) {
+          ws?.setActiveCell?.(cid);
+          // On mobile, tap maximizes that cell for full touch control
+          if (window.innerWidth <= 768) {
+            ws?.maximizeCell?.(cid);
+          }
+          this.updateCellStrip();
+        }
+      });
+    });
   }
 
   openLayoutStudio() {
@@ -416,17 +522,42 @@ export class LayoutManager {
 
     const isFa = getLanguage() === 'fa';
 
+    // Filter and Sort saved layouts
+    let filteredLayouts = [...this.savedLayouts];
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      filteredLayouts = filteredLayouts.filter(l => 
+        (l.name && l.name.toLowerCase().includes(q)) ||
+        (l.nameFa && l.nameFa.toLowerCase().includes(q)) ||
+        (l.badge && l.badge.toLowerCase().includes(q))
+      );
+    }
+
+    if (this.sortBy === 'name') {
+      filteredLayouts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else {
+      filteredLayouts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+
     modal.innerHTML = `
       <div class="modal-box layout-studio-modal" style="max-width: 680px; width: 95vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; ${isFa ? 'font-family: var(--font-vazirmatn), sans-serif;' : ''}">
+        
         <!-- Modal Header with correct RTL/LTR symmetry -->
         <div class="modal-header" style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'direction: rtl;' : 'direction: ltr;'}">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #fff;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
             <span>${isFa ? 'استودیو و مدیریت چیدمان چندچارته' : 'TradingView Multi-Chart Layout Studio'}</span>
           </div>
-          <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; ${isFa ? 'order: -1;' : ''}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <!-- Auto-save toggle pill -->
+            <button id="btn-toggle-autosave" style="background: ${this.autoSaveEnabled ? 'rgba(0, 242, 176, 0.12)' : 'rgba(255,255,255,0.05)'}; border: 1px solid ${this.autoSaveEnabled ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; color: ${this.autoSaveEnabled ? 'var(--accent-cyan)' : 'var(--text-dim)'}; border-radius: 20px; font-size: 10px; font-weight: 700; padding: 3px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <span>⚡</span>
+              <span>${isFa ? (this.autoSaveEnabled ? 'ذخیره خودکار: فعال' : 'ذخیره خودکار: غیرفعال') : (this.autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF')}</span>
+            </button>
+            <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
 
         <!-- Modal Body -->
@@ -460,22 +591,24 @@ export class LayoutManager {
             </div>
           </div>
 
-          <!-- Section 2: Multi-Chart Synchronization Slider Switches -->
+          <!-- Section 2: 6-Axis Multi-Chart Synchronization Switches -->
           <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
             <div style="font-size: 12px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              <span>${isFa ? 'همگام‌سازی هوشمند چارت‌ها (Sync in Layout)' : 'Multi-Chart Synchronization Settings'}</span>
+              <span>${isFa ? 'همگام‌سازی جامع ۶ محوره چارت‌ها (Sync in Layout)' : '6-Axis Multi-Chart Synchronization Settings'}</span>
             </div>
             <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">
-              ${isFa ? 'رفتار چارت‌ها هنگام تغییر نماد، تایم‌فریم، حرکت ماوس و استایل را تعیین کنید:' : 'Configure how charts react when changing symbols, timeframes, or moving the crosshair cursor:'}
+              ${isFa ? 'تعیین کنید چه ویژگی‌هایی میان پنجره‌های چارت همگام باشند (تغییر نماد، تایم‌فریم، ماوس، محدوده زوم، ابزارهای رسم و استایل):' : 'Configure which parameters mirror across all chart panes in the active multi-grid:'}
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
               ${[
                 { key: 'symbol', labelEn: 'Symbol', labelFa: 'نماد دارایی' },
                 { key: 'timeframe', labelEn: 'Interval', labelFa: 'تایم‌فریم' },
                 { key: 'crosshair', labelEn: 'Crosshair', labelFa: 'کراس‌هیر ماوس' },
-                { key: 'style', labelEn: 'Style', labelFa: 'استایل کندل' }
+                { key: 'viewport', labelEn: 'Time & Zoom', labelFa: 'زمان و زوم' },
+                { key: 'drawings', labelEn: 'Drawings', labelFa: 'ابزارهای ترسیمی' },
+                { key: 'style', labelEn: 'Chart Style', labelFa: 'استایل کندل' }
               ].map(item => {
                 const isOn = !!this.syncOpts[item.key];
                 return `
@@ -490,10 +623,21 @@ export class LayoutManager {
             </div>
           </div>
 
-          <!-- Section 3: Saved Custom Layouts with Protected Deletion -->
+          <!-- Section 3: Saved Custom Layouts with Search & Sort -->
           <div>
-            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
-              ${isFa ? 'چیدمان‌های ذخیره‌شده کاربر' : 'Saved User Layouts'}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
+                ${isFa ? 'چیدمان‌های ذخیره‌شده کاربر' : 'Saved User Layouts'} (${filteredLayouts.length})
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="btn-sort-date" class="btn-secondary" style="font-size: 10px; padding: 3px 8px; ${this.sortBy === 'date' ? 'color: var(--accent-cyan); border-color: var(--accent-cyan);' : ''}">${isFa ? 'تاریخ' : 'Date'}</button>
+                <button id="btn-sort-name" class="btn-secondary" style="font-size: 10px; padding: 3px 8px; ${this.sortBy === 'name' ? 'color: var(--accent-cyan); border-color: var(--accent-cyan);' : ''}">${isFa ? 'نام' : 'Name'}</button>
+              </div>
+            </div>
+
+            <!-- Search filter -->
+            <div style="margin-bottom: 8px;">
+              <input type="text" id="layout-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجو در نام و مشخصات چیدمان‌ها...' : 'Search layouts by name...'}" style="width: 100%; box-sizing: border-box; padding: 6px 12px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; outline: none;" />
             </div>
 
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
@@ -508,29 +652,37 @@ export class LayoutManager {
               <input type="file" id="import-layout-file" accept=".json,application/json" style="display:none;" />
             </div>
 
-            <div class="saved-layouts-list" style="display: flex; flex-direction: column; gap: 6px;">
-              ${this.savedLayouts.map(l => `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px;">
+            <div class="saved-layouts-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">
+              ${filteredLayouts.length === 0 ? `
+                <div style="padding: 16px; text-align: center; color: var(--text-dim); font-size: 11px;">
+                  ${isFa ? 'هیچ چیدمانی با این عبارت یافت نشد.' : 'No matching layouts found.'}
+                </div>
+              ` : filteredLayouts.map(l => {
+                const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
+                return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: ${isCurrent ? 'rgba(0, 242, 176, 0.05)' : 'var(--bg-surface)'}; border: 1px solid ${isCurrent ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 6px; padding: 8px 12px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px;">
                       ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
                     </span>
-                    <span style="font-weight: 700; font-size: 12px; color: #fff;">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
+                    <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'};">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
+                    ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #fff; background: var(--accent-cyan); color: #000; padding: 1px 5px; border-radius: 10px;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
                     <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
                   </div>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600;">
+                    <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
                       ${isFa ? 'بارگذاری' : 'Load'}
                     </button>
                     <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 3px 7px; font-size: 11px;">✏️</button>
                     <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 3px 7px; font-size: 11px;">⧉</button>
                     <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 3px 7px; font-size: 11px;">⤓</button>
-                    <button class="btn-secondary btn-del-layout" data-id="${l.id}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
+                    <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
                       ✕
                     </button>
                   </div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
           </div>
 
@@ -545,6 +697,38 @@ export class LayoutManager {
     modal.querySelector('#btn-close-layout-studio')?.addEventListener('click', close);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) close();
+    });
+
+    // Bind Auto-Save Toggle
+    modal.querySelector('#btn-toggle-autosave')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.autoSaveEnabled = !this.autoSaveEnabled;
+      localStorage.setItem('tradingchart_layout_autosave', String(this.autoSaveEnabled));
+      this.openLayoutStudio();
+    });
+
+    // Bind Search Input
+    const searchInput = modal.querySelector('#layout-search-input');
+    searchInput?.addEventListener('input', (e) => {
+      this.searchQuery = e.target.value;
+      this.openLayoutStudio();
+      const updatedInput = document.querySelector('#layout-search-input');
+      if (updatedInput) {
+        updatedInput.focus();
+        updatedInput.setSelectionRange(updatedInput.value.length, updatedInput.value.length);
+      }
+    });
+
+    // Bind Sort buttons
+    modal.querySelector('#btn-sort-date')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.sortBy = 'date';
+      this.openLayoutStudio();
+    });
+    modal.querySelector('#btn-sort-name')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.sortBy = 'name';
+      this.openLayoutStudio();
     });
 
     // Bind Grid Preset Clicks
@@ -565,7 +749,7 @@ export class LayoutManager {
         const syncType = btn.getAttribute('data-sync');
         const nextState = !this.syncOpts[syncType];
         this.toggleSync(syncType, nextState);
-        this.openLayoutStudio(); // Re-render with animated switch position
+        this.openLayoutStudio();
       });
     });
 
@@ -612,7 +796,7 @@ export class LayoutManager {
       e.target.value = '';
     });
 
-    // Bind Load / Delete
+    // Bind Load
     modal.querySelectorAll('.btn-load-layout').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -620,20 +804,31 @@ export class LayoutManager {
         const name = btn.getAttribute('data-name');
         const id = btn.getAttribute('data-id');
         const saved = this.savedLayouts.find(l => l.id === id);
-        // Full-setup restore when the layout carries a captured workspace state.
         this.setLayout(layoutId, name, saved?.state ? { state: saved.state, stateName: name } : {});
         close();
       });
     });
 
-    // Rename — inline prompt
+    // Rename — custom modal dialog (Zero window.prompt)
     modal.querySelectorAll('.btn-rename-layout').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
         const cur = btn.getAttribute('data-name') || '';
-        const next = prompt(isFa ? 'نام جدید چیدمان:' : 'New layout name:', cur);
-        if (next && next.trim()) { this.renameLayout(id, next.trim()); this.openLayoutStudio(); }
+        showPromptDialog({
+          title: isFa ? 'تغییر نام چیدمان' : 'Rename Layout',
+          message: isFa ? 'نام جدید چیدمان مورد نظر را وارد نمایید:' : 'Enter the new name for this layout setup:',
+          defaultValue: cur,
+          placeholder: isFa ? 'نام چیدمان...' : 'Layout name...',
+          confirmText: isFa ? 'ذخیره نام' : 'Save Name',
+          cancelText: isFa ? 'انصراف' : 'Cancel',
+          onConfirm: (newName) => {
+            if (newName && newName.trim()) {
+              this.renameLayout(id, newName.trim());
+              this.openLayoutStudio();
+            }
+          }
+        });
       });
     });
 
@@ -661,13 +856,26 @@ export class LayoutManager {
       });
     });
 
+    // Delete with custom modal dialog (Zero window.confirm)
     modal.querySelectorAll('.btn-del-layout').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        this.savedLayouts = this.savedLayouts.filter(l => l.id !== id);
-        this.saveSavedLayouts();
-        this.openLayoutStudio();
+        const name = btn.getAttribute('data-name') || '';
+        showConfirmDialog({
+          title: isFa ? 'حذف چیدمان' : 'Delete Layout',
+          message: isFa 
+            ? `آیا از حذف دائمی چیدمان «${name}» اطمینان دارید؟ این عمل غیرقابل بازگشت است.`
+            : `Are you sure you want to permanently delete layout "${name}"? This action cannot be undone.`,
+          confirmText: isFa ? 'حذف چیدمان' : 'Delete Layout',
+          cancelText: isFa ? 'انصراف' : 'Cancel',
+          danger: true,
+          onConfirm: () => {
+            this.savedLayouts = this.savedLayouts.filter(l => l.id !== id);
+            this.saveSavedLayouts();
+            this.openLayoutStudio();
+          }
+        });
       });
     });
   }
