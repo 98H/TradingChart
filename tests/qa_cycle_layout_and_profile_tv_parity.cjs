@@ -160,7 +160,7 @@ const EVID = path.resolve(__dirname, '../screenshots/qa_cycles');
       const isUpdated = topbarAvatar === '🦅';
       return { avatars, isUpdated, topbarAvatar };
     });
-    (prefTabOk.avatars === 6 && prefTabOk.isUpdated)
+    (prefTabOk.avatars >= 6 && prefTabOk.isUpdated)
       ? pass('avatar studio allows selecting institutional avatars and syncs with topbar')
       : fail('avatar studio', JSON.stringify(prefTabOk));
     await dCtx.page.screenshot({ path: path.join(EVID, 'tv_parity_04_profile_preferences.png') });

@@ -1380,6 +1380,7 @@ canvas.volume-layer-canvas {
   #btn-toggle-panels-dock,
   #nav-btn-journal,
   #btn-shortcuts-help,
+  #btn-toggle-sound,
   .top-nav-layout-suite,
   .latency-badge {
     display: none !important;
@@ -1396,20 +1397,20 @@ canvas.volume-layer-canvas {
   .top-nav-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
   }
 
   .top-nav-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
   .nav-pill {
-    padding: 6px 14px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
     font-weight: 700;
     min-height: 34px;
     display: inline-flex;
@@ -1419,10 +1420,10 @@ canvas.volume-layer-canvas {
 
   .nav-icon-btn,
   .mobile-only-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2560,6 +2561,20 @@ body.persian-mode .nav-export-btn svg {
   }
   .user-profile-box {
     max-height: 90vh !important;
+  }
+  #multi-chart-cell-strip {
+    top: auto !important;
+    bottom: 58px !important;
+    max-width: 95vw !important;
+    padding: 4px 8px !important;
+    background: rgba(11, 15, 23, 0.94) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+    z-index: 95 !important;
+  }
+  .cell-strip-pill {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+    min-height: 28px !important;
   }
   .news-cat-btn {
     min-height: 36px !important;

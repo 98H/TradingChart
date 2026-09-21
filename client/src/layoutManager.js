@@ -125,10 +125,18 @@ export class LayoutManager {
     try {
       const raw = localStorage.getItem('tradingchart_current_layout');
       if (!raw) return;
-      const { layoutId, name } = JSON.parse(raw);
-      if (layoutId && layoutId !== '1') {
-        this.activeLayoutId = layoutId;
-        if (name) this.activeLayoutName = name;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.layoutId) {
+        this.activeLayoutId = parsed.layoutId;
+        if (parsed.name) this.activeLayoutName = parsed.name;
+        if (parsed.sync) this.syncOpts = { ...this.syncOpts, ...parsed.sync };
+        setTimeout(() => {
+          this.setLayout(parsed.layoutId, parsed.name, {
+            state: parsed.state,
+            skipSave: true
+          });
+          this.applyAllSyncOptions();
+        }, 600);
       }
     } catch (e) {}
   }
@@ -290,14 +298,48 @@ export class LayoutManager {
       const state = this.captureWorkspaceState();
       if (!state) return;
       
-      // Auto-save the active layout state into localStorage
+      // 1. Always persist the active workspace state for seamless reload recovery
+      try {
+        localStorage.setItem('tradingchart_current_layout', JSON.stringify({
+          layoutId: this.activeLayoutId,
+          name: this.activeLayoutName,
+          state,
+          sync: { ...this.syncOpts },
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+
+      // 2. If the active layout corresponds to a saved layout item, update its state too
       const activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
       if (activeIdx !== -1) {
         this.savedLayouts[activeIdx].state = state;
         this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
         this.saveSavedLayouts();
       }
-    }, 30000);
+
+      // 3. Briefly show subtle saving -> saved indicator
+      this.flashAutoSaveStatus();
+    }, 25000);
+  }
+
+  flashAutoSaveStatus() {
+    const isFa = getLanguage() === 'fa';
+    const label = document.querySelector('#layout-save-label');
+    const saveBtn = document.querySelector('#btn-layout-save');
+    if (label) {
+      label.innerText = isFa ? 'ذخیره شد ✓' : 'Saved ✓';
+      if (saveBtn) {
+        saveBtn.style.color = 'var(--accent-green)';
+        saveBtn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+      }
+      setTimeout(() => {
+        if (label) label.innerText = isFa ? 'ذخیره' : 'Save';
+        if (saveBtn) {
+          saveBtn.style.color = '';
+          saveBtn.style.borderColor = '';
+        }
+      }, 2500);
+    }
   }
 
   quickSaveLayout() {
@@ -316,6 +358,7 @@ export class LayoutManager {
     const layoutNameFa = preset ? preset.nameFa : this.activeLayoutName;
     const badgeText = count === 1 ? '1 Chart' : `${count} Charts`;
     const badgeFa = count === 1 ? '۱ چارت' : `${toPersianDigits(count)} چارت`;
+    const state = this.captureWorkspaceState();
 
     this.savedLayouts = this.savedLayouts.filter(l => l.name !== layoutNameEn);
     this.savedLayouts.unshift({
@@ -326,10 +369,20 @@ export class LayoutManager {
       badge: badgeText,
       badgeFa: badgeFa,
       sync: { ...this.syncOpts },
-      state: this.captureWorkspaceState(),
+      state,
       date: new Date().toISOString().split('T')[0]
     });
     this.saveSavedLayouts();
+
+    // Also persist into active current layout
+    try {
+      localStorage.setItem('tradingchart_current_layout', JSON.stringify({
+        layoutId: this.activeLayoutId,
+        name: layoutNameEn,
+        state,
+        sync: { ...this.syncOpts }
+      }));
+    } catch (e) {}
 
     this.app.showExecutionToast(isFa ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
 
@@ -411,9 +464,20 @@ export class LayoutManager {
 
   toggleSync(kind, enabled) {
     this.syncOpts[kind] = enabled;
+    localStorage.setItem('tradingchart_layout_sync', JSON.stringify(this.syncOpts));
     const ws = this.app?.chartManager?.workspace;
     if (ws?.sync) {
       ws.sync.set(kind, enabled);
+    }
+  }
+
+  applyAllSyncOptions() {
+    const ws = this.app?.chartManager?.workspace;
+    if (!ws?.sync) return;
+    for (const [kind, enabled] of Object.entries(this.syncOpts)) {
+      try {
+        ws.sync.set(kind, !!enabled);
+      } catch (e) {}
     }
   }
 
@@ -449,6 +513,7 @@ export class LayoutManager {
 
     if (this.activeLayoutId === '1') {
       strip.style.display = 'none';
+      strip.innerHTML = '';
       return;
     }
 
@@ -653,36 +718,7 @@ export class LayoutManager {
             </div>
 
             <div class="saved-layouts-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">
-              ${filteredLayouts.length === 0 ? `
-                <div style="padding: 16px; text-align: center; color: var(--text-dim); font-size: 11px;">
-                  ${isFa ? 'هیچ چیدمانی با این عبارت یافت نشد.' : 'No matching layouts found.'}
-                </div>
-              ` : filteredLayouts.map(l => {
-                const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
-                return `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: ${isCurrent ? 'rgba(0, 242, 176, 0.05)' : 'var(--bg-surface)'}; border: 1px solid ${isCurrent ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 6px; padding: 8px 12px;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px;">
-                      ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
-                    </span>
-                    <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'};">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
-                    ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #fff; background: var(--accent-cyan); color: #000; padding: 1px 5px; border-radius: 10px;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
-                    <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
-                  </div>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
-                      ${isFa ? 'بارگذاری' : 'Load'}
-                    </button>
-                    <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 3px 7px; font-size: 11px;">✏️</button>
-                    <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 3px 7px; font-size: 11px;">⧉</button>
-                    <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 3px 7px; font-size: 11px;">⤓</button>
-                    <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              `;
-              }).join('')}
+              ${this.renderSavedLayoutsList(isFa)}
             </div>
           </div>
 
@@ -699,36 +735,58 @@ export class LayoutManager {
       if (e.target === modal) close();
     });
 
-    // Bind Auto-Save Toggle
+    // Bind Auto-Save Toggle (Updates button UI directly without closing modal)
     modal.querySelector('#btn-toggle-autosave')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.autoSaveEnabled = !this.autoSaveEnabled;
       localStorage.setItem('tradingchart_layout_autosave', String(this.autoSaveEnabled));
-      this.openLayoutStudio();
-    });
-
-    // Bind Search Input
-    const searchInput = modal.querySelector('#layout-search-input');
-    searchInput?.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value;
-      this.openLayoutStudio();
-      const updatedInput = document.querySelector('#layout-search-input');
-      if (updatedInput) {
-        updatedInput.focus();
-        updatedInput.setSelectionRange(updatedInput.value.length, updatedInput.value.length);
+      const btn = modal.querySelector('#btn-toggle-autosave');
+      if (btn) {
+        btn.style.background = this.autoSaveEnabled ? 'rgba(0, 242, 176, 0.12)' : 'rgba(255,255,255,0.05)';
+        btn.style.borderColor = this.autoSaveEnabled ? 'var(--accent-cyan)' : 'var(--border-subtle)';
+        btn.style.color = this.autoSaveEnabled ? 'var(--accent-cyan)' : 'var(--text-dim)';
+        btn.innerHTML = `<span>⚡</span><span>${isFa ? (this.autoSaveEnabled ? 'ذخیره خودکار: فعال' : 'ذخیره خودکار: غیرفعال') : (this.autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF')}</span>`;
       }
     });
 
-    // Bind Sort buttons
+    // Bind Search Input with TARGETED DOM FILTERING (Zero focus loss, Zero IME glitch)
+    const searchInput = modal.querySelector('#layout-search-input');
+    searchInput?.addEventListener('input', (e) => {
+      this.searchQuery = e.target.value;
+      const list = modal.querySelector('.saved-layouts-list');
+      if (list) {
+        list.innerHTML = this.renderSavedLayoutsList(isFa);
+        this.bindSavedLayoutRowEvents(modal, isFa);
+      }
+    });
+
+    // Bind Sort buttons (Targeted list re-render)
     modal.querySelector('#btn-sort-date')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.sortBy = 'date';
-      this.openLayoutStudio();
+      modal.querySelector('#btn-sort-date').style.color = 'var(--accent-cyan)';
+      modal.querySelector('#btn-sort-date').style.borderColor = 'var(--accent-cyan)';
+      modal.querySelector('#btn-sort-name').style.color = '';
+      modal.querySelector('#btn-sort-name').style.borderColor = '';
+      const list = modal.querySelector('.saved-layouts-list');
+      if (list) {
+        list.innerHTML = this.renderSavedLayoutsList(isFa);
+        this.bindSavedLayoutRowEvents(modal, isFa);
+      }
     });
+
     modal.querySelector('#btn-sort-name')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.sortBy = 'name';
-      this.openLayoutStudio();
+      modal.querySelector('#btn-sort-name').style.color = 'var(--accent-cyan)';
+      modal.querySelector('#btn-sort-name').style.borderColor = 'var(--accent-cyan)';
+      modal.querySelector('#btn-sort-date').style.color = '';
+      modal.querySelector('#btn-sort-date').style.borderColor = '';
+      const list = modal.querySelector('.saved-layouts-list');
+      if (list) {
+        list.innerHTML = this.renderSavedLayoutsList(isFa);
+        this.bindSavedLayoutRowEvents(modal, isFa);
+      }
     });
 
     // Bind Grid Preset Clicks
@@ -742,14 +800,22 @@ export class LayoutManager {
       });
     });
 
-    // Bind Sync Switches
+    // Bind Sync Switches (Toggles button and workspace state cleanly)
     modal.querySelectorAll('.sync-switch-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const syncType = btn.getAttribute('data-sync');
         const nextState = !this.syncOpts[syncType];
         this.toggleSync(syncType, nextState);
-        this.openLayoutStudio();
+        btn.classList.toggle('active', nextState);
+        btn.style.background = nextState ? 'rgba(0, 242, 176, 0.12)' : 'var(--bg-surface)';
+        btn.style.borderColor = nextState ? 'var(--accent-cyan)' : 'var(--border-subtle)';
+        btn.style.color = nextState ? '#fff' : 'var(--text-dim)';
+        const checkSpan = btn.querySelector('span:last-child');
+        if (checkSpan) {
+          checkSpan.innerText = nextState ? '✓' : '—';
+          checkSpan.style.color = nextState ? 'var(--accent-cyan)' : 'var(--text-dim)';
+        }
       });
     });
 
@@ -771,7 +837,12 @@ export class LayoutManager {
         date: new Date().toISOString().split('T')[0]
       });
       this.saveSavedLayouts();
-      this.openLayoutStudio();
+      const list = modal.querySelector('.saved-layouts-list');
+      if (list) {
+        list.innerHTML = this.renderSavedLayoutsList(isFa);
+        this.bindSavedLayoutRowEvents(modal, isFa);
+      }
+      this.app?.showToast?.(isFa ? 'چیدمان با موفقیت ذخیره شد' : 'Layout saved', 'success');
     });
 
     // Import — read JSON file
@@ -779,6 +850,7 @@ export class LayoutManager {
       e.stopPropagation();
       modal.querySelector('#import-layout-file')?.click();
     });
+
     modal.querySelector('#import-layout-file')?.addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -787,7 +859,11 @@ export class LayoutManager {
         const imported = this.importLayout(String(reader.result || ''));
         if (imported) {
           this.app?.showToast?.(isFa ? 'چیدمان با موفقیت وارد شد' : 'Layout imported', 'success');
-          this.openLayoutStudio();
+          const list = modal.querySelector('.saved-layouts-list');
+          if (list) {
+            list.innerHTML = this.renderSavedLayoutsList(isFa);
+            this.bindSavedLayoutRowEvents(modal, isFa);
+          }
         } else {
           this.app?.showToast?.(isFa ? 'فایل چیدمان نامعتبر است' : 'Invalid layout file', 'error');
         }
@@ -795,6 +871,66 @@ export class LayoutManager {
       reader.readAsText(file);
       e.target.value = '';
     });
+
+    // Bind saved layout rows
+    this.bindSavedLayoutRowEvents(modal, isFa);
+  }
+
+  renderSavedLayoutsList(isFa) {
+    let filteredLayouts = [...this.savedLayouts];
+    if (this.searchQuery && this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      filteredLayouts = filteredLayouts.filter(l => 
+        (l.name && l.name.toLowerCase().includes(q)) ||
+        (l.nameFa && l.nameFa.toLowerCase().includes(q)) ||
+        (l.badge && l.badge.toLowerCase().includes(q))
+      );
+    }
+
+    if (this.sortBy === 'name') {
+      filteredLayouts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else {
+      filteredLayouts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+
+    if (filteredLayouts.length === 0) {
+      return `
+        <div style="padding: 16px; text-align: center; color: var(--text-dim); font-size: 11px;">
+          ${isFa ? 'هیچ چیدمانی با این عبارت یافت نشد.' : 'No matching layouts found.'}
+        </div>
+      `;
+    }
+
+    return filteredLayouts.map(l => {
+      const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
+      return `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: ${isCurrent ? 'rgba(0, 242, 176, 0.05)' : 'var(--bg-surface)'}; border: 1px solid ${isCurrent ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 6px; padding: 8px 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 10px; font-weight: 800; color: var(--accent-cyan); background: rgba(0,242,176,0.1); border: 1px solid rgba(0,242,176,0.2); padding: 2px 8px; border-radius: 4px;">
+            ${isFa ? (l.badgeFa || l.badge || 'چارت') : (l.badge === '1 Charts' ? '1 Chart' : (l.badge || 'Grid'))}
+          </span>
+          <span style="font-weight: 700; font-size: 12px; color: ${isCurrent ? 'var(--accent-cyan)' : '#fff'};">${(isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x')}</span>
+          ${isCurrent ? `<span style="font-size: 9px; font-weight: 800; color: #fff; background: var(--accent-cyan); color: #000; padding: 1px 5px; border-radius: 10px;">${isFa ? 'فعال' : 'ACTIVE'}</span>` : ''}
+          <span style="font-size: 10px; color: var(--text-dim);" class="num-ltr">${l.date}</span>
+        </div>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button class="btn-secondary btn-load-layout" data-id="${l.id}" data-layout="${l.layoutId}" data-name="${l.name}" style="padding: 3px 12px; font-size: 11px; font-weight: 600; ${isCurrent ? 'border-color: var(--accent-cyan); color: var(--accent-cyan);' : ''}">
+            ${isFa ? 'بارگذاری' : 'Load'}
+          </button>
+          <button class="btn-secondary btn-rename-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'تغییر نام' : 'Rename'}" style="padding: 3px 7px; font-size: 11px;">✏️</button>
+          <button class="btn-secondary btn-dup-layout" data-id="${l.id}" title="${isFa ? 'تکثیر' : 'Duplicate'}" style="padding: 3px 7px; font-size: 11px;">⧉</button>
+          <button class="btn-secondary btn-export-layout" data-id="${l.id}" title="${isFa ? 'خروجی JSON' : 'Export JSON'}" style="padding: 3px 7px; font-size: 11px;">⤓</button>
+          <button class="btn-secondary btn-del-layout" data-id="${l.id}" data-name="${(isFa ? (l.nameFa || l.name) : l.name).replace(/"/g, '&quot;')}" title="${isFa ? 'حذف این چیدمان' : 'Delete Layout'}" style="padding: 3px 8px; font-size: 11px; color: #f87171; border-color: rgba(239,68,68,0.3);">
+            ✕
+          </button>
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  bindSavedLayoutRowEvents(modal, isFa) {
+    const close = () => modal.classList.remove('open');
 
     // Bind Load
     modal.querySelectorAll('.btn-load-layout').forEach(btn => {
@@ -825,7 +961,11 @@ export class LayoutManager {
           onConfirm: (newName) => {
             if (newName && newName.trim()) {
               this.renameLayout(id, newName.trim());
-              this.openLayoutStudio();
+              const list = modal.querySelector('.saved-layouts-list');
+              if (list) {
+                list.innerHTML = this.renderSavedLayoutsList(isFa);
+                this.bindSavedLayoutRowEvents(modal, isFa);
+              }
             }
           }
         });
@@ -837,7 +977,11 @@ export class LayoutManager {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.duplicateLayout(btn.getAttribute('data-id'));
-        this.openLayoutStudio();
+        const list = modal.querySelector('.saved-layouts-list');
+        if (list) {
+          list.innerHTML = this.renderSavedLayoutsList(isFa);
+          this.bindSavedLayoutRowEvents(modal, isFa);
+        }
       });
     });
 
@@ -873,7 +1017,11 @@ export class LayoutManager {
           onConfirm: () => {
             this.savedLayouts = this.savedLayouts.filter(l => l.id !== id);
             this.saveSavedLayouts();
-            this.openLayoutStudio();
+            const list = modal.querySelector('.saved-layouts-list');
+            if (list) {
+              list.innerHTML = this.renderSavedLayoutsList(isFa);
+              this.bindSavedLayoutRowEvents(modal, isFa);
+            }
           }
         });
       });

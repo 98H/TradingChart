@@ -1490,6 +1490,13 @@ class TradingChartApp {
     this.scaleControls?.render?.();
     this.floatingDrawingToolbar?.render?.();
     this.layoutManager?.updateTopbarLabel?.();
+    if (document.querySelector('#modal-layout-studio')?.classList.contains('open')) {
+      this.layoutManager?.openLayoutStudio?.();
+    }
+    if (document.querySelector('#modal-user-profile')?.classList.contains('open')) {
+      this.userProfileModal?.open?.();
+    }
+    this.layoutManager?.updateCellStrip?.();
     // Modals & side panels that live in separate mount containers
     this.indicatorsModal?.render?.();
     this.settingsModal?.render?.();

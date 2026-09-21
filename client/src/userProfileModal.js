@@ -12,6 +12,7 @@ export const AVATAR_PRESETS = [
   { id: 'falcon', icon: '🦅', nameEn: 'Quant Falcon', nameFa: 'شاهین کوانت' },
   { id: 'hft', icon: '⚡', nameEn: 'HFT Spark', nameFa: 'تکانه فرکانس بالا' },
   { id: 'crown', icon: '👑', nameEn: 'Sovereign Desk', nameFa: 'میز معاملات سلطنتی' },
+  { id: 'initials', icon: 'HM', nameEn: 'Initials (HM)', nameFa: 'حروف اختصاری (HM)' },
 ];
 
 export class UserProfileModal {
