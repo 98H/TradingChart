@@ -56,7 +56,7 @@ export class DepthOfMarketView {
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-weight: 800; font-family: var(--font-mono); color: #fff; font-size: 13px;" id="dom-symbol">${this.symbol}</span>
-              <span style="font-size: 10px; color: var(--accent-cyan); background: rgba(0,242,176,0.1); padding: 1px 5px; border-radius: 3px; font-weight: 700;">DOM L2</span>
+              <span style="font-size: 10px; color: var(--accent-cyan); background: rgba(0,242,176,0.1); padding: 1px 5px; border-radius: 3px; font-weight: 700;">${isFa ? 'عمق بازار L2' : 'DOM L2'}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حجم سفارش:' : 'Size:'}</span>

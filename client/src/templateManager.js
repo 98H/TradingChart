@@ -212,6 +212,11 @@ export class TemplateManager {
         return;
       }
 
+      // TradingView-parity plan gate: saved indicator templates entitlement.
+      if (this.app?.auth && !this.app.auth.enforce('savedTemplates', this.userTemplates.length, 'saved templates', 'قالب‌های ذخیره‌شده')) {
+        return;
+      }
+
       this.userTemplates.push({
         id: 'tmpl-' + Date.now(),
         name,

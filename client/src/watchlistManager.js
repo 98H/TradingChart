@@ -2,8 +2,12 @@
 // Dynamic multi-watchlist & quote manager for TradingChart (TradingView Parity)
 // Features color flags (Red, Green, Blue, Yellow, Purple), multi-column sorting, and custom list curation
 
-import { getLanguage } from './i18n.js';
+import { getLanguage, toPersianDigits } from './i18n.js';
 import { TechnicalRatingCard } from './technicalRatingCard.js';
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 export const PRESET_WATCHLISTS = {
   crypto: {
@@ -31,6 +35,7 @@ export const PRESET_WATCHLISTS = {
 export class WatchlistManager {
   constructor(options = {}) {
     this.container = options.container;
+    this.app = options.app || null;
     this.onSelectSymbol = options.onSelectSymbol || (() => {});
     this.currentCategory = 'crypto';
     this.currentFlagFilter = 'all'; // 'all', 'red', 'green', 'blue', 'yellow', 'purple'
@@ -39,10 +44,141 @@ export class WatchlistManager {
     this.tickers = new Map();
     this.customSymbols = JSON.parse(localStorage.getItem('tradingchart_custom_watchlist') || '["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"]');
     this.flags = JSON.parse(localStorage.getItem('tradingchart_watchlist_flags') || '{}'); // { "BTCUSDT": "red" }
+    this.loadUserLists();
 
     this.render();
     this.fetchTickers();
     this.pollInterval = setInterval(() => this.fetchTickers(), 3000);
+  }
+
+  // ── Multi-watchlist layer (TradingView parity) ─────────────────────────
+  loadUserLists() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('tradingchart_user_watchlists') || 'null');
+      if (raw && Array.isArray(raw.lists) && raw.lists.length > 0) {
+        this.userLists = raw.lists;
+        this.activeListId = raw.activeId || raw.lists[0].id;
+      } else {
+        // Migrate the legacy single custom list into a named "Main" list.
+        this.userLists = [{
+          id: 'wl_main',
+          name: getLanguage() === 'fa' ? 'اصلی' : 'Main',
+          symbols: [...this.customSymbols]
+        }];
+        this.activeListId = 'wl_main';
+      }
+    } catch (e) {
+      this.userLists = [{ id: 'wl_main', name: 'Main', symbols: [...this.customSymbols] }];
+      this.activeListId = 'wl_main';
+    }
+  }
+
+  saveUserLists() {
+    try {
+      // keep the active list in sync with the live customSymbols mirror
+      const active = this.userLists.find(l => l.id === this.activeListId);
+      if (active) active.symbols = [...this.customSymbols];
+      localStorage.setItem('tradingchart_user_watchlists', JSON.stringify({ activeId: this.activeListId, lists: this.userLists }));
+    } catch (e) { /* quota */ }
+  }
+
+  activeList() { return this.userLists.find(l => l.id === this.activeListId) || this.userLists[0]; }
+
+  /** True when the selected category is one of the user's named lists. */
+  isCustomCategory() {
+    return this.currentCategory === 'custom' || this.currentCategory === `list:${this.activeListId}` || this.currentCategory.startsWith('list:');
+  }
+
+  switchList(listId) {
+    const target = this.userLists.find(l => l.id === listId);
+    if (!target) return;
+    this.saveUserLists(); // persist current symbols into its list first
+    this.activeListId = listId;
+    this.customSymbols = [...(target.symbols || [])];
+    localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
+    this.currentCategory = 'custom';
+    this.fetchTickers();
+    this.render();
+  }
+
+  createList(name) {
+    if (this.app?.auth && !this.app.auth.enforce('watchlists', this.userLists.length, 'watchlists', 'واچ‌لیست‌ها')) return null;
+    const isFa = getLanguage() === 'fa';
+    const list = {
+      id: 'wl_' + Date.now().toString(36),
+      name: (name || (isFa ? 'واچ‌لیست جدید' : 'New Watchlist')).slice(0, 40),
+      symbols: []
+    };
+    this.userLists.push(list);
+    this.saveUserLists();
+    this.switchList(list.id);
+    return list;
+  }
+
+  renameList(listId, name) {
+    const list = this.userLists.find(l => l.id === listId);
+    if (list && name) { list.name = String(name).slice(0, 40); this.saveUserLists(); this.render(); }
+  }
+
+  deleteList(listId) {
+    if (this.userLists.length <= 1) return false;
+    const idx = this.userLists.findIndex(l => l.id === listId);
+    if (idx < 0) return false;
+    const wasActive = listId === this.activeListId;
+    this.userLists.splice(idx, 1);
+    if (wasActive) {
+      this.activeListId = this.userLists[0].id;
+      this.customSymbols = [...(this.userLists[0].symbols || [])];
+      localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
+      this.fetchTickers();
+    }
+    this.saveUserLists();
+    this.render();
+    return true;
+  }
+
+  /** Bespoke glassmorphism manager for the active named list (rename/delete). */
+  openListManager() {
+    const isFa = getLanguage() === 'fa';
+    const list = this.activeList();
+    if (!list) return;
+    document.querySelector('#wl-list-manager')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'wl-list-manager';
+    overlay.className = 'modal-overlay open';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:99999; display:flex; align-items:center; justify-content:center;';
+    overlay.innerHTML = `
+      <div style="max-width:340px; width:90vw; background:var(--bg-card,#151c2d); border:1px solid var(--border-subtle); border-radius:12px; overflow:hidden; ${isFa ? 'direction:rtl;' : ''}">
+        <div style="padding:12px 16px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+          <strong style="font-size:13px; color:#fff;">${isFa ? 'مدیریت واچ‌لیست' : 'Manage Watchlist'}</strong>
+          <button data-close style="background:none; border:none; color:var(--text-dim); cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px; display:flex; flex-direction:column; gap:10px;">
+          <label style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-dim);">
+            <span>${isFa ? 'نام واچ‌لیست' : 'Watchlist name'}</span>
+            <input id="wl-rename-input" value="${escapeHtml(list.name)}" maxlength="40" style="padding:8px 10px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:6px; color:#fff; font-size:12px;" />
+          </label>
+          <div style="font-size:10px; color:var(--text-dim);">${isFa ? `${toPersianDigits(String((list.symbols || []).length))} نماد در این لیست` : `${(list.symbols || []).length} symbols in this list`}</div>
+          <div style="display:flex; gap:8px;">
+            <button id="wl-rename-save" style="flex:1; padding:8px; border-radius:7px; border:1px solid var(--accent-cyan,#00F2B0); background:var(--accent-cyan,#00F2B0); color:#04121e; font-weight:800; font-size:12px; cursor:pointer;">${isFa ? 'ذخیره نام' : 'Rename'}</button>
+            <button id="wl-delete-list" ${this.userLists.length <= 1 ? 'disabled style="flex:1; padding:8px; border-radius:7px; border:1px solid var(--border-subtle); background:transparent; color:var(--text-dim); font-weight:700; font-size:12px; opacity:0.5;"' : 'style="flex:1; padding:8px; border-radius:7px; border:1px solid #f87171; background:rgba(248,113,113,0.08); color:#f87171; font-weight:700; font-size:12px; cursor:pointer;"'}>${isFa ? 'حذف لیست' : 'Delete'}</button>
+          </div>
+          <div style="font-size:10px; color:var(--text-dim); line-height:1.5;">${this.userLists.length <= 1 ? (isFa ? 'حداقل یک واچ‌لیست باید باقی بماند. لیست‌های بیشتر با ارتقای پلن فعال می‌شوند.' : 'At least one watchlist must remain. More lists unlock with plan upgrades.') : (isFa ? 'حذف لیست، نمادهای آن را هم حذف می‌کند.' : 'Deleting a list also removes its symbols.')}</div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector('[data-close]').onclick = close;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#wl-rename-save').onclick = () => {
+      this.renameList(list.id, overlay.querySelector('#wl-rename-input').value.trim());
+      close();
+    };
+    overlay.querySelector('#wl-delete-list').onclick = () => {
+      if (this.userLists.length <= 1) return;
+      this.deleteList(list.id);
+      close();
+    };
   }
 
   destroy() {
@@ -50,7 +186,7 @@ export class WatchlistManager {
   }
 
   getActiveList() {
-    let list = this.currentCategory === 'custom'
+    let list = this.isCustomCategory()
       ? [...this.customSymbols]
       : [...(PRESET_WATCHLISTS[this.currentCategory]?.symbols || PRESET_WATCHLISTS.crypto.symbols)];
 
@@ -77,7 +213,7 @@ export class WatchlistManager {
   }
 
   async fetchTickers() {
-    const list = this.currentCategory === 'custom' ? this.customSymbols : PRESET_WATCHLISTS[this.currentCategory]?.symbols;
+    const list = this.isCustomCategory() ? this.customSymbols : PRESET_WATCHLISTS[this.currentCategory]?.symbols;
     if (!list || list.length === 0) return;
     try {
       const res = await fetch(`/api/tickers?symbols=${list.join(',')}`);
@@ -145,8 +281,10 @@ export class WatchlistManager {
               <option value="metals">${isFa ? 'فلزات و کالاها' : 'Metals & Commodities'}</option>
               <option value="forex">${isFa ? 'جفت‌ارزهای ماژور' : 'Forex Majors'}</option>
               <option value="equities">${isFa ? 'شاخص‌ها و سهام فناوری' : 'Indices & US Tech'}</option>
-              <option value="custom">${isFa ? '★ دیده‌بان سفارشی' : '★ Custom Watchlist'}</option>
+              ${this.userLists.map(l => `<option value="list:${l.id}" ${this.currentCategory === 'list:' + l.id ? 'selected' : ''}>★ ${escapeHtml(l.name)}</option>`).join('')}
             </select>
+            <button id="wl-new-list-btn" title="${isFa ? 'واچ‌لیست جدید' : 'New watchlist'}" style="width:24px; height:24px; border-radius:4px; background:var(--bg-card); border:1px solid var(--border-subtle); color:var(--accent-cyan); font-weight:800; cursor:pointer; flex-shrink:0;">+</button>
+            <button id="wl-list-menu-btn" title="${isFa ? 'مدیریت واچ‌لیست' : 'Manage watchlist'}" style="width:24px; height:24px; border-radius:4px; background:var(--bg-card); border:1px solid var(--border-subtle); color:var(--text-dim); cursor:pointer; flex-shrink:0; font-size:11px;">✎</button>
           </div>
 
           <!-- Color Flag Filter Pills -->
@@ -204,19 +342,46 @@ export class WatchlistManager {
     const btnAdd = this.container.querySelector('#wl-add-btn');
 
     select.addEventListener('change', (e) => {
-      this.currentCategory = e.target.value;
-      this.fetchTickers();
-      this.updateListUI();
+      const v = e.target.value;
+      if (v.startsWith('list:')) {
+        this.switchList(v.slice(5));
+      } else {
+        this.currentCategory = v;
+        this.fetchTickers();
+        this.updateListUI();
+      }
+    });
+
+    // New watchlist button — prompt via the bespoke dialog (no native prompt()).
+    this.container.querySelector('#wl-new-list-btn')?.addEventListener('click', () => {
+      import('./uiDialog.js').then(({ showPromptDialog }) => {
+        const isFa = getLanguage() === 'fa';
+        showPromptDialog({
+          title: isFa ? 'واچ‌لیست جدید' : 'New Watchlist',
+          placeholder: isFa ? 'نام واچ‌لیست' : 'Watchlist name',
+          confirmText: isFa ? 'ایجاد' : 'Create',
+          onConfirm: (name) => { if (name) this.createList(name); }
+        });
+      });
+    });
+
+    // Manage watchlist button — rename / delete the active named list.
+    this.container.querySelector('#wl-list-menu-btn')?.addEventListener('click', () => {
+      this.openListManager();
     });
 
     const handleAdd = () => {
       const sym = input.value.trim().toUpperCase();
       if (!sym) return;
+      // TradingView-parity plan gates: symbols-per-watchlist + watchlist count.
+      if (this.app?.auth && !this.app.auth.enforce('watchlistSymbols', this.customSymbols.length, 'symbols per watchlist', 'نماد در واچ‌لیست')) {
+        return;
+      }
       if (!this.customSymbols.includes(sym)) {
         this.customSymbols.push(sym);
         localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
-        this.currentCategory = 'custom';
-        select.value = 'custom';
+        this.currentCategory = 'list:' + this.activeListId;
+        select.value = this.currentCategory;
         input.value = '';
         this.fetchTickers();
         this.updateListUI();
@@ -352,14 +517,24 @@ export class WatchlistManager {
     });
 
     // Flag toggle cycling: none -> red -> green -> blue -> yellow -> purple -> none
+    // TradingView parity: Basic plan unlocks exactly ONE flag color; further
+    // colors require a paid tier (7 colors from Essential upward).
     const flagCycle = ['none', 'red', 'green', 'blue', 'yellow', 'purple'];
+    const allowedColors = this.app?.auth ? (this.app.auth.check('flagColors', 0).limit === -1 ? 7 : this.app.auth.check('flagColors', 0).limit) : 7;
     listEl.querySelectorAll('.btn-toggle-flag').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const sym = btn.getAttribute('data-symbol');
         const curr = this.flags[sym] || 'none';
-        const nextIdx = (flagCycle.indexOf(curr) + 1) % flagCycle.length;
-        this.setFlag(sym, flagCycle[nextIdx]);
+        const usable = flagCycle.slice(0, Math.max(2, Math.min(flagCycle.length, allowedColors + 1))); // +1 for 'none'
+        const nextIdx = (usable.indexOf(curr) + 1) % usable.length;
+        const nextColor = usable[nextIdx];
+        if (nextColor !== 'none' && flagCycle.indexOf(nextColor) > allowedColors) {
+          this.app?.auth?.enforce('flagColors', 0, 'flag colors', 'رنگ برچسب‌ها');
+          this.app?.auth?.openPlansModal?.();
+          return;
+        }
+        this.setFlag(sym, nextColor);
       });
     });
   }

@@ -16,6 +16,13 @@ const T = {
     const r = await page.evaluate(async () => {
       const app = window.__TRADING_APP__;
       const am = app.alertsManager;
+      // Plan-parity housekeeping: guests sit at the Basic cap (3). Trim the
+      // seeded alerts to 2 so the create path is actually exercisable.
+      while ((am?.alerts?.length ?? 0) > 2) {
+        am.alerts = am.alerts.slice(1);
+        am.saveAlerts();
+      }
+      am.render();
       const before = am?.alerts?.length ?? -1;
       // addAlert(targetPrice, condition) — the real signature the UI uses
       const id = am?.addAlert?.(999999);

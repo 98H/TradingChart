@@ -1,0 +1,30 @@
+[
+ {
+  "name": "AB1_account_tab",
+  "defects": []
+ },
+ {
+  "name": "AB2_change_password",
+  "defects": []
+ },
+ {
+  "name": "AB3_old_password_rejected",
+  "defects": []
+ },
+ {
+  "name": "AB4_new_password_login",
+  "defects": []
+ },
+ {
+  "name": "AB5_sessions_tab",
+  "defects": []
+ },
+ {
+  "name": "AB6_delete_requires_confirm",
+  "defects": []
+ },
+ {
+  "name": "AB7_account_deleted",
+  "defects": []
+ }
+]

@@ -176,6 +176,8 @@ export class LayoutManager {
   }
 
   duplicateLayout(id) {
+    // TradingView-parity plan gate: saved-layouts entitlement.
+    if (this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
     const l = this.savedLayouts.find(x => x.id === id);
     if (!l) return null;
     const copy = {
@@ -199,6 +201,8 @@ export class LayoutManager {
 
   importLayout(json) {
     try {
+      // TradingView-parity plan gate: importing consumes a saved-layout slot.
+      if (this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
       const obj = typeof json === 'string' ? JSON.parse(json) : json;
       if (!obj || obj.__tradingchart_layout !== true || !obj.layoutId) return null;
       const copy = { ...obj, id: 'usr_' + Date.now() };
@@ -647,8 +651,14 @@ export class LayoutManager {
             <div class="layout-preset-grid-responsive">
               ${DEFAULT_LAYOUT_PRESETS.map(preset => {
                 const isActive = preset.layoutId === this.activeLayoutId;
+                // TradingView-parity plan gate: charts-per-tab entitlement.
+                const cells = preset.cols * preset.rows;
+                const gate = this.app?.auth?.check('chartsPerTab', 0);
+                const maxCharts = gate ? gate.limit : cells;
+                const locked = this.app?.auth && maxCharts !== -1 && cells > maxCharts;
                 return `
-                  <button class="layout-preset-card ${isActive ? 'active' : ''}" data-layout="${preset.layoutId}" data-name="${preset.nameEn}" style="background: ${isActive ? 'rgba(0, 242, 176, 0.08)' : 'var(--bg-card)'}; border: 1px solid ${isActive ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 8px; padding: 10px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'}; display: flex; flex-direction: column; gap: 6px; transition: all 0.15s ease;">
+                  <button class="layout-preset-card ${isActive ? 'active' : ''}" data-layout="${preset.layoutId}" data-name="${preset.nameEn}" ${locked ? `data-locked="1" title="${isFa ? 'نیازمند ارتقای پلن' : 'Requires plan upgrade'}"` : ''} style="background: ${isActive ? 'rgba(0, 242, 176, 0.08)' : 'var(--bg-card)'}; border: 1px solid ${isActive ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; border-radius: 8px; padding: 10px; cursor: ${locked ? 'not-allowed' : 'pointer'}; text-align: ${isFa ? 'right' : 'left'}; display: flex; flex-direction: column; gap: 6px; transition: all 0.15s ease; ${locked ? 'opacity: 0.55; position: relative;' : ''}">
+                    ${locked ? `<div style="position:absolute; top:6px; ${isFa ? 'left' : 'right'}:8px; font-size:9px; background:rgba(245,158,11,0.15); color:#f59e0b; padding:2px 7px; border-radius:10px; font-weight:700;">🔒 ${isFa ? 'ارتقا' : 'PRO'}</div>` : ''}
                     <!-- Grid Visual Matrix -->
                     <div style="display: grid; grid-template-columns: repeat(${preset.cols}, 1fr); grid-template-rows: repeat(${preset.rows}, 1fr); gap: 3px; height: 38px; width: 100%; background: #06090e; padding: 4px; border-radius: 4px; box-sizing: border-box; direction: ltr !important;">
                       ${Array.from({ length: preset.cols * preset.rows }).map(() => `
@@ -814,6 +824,14 @@ export class LayoutManager {
         e.stopPropagation();
         const layoutId = card.getAttribute('data-layout');
         const name = card.getAttribute('data-name');
+        // TradingView-parity plan gate: locked grid presets upsell instead of switching.
+        if (card.getAttribute('data-locked') === '1') {
+          const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId);
+          const cells = (preset?.cols || 1) * (preset?.rows || 1);
+          this.app?.auth?.enforce('chartsPerTab', cells - 1, `${cells} charts per tab`, `${cells} چارت در هر تب`);
+          this.app?.auth?.openPlansModal?.();
+          return;
+        }
         this.setLayout(layoutId, name);
         close();
       });
@@ -840,8 +858,17 @@ export class LayoutManager {
     // Bind Save New Layout
     modal.querySelector('#btn-save-as-new-layout')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      const isFaLang = getLanguage() === 'fa';
+      // TradingView-parity plan gate: overwriting an existing name is allowed;
+      // creating a NEW saved layout consumes an entitlement slot.
+      const input0 = modal.querySelector('#new-layout-name-input');
+      const name0 = (input0?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`).replace(/×/g, 'x');
+      const isNewName = !this.savedLayouts.some(l => l.name === name0);
+      if (isNewName && this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) {
+        return;
+      }
       const input = modal.querySelector('#new-layout-name-input');
-      const name = (input?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`).replace(/×/g, 'x');
+      const name = name0;
       this.savedLayouts = this.savedLayouts.filter(l => l.name !== name);
       this.savedLayouts.unshift({
         id: 'usr_' + Date.now(),

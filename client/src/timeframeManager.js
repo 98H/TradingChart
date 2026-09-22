@@ -172,12 +172,25 @@ export class TimeframeManager {
     this.modalEl.querySelectorAll('.btn-select-tf').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
+        const def = STANDARD_TIMEFRAMES.find(t => t.id === String(id)) || this.customTimeframes.find(t => t.id === String(id));
+        // TradingView parity: second-based intervals are Essential-tier and above.
+        if (def?.category === 'seconds' && this.app?.auth && !this.app.auth.feature('secondIntervals')) {
+          this.app.auth.enforce('secondIntervals', 0, 'second-based intervals', 'تایم‌فریم‌های ثانیه‌ای');
+          this.app.auth.openPlansModal?.();
+          return;
+        }
         this.setTimeframe(id);
       });
     });
 
     // Add custom timeframe
     this.modalEl.querySelector('#btn-add-custom-tf')?.addEventListener('click', () => {
+      // TradingView parity: custom intervals are Essential-tier and above.
+      if (this.app?.auth && !this.app.auth.feature('customIntervals')) {
+        this.app.auth.enforce('customIntervals', 0, 'custom intervals', 'تایم‌فریم‌های سفارشی');
+        this.app.auth.openPlansModal?.();
+        return;
+      }
       const valInput = this.modalEl.querySelector('#input-custom-tf-val');
       const unitSelect = this.modalEl.querySelector('#select-custom-tf-unit');
       const val = parseInt(valInput?.value, 10) || 10;

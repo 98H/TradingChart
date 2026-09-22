@@ -1,0 +1,26 @@
+[
+ {
+  "name": "E0_setup_user",
+  "defects": []
+ },
+ {
+  "name": "E3_duplicate_username_rejected",
+  "defects": []
+ },
+ {
+  "name": "E1_forgot_password_e2e",
+  "defects": []
+ },
+ {
+  "name": "E2_keyboard_escape_enter",
+  "defects": []
+ },
+ {
+  "name": "E4_revoked_session_degrades",
+  "defects": []
+ },
+ {
+  "name": "E5_rate_limit_message",
+  "defects": []
+ }
+]

@@ -134,6 +134,11 @@ export class DataExportModal {
   }
 
   executeExport() {
+    // TradingView-parity plan gate: chart-data export is a paid-tier feature.
+    if (this.app?.auth && !this.app.auth.enforce('dataExport', 0, 'chart data export', 'خروجی داده چارت')) {
+      this.app?.auth?.openPlansModal?.();
+      return;
+    }
     const bars = this.app?.activeBars || [];
     if (bars.length === 0) {
       this.app?.showToast?.(getLanguage() === 'fa' ? 'هیچ داده کندلی برای خروجی یافت نشد' : 'No candlestick data loaded to export.');

@@ -1,6 +1,6 @@
 {
  "suite": "cycleB_desktop",
- "ts": "2026-09-20T21:27:41.976Z",
+ "ts": "2026-09-21T23:30:32.221Z",
  "results": [
   {
    "suite": "cycleB_desktop",
@@ -9,24 +9,22 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "before": 1,
-    "after": 2,
-    "eq0": 101670.62,
-    "eq1": 100862.2076,
+    "before": 0,
+    "after": 1,
+    "eq0": 100000,
+    "eq1": 99134.9245,
     "pos": [
      {
-      "id": "pos-1",
+      "id": "pos-1790033288200",
       "symbol": "BTCUSDT",
       "side": "long",
-      "qty": 0.5,
-      "entryPrice": 77500,
-      "markPrice": 80841.24,
+      "qty": 0.1,
+      "entryPrice": 86507.55,
+      "markPrice": 86507.55,
       "leverage": 10,
-      "margin": 3875,
-      "unrealizedPnl": 1670.6200000000026,
-      "unrealizedPnlPct": 43.112774193548454,
-      "sl": 76000,
-      "tp": 80500
+      "margin": 865.0755000000001,
+      "unrealizedPnl": 0,
+      "unrealizedPnlPct": 0
      }
     ]
    }
@@ -76,12 +74,12 @@
     {
      "tf": "1",
      "bars": 2000,
-     "cur": "60"
+     "cur": "1"
     },
     {
      "tf": "5",
      "bars": 2000,
-     "cur": "1"
+     "cur": "5"
     },
     {
      "tf": "15",
@@ -91,7 +89,7 @@
     {
      "tf": "60",
      "bars": 2000,
-     "cur": "15"
+     "cur": "60"
     },
     {
      "tf": "240",
@@ -129,9 +127,9 @@
    "info": {
     "count": 12,
     "labels": [
-     "🔔\nAdd Alert at $80,828.44\nAlt+A",
-     "⚡\nBuy Limit at $80,828.44",
-     "⚡\nSell Limit at $80,828.44",
+     "🔔\nAdd Alert at $86,507.66\nAlt+A",
+     "⚡\nBuy Limit at $86,507.66",
+     "⚡\nSell Limit at $86,507.66",
      "📐\nAdd Indicator...\n/",
      "⏱\nChange Timeframe...\n,",
      "➕\nCompare Symbol...\nAlt+C",
@@ -157,9 +155,9 @@
      "l": 43.203125,
      "r": 1396.796875,
      "w": 1353.59375,
-     "h": 535,
-     "t": 182.5,
-     "bot": 717.5
+     "h": 579,
+     "t": 160.5,
+     "bot": 739.5
     }
    }
   },
@@ -202,19 +200,19 @@
    "defects": [],
    "info": {
     "en1": {
-     "len": 838,
+     "len": 871,
      "persian": 0
     },
     "fa1": {
-     "len": 937,
+     "len": 970,
      "persian": 425
     },
     "en2": {
-     "len": 838,
+     "len": 871,
      "persian": 0
     },
     "fa2": {
-     "len": 937,
+     "len": 970,
      "persian": 425
     }
    }

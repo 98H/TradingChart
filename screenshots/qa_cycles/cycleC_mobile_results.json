@@ -1,6 +1,6 @@
 {
  "suite": "cycleC_mobile",
- "ts": "2026-09-20T21:36:09.486Z",
+ "ts": "2026-09-21T23:44:03.606Z",
  "results": [
   {
    "suite": "cycleC_mobile",
@@ -9,6 +9,7 @@
    "status": "pass",
    "defects": [],
    "info": {
+    "layouts": 0,
     "watchlist": 0,
     "paper": 0,
     "alerts": 0,

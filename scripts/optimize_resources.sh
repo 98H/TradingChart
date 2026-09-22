@@ -39,6 +39,17 @@ echo 1 > /proc/sys/vm/drop_caches 2>/dev/null && echo "✓ reclaimable page cach
 # 5. Remove stale QA temp artifacts from /tmp only (never project files)
 find /tmp -maxdepth 1 -type f \( -name 'vite_build*.log' -o -name 'cycle*.log' -o -name 'final*.log' -o -name 'dw_check.log' -o -name 'i18n_final.log' \) -mtime +1 -delete 2>/dev/null || true
 
+# 5b. QA Chrome profiles: qa_lib.cjs spawns a throwaway /tmp/qa_chrome_profile_*
+#     per browser; on crashes they leak (~6-9MB each). Remove any whose owning
+#     PID is no longer alive.
+for d in /tmp/qa_chrome_profile_*; do
+  [ -d "$d" ] || continue
+  pid=$(basename "$d" | cut -d_ -f4)
+  if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+    rm -rf "$d" && echo "✓ removed stale QA profile $d"
+  fi
+done
+
 # 6. System log hygiene. /var/log is group-writable by syslog, which makes
 #    logrotate refuse to rotate unless the config names the target user/group —
 #    without that the weekly job fails silently and syslog grows unbounded

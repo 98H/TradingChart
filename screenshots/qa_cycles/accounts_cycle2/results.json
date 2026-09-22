@@ -1,0 +1,22 @@
+[
+ {
+  "name": "A0_basic_plan_gates_enforced",
+  "defects": []
+ },
+ {
+  "name": "A1_mutate_and_reload_persist",
+  "defects": []
+ },
+ {
+  "name": "B1_cross_device_pull",
+  "defects": []
+ },
+ {
+  "name": "C1_bidirectional_sync",
+  "defects": []
+ },
+ {
+  "name": "C2_logout_clean",
+  "defects": []
+ }
+]

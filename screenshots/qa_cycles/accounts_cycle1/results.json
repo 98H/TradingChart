@@ -1,0 +1,98 @@
+[
+ {
+  "name": "01_guest_boot_badge",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:30.000Z"
+ },
+ {
+  "name": "02_signup_flow_full",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:39.977Z"
+ },
+ {
+  "name": "03_email_verification",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:41.669Z"
+ },
+ {
+  "name": "04_session_persists_across_reload",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:46.631Z"
+ },
+ {
+  "name": "05_logout_roundtrip",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:47.828Z"
+ },
+ {
+  "name": "06_login_wrong_password",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:56.961Z"
+ },
+ {
+  "name": "07_login_correct_and_menu",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:54:57.939Z"
+ },
+ {
+  "name": "08_duplicate_registration_rejected",
+  "viewport": "desktop",
+  "defects": [],
+  "at": "2026-09-21T23:55:01.137Z"
+ },
+ {
+  "name": "01_guest_boot_badge",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:09.123Z"
+ },
+ {
+  "name": "02_signup_flow_full",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:18.903Z"
+ },
+ {
+  "name": "03_email_verification",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:20.649Z"
+ },
+ {
+  "name": "04_session_persists_across_reload",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:25.507Z"
+ },
+ {
+  "name": "05_logout_roundtrip",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:26.599Z"
+ },
+ {
+  "name": "06_login_wrong_password",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:35.498Z"
+ },
+ {
+  "name": "07_login_correct_and_menu",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:36.335Z"
+ },
+ {
+  "name": "08_duplicate_registration_rejected",
+  "viewport": "mobile",
+  "defects": [],
+  "at": "2026-09-21T23:55:39.778Z"
+ }
+]

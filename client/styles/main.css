@@ -2823,4 +2823,27 @@ body.persian-mode .nav-export-btn svg {
   .saved-layout-card-actions .btn-load-layout {
     flex: 1 !important;
   }
+  /* Touch-target compliance: all interactive controls in the Layout Studio
+     modal must meet the 44px minimum on coarse-pointer/mobile viewports. */
+  .saved-layout-card-actions button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+  }
+  #btn-sort-date, #btn-sort-name {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+  #layout-search-input, #new-layout-name-input {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+  }
+  #btn-save-as-new-layout, #btn-import-layout {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
 }

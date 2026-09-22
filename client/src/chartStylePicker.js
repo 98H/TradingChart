@@ -229,6 +229,13 @@ export class ChartStylePicker {
   }
 
   setStyle(styleId) {
+    // TradingView parity: intraday synthetic chart types (Renko/Kagi/Line
+    // Break/Range/Point & Figure) are Plus-tier and above.
+    if (SYNTHETIC_TYPES[styleId] && this.app?.auth && !this.app.auth.feature('synthChartTypes')) {
+      this.app.auth.enforce('synthChartTypes', 0, 'Renko/Kagi/P&F charts', 'چارت‌های رنکو/کاگی/پوینت‌اند‌فیگور');
+      this.app.auth.openPlansModal?.();
+      return;
+    }
     this.currentStyle = styleId;
     localStorage.setItem('tradingchart_price_style', styleId);
     this.updateButtonUI();

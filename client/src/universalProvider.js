@@ -94,7 +94,22 @@ export class UniversalMarketProvider {
                 }
 
                 this.lastBarsCache.set(cacheKey, { ...sub.currentBar });
-                sub.onBar({ ...sub.currentBar });
+                // Coalesce tick bursts: emit at most every 250 ms (TrailingView's
+                // visual cadence), updating the bar live in between. A trailing
+                // emit guarantees the final price always lands.
+                const now = Date.now();
+                if (sub._lastEmit === undefined) sub._lastEmit = 0;
+                if (sub._pendingTimer) { clearTimeout(sub._pendingTimer); sub._pendingTimer = null; }
+                if (now - sub._lastEmit >= 250) {
+                  sub._lastEmit = now;
+                  sub.onBar({ ...sub.currentBar });
+                } else {
+                  sub._pendingTimer = setTimeout(() => {
+                    sub._pendingTimer = null;
+                    sub._lastEmit = Date.now();
+                    sub.onBar({ ...sub.currentBar });
+                  }, 250 - (now - sub._lastEmit));
+                }
               }
             }
           }

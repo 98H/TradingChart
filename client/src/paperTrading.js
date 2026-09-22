@@ -2,33 +2,133 @@
 // Institutional Paper Trading Terminal & Order Execution Manager with Level 2 DOM (Depth of Market)
 
 import { getLanguage, t } from './i18n.js';
-import { showConfirmDialog } from './uiDialog.js';
+import { showConfirmDialog, showPromptDialog } from './uiDialog.js';
+
+function escapeHtmlAcc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 export class PaperTrading {
   constructor(options = {}) {
     this.container = options.container;
+    this.app = options.app || null;
     this.currentSymbol = 'BTCUSDT';
     this.currentPrice = 78000.0;
-    this.balance = 100000.0;
     this.activeTab = 'ticket'; // 'ticket' or 'dom'
-    this.positions = [
-      {
-        id: 'pos-1',
-        symbol: 'BTCUSDT',
-        side: 'long',
-        qty: 0.5,
-        entryPrice: 77500.0,
-        markPrice: 78000.0,
-        leverage: 10,
-        margin: 3875.0,
-        unrealizedPnl: 250.0,
-        unrealizedPnlPct: 6.45,
-        sl: 76000.0,
-        tp: 80500.0
-      }
-    ];
+    this.loadActiveAccount();
     this.orders = [];
     this.render();
+  }
+
+  // ── Multi-account paper layer (TradingView "Portfolios" parity) ────────
+  // Accounts persist across reloads and sync with the user's cloud state.
+  loadAccounts() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('tradingchart_paper_accounts') || 'null');
+      if (Array.isArray(raw) && raw.length > 0) return raw;
+    } catch (e) { /* fall through */ }
+    return [];
+  }
+
+  saveAccounts() {
+    try {
+      localStorage.setItem('tradingchart_paper_accounts', JSON.stringify(this.accounts || []));
+    } catch (e) { /* quota */ }
+  }
+
+  accountDefaults() {
+    // Default account name is a system label, not user data: keep it
+    // language-neutral in storage and translate at render time so switching
+    // languages renames it (no stale 'Main Paper' chip in a Persian session).
+    return [
+      { id: 'pap_main', name: 'Main Paper', isSystem: true, balance: 100000.0, positions: [], history: [], createdAt: Date.now() }
+    ];
+  }
+
+  displayNameFor(a, isFa) {
+    if (a && (a.isSystem || (a.id === 'pap_main' && (a.name === 'Main Paper' || a.name === 'حساب اصلی دمو')))) {
+      return isFa ? 'حساب اصلی دمو' : 'Main Paper';
+    }
+    return a ? a.name : '';
+  }
+
+  loadActiveAccount() {
+    this.accounts = this.loadAccounts();
+    if (this.accounts.length === 0) this.accounts = this.accountDefaults();
+    let activeId = null;
+    try { activeId = localStorage.getItem('tradingchart_paper_active'); } catch (e) {}
+    this.activeAccountId = this.accounts.some(a => a.id === activeId) ? activeId : this.accounts[0].id;
+    this.hydrateFromActive();
+  }
+
+  hydrateFromActive() {
+    const acc = this.accounts.find(a => a.id === this.activeAccountId) || this.accounts[0];
+    this.activeAccountId = acc.id;
+    this.balance = Number(acc.balance) || 0;
+    this.positions = Array.isArray(acc.positions) ? acc.positions : [];
+    this.history = Array.isArray(acc.history) ? acc.history : [];
+    try { localStorage.setItem('tradingchart_paper_active', this.activeAccountId); } catch (e) {}
+  }
+
+  /** Snapshot the live account into the store (called after every mutation). */
+  persistAccount() {
+    // Cheap change-signature guard: setMarket() ticks call this constantly,
+    // but the store must only be written when something actually changed.
+    const sig = `${this.balance}|${this.positions.length}|${this.positions[this.positions.length - 1]?.id || ''}|${(this.history || []).length}`;
+    if (this._persistSig === sig) return;
+    this._persistSig = sig;
+    const acc = this.accounts.find(a => a.id === this.activeAccountId);
+    if (acc) {
+      acc.balance = this.balance;
+      acc.positions = this.positions;
+      acc.history = this.history || [];
+      this.saveAccounts();
+    }
+  }
+
+  switchAccount(accountId) {
+    if (!this.accounts.some(a => a.id === accountId)) return;
+    this.persistAccount();
+    this.activeAccountId = accountId;
+    this.hydrateFromActive();
+    this.render();
+  }
+
+  createAccount(name) {
+    if (this.app?.auth && !this.app.auth.enforce('paperAccounts', this.accounts.length, 'paper accounts', 'حساب‌های معاملاتی کاغذی')) return null;
+    const isFa = getLanguage() === 'fa';
+    const defaultCap = window.__TRADING_APP__?.userProfileModal?.profile?.defaultStartingCapital || 100000.0;
+    const acc = {
+      id: 'pap_' + Date.now().toString(36),
+      name: (name || (isFa ? 'حساب دمو جدید' : 'New Paper Account')).slice(0, 40),
+      balance: Number(defaultCap),
+      positions: [],
+      history: [],
+      createdAt: Date.now()
+    };
+    this.accounts.push(acc);
+    this.saveAccounts();
+    this.switchAccount(acc.id);
+    return acc;
+  }
+
+  renameAccount(accountId, name) {
+    const acc = this.accounts.find(a => a.id === accountId);
+    if (acc && name) { acc.name = String(name).slice(0, 40); acc.isSystem = false; this.saveAccounts(); this.render(); }
+  }
+
+  deleteAccount(accountId) {
+    if (this.accounts.length <= 1) return false;
+    const idx = this.accounts.findIndex(a => a.id === accountId);
+    if (idx < 0) return false;
+    this.accounts.splice(idx, 1);
+    if (this.activeAccountId === accountId) {
+      this.activeAccountId = this.accounts[0].id;
+      this.hydrateFromActive();
+    }
+    this.saveAccounts();
+    this.render();
+    return true;
   }
 
   setMarket(symbol, price) {
@@ -77,6 +177,16 @@ export class PaperTrading {
             <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; min-height: 26px; color: var(--text-dim); font-weight: 700; border-radius: 4px;" title="${isFa ? `بازنشانی موجودی به $${Number(defaultCap).toLocaleString()}` : `Reset balance to $${Number(defaultCap).toLocaleString()}`}" aria-label="Reset account balance">
               ${isFa ? 'بازنشانی' : 'Reset'}
             </button>
+          </div>
+
+          <!-- Multi-account switcher (TradingView Portfolios parity) -->
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:10px; color:var(--text-dim);">${isFa ? 'حساب:' : 'Account:'}</span>
+            ${this.accounts.map(a => `
+              <button class="paper-account-chip ${a.id === this.activeAccountId ? 'active' : ''}" data-acc="${a.id}" style="padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; cursor:pointer; border:1px solid ${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; background:${a.id === this.activeAccountId ? 'rgba(0,242,176,0.12)' : 'var(--bg-surface)'}; color:${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--text-dim)'};">
+                ${escapeHtmlAcc(this.displayNameFor(a, isFa))}
+              </button>`).join('')}
+            <button id="btn-paper-new-account" title="${isFa ? 'حساب دمو جدید' : 'New paper account'}" style="width:22px; height:22px; border-radius:50%; border:1px dashed var(--border-subtle); background:transparent; color:var(--accent-cyan); font-weight:800; cursor:pointer;">+</button>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
@@ -208,6 +318,23 @@ export class PaperTrading {
     });
 
     const btnReset = this.container.querySelector('#btn-reset-paper');
+    // Multi-account switcher events (TradingView Portfolios parity)
+    this.container.querySelectorAll('.paper-account-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.switchAccount(chip.getAttribute('data-acc'));
+      });
+    });
+    this.container.querySelector('#btn-paper-new-account')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isFaNew = getLanguage() === 'fa';
+      showPromptDialog({
+        title: isFaNew ? 'حساب دمو جدید' : 'New Paper Account',
+        placeholder: isFaNew ? 'نام حساب' : 'Account name',
+        confirmText: isFaNew ? 'ایجاد' : 'Create',
+        onConfirm: (name) => { if (name) this.createAccount(name); }
+      });
+    });
     btnReset?.addEventListener('click', () => {
       const isFa = getLanguage() === 'fa';
       const defaultCap = window.__TRADING_APP__?.userProfileModal?.profile?.defaultStartingCapital || 100000.0;
@@ -312,6 +439,10 @@ export class PaperTrading {
       window.__TRADING_APP__?.showToast?.(getLanguage() === 'fa' ? 'موجودی مارجین دمو ناکافی است' : 'Insufficient available paper balance');
       return;
     }
+    // TradingView-parity plan gate: holdings-per-account entitlement.
+    if (this.app?.auth && !this.app.auth.enforce('holdingsPerAccount', this.positions.length, 'open holdings', 'پوزیشن‌های باز')) {
+      return;
+    }
 
     this.balance -= margin;
     this.positions.push({
@@ -399,6 +530,9 @@ export class PaperTrading {
   }
 
   updatePositionsView() {
+    // Persist after every balance/positions mutation so accounts survive
+    // reloads and sync with the user's cloud state.
+    this.persistAccount();
     const isFa = getLanguage() === 'fa';
     const wrap = this.container.querySelector('#positions-table-wrap');
     const eqEl = this.container.querySelector('#paper-equity');

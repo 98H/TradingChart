@@ -140,7 +140,10 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
         });
 
         observer.observe(mountEl, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
-        setInterval(updatePanelState, 200);
+        // The MutationObserver already covers dock open/close transitions; the
+        // 200 ms interval is only a belt-and-suspenders catch-up, run at 1 s.
+        const panelTimer = setInterval(updatePanelState, 1000);
+        if (panelTimer.unref) panelTimer.unref();
         updatePanelState();
       }
 
@@ -299,6 +302,26 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     }
     return { success: false, error: 'No active chart cell' };
   }
+
+  /**
+   * Plan-gate support: number of indicators on the ACTIVE chart cell
+   * (native ledger + Pine manifest), read from the engine's live state.
+   */
+  countActiveIndicators() {
+    try {
+      const ws = this.workspace;
+      const st = typeof ws?.getState === 'function' ? ws.getState() : null;
+      if (!st) return 0;
+      const charts = Array.isArray(st.charts) ? st.charts : [];
+      const activeId = st.activeCellId || ws?.active?.id || charts[0]?.id;
+      const cell = charts.find(c => c.id === activeId) || charts[0];
+      if (!cell?.indicators) return 0;
+      const natives = Array.isArray(cell.indicators.natives) ? cell.indicators.natives.length : 0;
+      const manifest = Array.isArray(cell.indicators.manifest) ? cell.indicators.manifest.length : 0;
+      return natives + manifest;
+    } catch (e) { return 0; }
+  }
+
 
   takeScreenshot() {
     if (this.workspace) {

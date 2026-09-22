@@ -15,6 +15,7 @@ import { getScreenerData } from './technicalScreener.js';
 import { getOrderBookDepth } from './depthFeed.js';
 import { globalRelay } from './tradeRelay.js';
 import { getMarketNews } from './newsFeed.js';
+import { mountAccountSystem } from './accounts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,9 +28,14 @@ const wss = new WebSocketServer({ server, path: '/ws/live' });
 app.use(cors());
 app.use(express.json());
 
+// Account system: auth, plan tiers, per-user cloud state (must mount before static/SPA)
+mountAccountSystem(app);
+
 // Serve static frontend files from client / dist
 const distPath = path.resolve(__dirname, '../dist');
-app.use(express.static(distPath));
+// Immutable long-cache for content-hashed assets; revalidate HTML each load.
+app.use('/assets', express.static(path.join(distPath, 'assets'), { immutable: true, maxAge: '30d' }));
+app.use(express.static(distPath, { setHeaders(res, filePath) { if (filePath.endsWith('.html') || filePath === distPath) res.setHeader('Cache-Control', 'no-cache'); } }));
 
 // ── REST API Endpoints ───────────────────────────────────────────────
 

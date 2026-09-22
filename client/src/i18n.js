@@ -64,6 +64,8 @@ export const translations = {
     objectsDesc: 'Manage drawings and indicator layers',
     dataWindowTitle: 'Data Window',
     dataWindowDesc: 'Real-time cursor OHLC, volume & indicator values',
+    layoutsTitle: 'Multi-Chart Layouts',
+    layoutsDesc: '1 to 8 charts grid matrix & full synchronization',
 
     // Symbol Search
     symbolModalTitle: 'Symbol Search & Market Navigator',
@@ -182,6 +184,8 @@ export const translations = {
     objectsDesc: 'مدیریت و پنهان‌سازی ترسیم‌ها و لایه‌های اندیکاتور',
     dataWindowTitle: 'پنجره داده‌ها (Data Window)',
     dataWindowDesc: 'مقادیر دقیق OHLCV و اندیکاتورها در نقطه کراس‌هیر',
+    layoutsTitle: 'چیدمان‌های چندچارته',
+    layoutsDesc: 'ماتریس ۱ تا ۸ چارت با همگام‌سازی کامل',
 
     // Symbol Search
     symbolModalTitle: 'جستجوی نماد در تمام بازارهای مالی',
@@ -868,7 +872,8 @@ export function applyTranslationsToDOM() {
     { panel: 'dataWindow', title: dict.dataWindowTitle, desc: dict.dataWindowDesc },
     { panel: 'chartStyle', title: dict.chartStyleTitle, desc: dict.chartStyleDesc },
     { panel: 'barReplay', title: dict.barReplayTitle, desc: dict.barReplayDesc },
-    { panel: 'dataExport', title: dict.dataExportTitle, desc: dict.dataExportDesc }
+    { panel: 'dataExport', title: dict.dataExportTitle, desc: dict.dataExportDesc },
+    { panel: 'layouts', title: dict.layoutsTitle, desc: dict.layoutsDesc }
   ];
 
   for (const item of panelItems) {

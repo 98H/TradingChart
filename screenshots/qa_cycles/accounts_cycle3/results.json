@@ -1,0 +1,26 @@
+[
+ {
+  "name": "P1_plans_modal_structure",
+  "defects": []
+ },
+ {
+  "name": "P2_upgrade_via_modal",
+  "defects": []
+ },
+ {
+  "name": "P3_plus_tier_gates",
+  "defects": []
+ },
+ {
+  "name": "P4_ultimate_unlock",
+  "defects": []
+ },
+ {
+  "name": "P5_server_side_limit_enforcement",
+  "defects": []
+ },
+ {
+  "name": "P6_devices_modal",
+  "defects": []
+ }
+]

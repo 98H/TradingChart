@@ -1,6 +1,6 @@
 {
  "suite": "cycleA_desktop",
- "ts": "2026-09-20T21:22:05.070Z",
+ "ts": "2026-09-21T23:26:37.175Z",
  "results": [
   {
    "suite": "cycleA_desktop",
@@ -40,8 +40,9 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "items": 20,
+    "items": 21,
     "panels": [
+     "layouts",
      "watchlist",
      "paper",
      "alerts",
@@ -146,7 +147,7 @@
      "exists": true,
      "vis": "block",
      "items": 12,
-     "txt": "🔔 ثبت هشدار روی $80,868.50 Alt+A ⚡ سفارش لیمیت خرید روی $80,868.50 ⚡ سفارش لیمی"
+     "txt": "🔔 ثبت هشدار روی $86,524.50 Alt+A ⚡ سفارش لیمیت خرید روی $86,524.50 ⚡ سفارش لیمی"
     },
     "replay": {
      "exists": true,

@@ -16,6 +16,7 @@ import { BarReplay } from './barReplay.js';
 import { ShortcutsModal } from './shortcutsModal.js';
 import { LayoutManager } from './layoutManager.js';
 import { UserProfileModal } from './userProfileModal.js';
+import { AuthManager } from './authManager.js';
 import { TradeJournalModal } from './tradeJournalModal.js';
 import { ScreenshotModal } from './screenshotModal.js';
 import { CompareModal } from './compareModal.js';
@@ -83,6 +84,13 @@ class TradingChartApp {
   async init() {
     console.log('[TradingChart] Initializing LuxAlgo Quant Workspace...');
     window.__TRADING_APP__ = this;
+
+    // 0. Account system boot (TradingView-parity accounts): resolves session,
+    // applies cloud state to localStorage BEFORE any manager reads its prefs,
+    // and renders the header auth zone. Guest mode proceeds unchanged.
+    this.auth = new AuthManager(this);
+    try { await this.auth.init(); } catch (e) { console.warn('[Auth] boot failed, continuing as guest:', e); }
+
     // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
     this.chartManager = new ChartManager({
       app: this,
@@ -95,6 +103,10 @@ class TradingChartApp {
     this.indicatorsModal = new IndicatorsModal({
       modalEl: document.querySelector('#modal-indicators'),
       onAddIndicator: (item) => {
+        // TradingView-parity plan gate: indicators-per-chart entitlement.
+        if (this.auth && !this.auth.enforce('indicatorsPerChart', this.chartManager.countActiveIndicators(), 'indicators per chart', 'اندیکاتور در هر چارت')) {
+          return { success: false, error: 'plan_limit' };
+        }
         if (item.nativeName && this.chartManager?.workspace?.active?.chart?.addNativeIndicator) {
           try {
             const handle = this.chartManager.workspace.active.chart.addNativeIndicator(item.nativeName);
@@ -297,6 +309,7 @@ class TradingChartApp {
 
   mountWatchlist(body) {
     this.watchlist = new WatchlistManager({
+      app: this,
       container: body,
       onSelectSymbol: (sym) => this.switchSymbol(sym)
     });
@@ -304,6 +317,7 @@ class TradingChartApp {
 
   mountPaperTrading(body) {
     this.paperTrading = new PaperTrading({
+      app: this,
       container: body
     });
     if (this.activeBars.length > 0) {
@@ -313,6 +327,7 @@ class TradingChartApp {
 
   mountAlerts(body) {
     this.alertsManager = new AlertsManager({
+      app: this,
       container: body
     });
   }
@@ -715,10 +730,9 @@ class TradingChartApp {
       }
     });
 
-    // 4. User Profile Modal Trigger on Avatar
-    document.querySelector('.user-avatar-badge')?.addEventListener('click', () => {
-      this.userProfileModal?.open();
-    });
+    // 4. User avatar → Account menu (login/signup/plans/devices). Profile
+    // editing remains reachable from the account menu ("Profile & Settings").
+    // (Direct click binding lives in AuthManager.bindAvatar.)
 
     // Mobile layout button
     document.querySelector('#btn-mobile-layout')?.addEventListener('click', () => {
@@ -905,14 +919,16 @@ class TradingChartApp {
       });
     });
 
-    // Keep rail buttons synchronized with Vela open panels
+    // Keep rail buttons synchronized with Vela open panels (1 s cadence; the
+    // click handlers toggle immediately on interaction, this is only catch-up)
     setInterval(() => {
+      if (document.hidden) return;
       const currentOpen = this.chartManager?.openPanelId;
       document.querySelectorAll('.rail-btn').forEach(btn => {
         const panelId = btn.getAttribute('data-panel');
         btn.classList.toggle('active', !!currentOpen && currentOpen === panelId);
       });
-    }, 400);
+    }, 1000);
 
     // 8. Time Range Bar active tracking
     this.bindTimeRangeActive();
@@ -1473,6 +1489,40 @@ class TradingChartApp {
       this.layoutManager?.updateCellStrip?.();
     } catch (e) {}
   }
+
+  // ── Account-system hooks (called by AuthManager) ────────────────────────
+  // Cloud state just landed in localStorage: re-render every surface that
+  // reads prefs at render time, and re-apply theme/lang synchronously.
+  onCloudStateApplied() {
+    this.applyStoredTheme();
+    const settings = (() => { try { return JSON.parse(localStorage.getItem('tradingchart_user_settings') || '{}'); } catch (e) { return {}; } })();
+    const cloudLang = settings.language;
+    if (cloudLang && cloudLang !== getLanguage()) setLanguage(cloudLang);
+    const prof = (() => { try { return JSON.parse(localStorage.getItem('tradingchart_user_profile') || '{}'); } catch (e) { return {}; } })();
+    if (prof.defaultAsset && this.chartManager?.setSymbol) {
+      try { this.chartManager.setSymbol(prof.defaultAsset.replace(/^.*:/, '').toUpperCase()); } catch (e) {}
+    }
+    if (this.userProfileModal) this.userProfileModal.profile = this.userProfileModal.loadProfile();
+    this.userProfileModal?.syncTopbarAvatar?.();
+    this.renderWorkspaces?.();
+  }
+
+  onAuthChanged(kind) {
+    // Re-render account surfaces + reflect plan limits everywhere.
+    this.auth?.renderAccountBadge?.();
+    this.renderWorkspaces?.();
+    if (kind === 'logout') {
+      const isFa = getLanguage() === 'fa';
+      this.showToast?.(isFa ? 'از حساب خود خارج شدید.' : 'You have signed out.', 'info');
+    }
+  }
+
+  onPlanChanged(planId) {
+    // Plan entitlements changed → re-evaluate gates that already rendered
+    // (e.g. re-render panels whose buttons are plan-limited).
+    this.renderWorkspaces?.();
+  }
+
 
   switchLanguage(lang) {
     setLanguage(lang);

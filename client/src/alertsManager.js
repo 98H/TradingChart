@@ -6,10 +6,25 @@ import { getLanguage, t, toPersianDigits } from './i18n.js';
 export class AlertsManager {
   constructor(options = {}) {
     this.container = options.container;
+    this.app = options.app || null;
     this.currentSymbol = 'BTCUSDT';
     this.currentPrice = 78000.0;
     this.isCreating = false;
-    this.alerts = [
+    this.alerts = this.loadAlerts();
+    this.render();
+  }
+
+  // ── Alerts persistence (TradingView parity: alerts belong to the account
+  // and survive reloads; the cloud state syncs them across devices) ──
+  loadAlerts() {
+    try {
+      const raw = localStorage.getItem('tradingchart_alerts');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr;
+      }
+    } catch (e) { /* fall through to defaults */ }
+    return [
       {
         id: 'alt-1',
         symbol: 'BTCUSDT',
@@ -50,7 +65,12 @@ export class AlertsManager {
         createdAt: '2026-09-18 11:00'
       }
     ];
-    this.render();
+  }
+
+  saveAlerts() {
+    try {
+      localStorage.setItem('tradingchart_alerts', JSON.stringify(this.alerts));
+    } catch (e) { /* quota */ }
   }
 
   setMarket(symbol, price) {
@@ -72,6 +92,10 @@ export class AlertsManager {
   addAlert(targetPrice, condition = null) {
     const numPrice = Number(targetPrice);
     if (!numPrice || isNaN(numPrice)) return null;
+    // TradingView-parity plan gate: price-alert entitlement.
+    if (this.app?.auth && !this.app.auth.enforce('priceAlerts', this.alerts.length, 'price alerts', 'هشدار قیمت')) {
+      return null;
+    }
     const cleanSym = (this.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
     const dir = numPrice >= this.currentPrice ? 'above' : 'below';
     const newId = 'alt-' + Date.now();
@@ -92,6 +116,7 @@ export class AlertsManager {
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
     });
 
+    this.saveAlerts();
     this.render();
     if (window.__TRADING_APP__?.chartAlertsOverlay) {
       window.__TRADING_APP__.chartAlertsOverlay.updateAlerts(this.alerts, cleanSym, this.currentPrice);
@@ -424,6 +449,7 @@ export class AlertsManager {
         const alertItem = this.alerts.find(a => a.id === id);
         if (alertItem) {
           alertItem.active = !alertItem.active;
+          this.saveAlerts();
           this.render();
         }
       });
@@ -436,6 +462,7 @@ export class AlertsManager {
         const id = btn.getAttribute('data-id') || e.currentTarget.getAttribute('data-id');
         if (!id) return;
         this.alerts = this.alerts.filter(a => a.id !== id);
+        this.saveAlerts();
         this.render();
       });
     });

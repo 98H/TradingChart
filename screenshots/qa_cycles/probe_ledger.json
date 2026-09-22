@@ -1,0 +1,178 @@
+{
+ "chartsType": "array",
+ "chart0Keys": [
+  "id",
+  "symbol",
+  "provider",
+  "timeframe",
+  "priceStyle",
+  "bars",
+  "session",
+  "watermark",
+  "indicatorTitles",
+  "indicatorValues",
+  "rendererConfig",
+  "drawings",
+  "indicators"
+ ],
+ "chart0": {
+  "id": "c1",
+  "symbol": "universal:BTCUSDT",
+  "provider": "universal",
+  "timeframe": "60",
+  "priceStyle": "candles",
+  "bars": 2000,
+  "watermark": true,
+  "indicatorTitles": true,
+  "indicatorValues": true,
+  "rendererConfig": {
+   "version": 1,
+   "chartTypes": {},
+   "layout": {
+    "background": "#0b0e14",
+    "textColor": "#b2b5be",
+    "fontFamily": "Inter, var(--font-vazirmatn), sans-serif",
+    "fontSize": 11
+   },
+   "grid": {
+    "vertLines": {
+     "visible": true,
+     "color": "#161922"
+    },
+    "horzLines": {
+     "visible": true,
+     "color": "#161922"
+    }
+   },
+   "crosshair": {
+    "color": "#9aa0ad",
+    "width": 1,
+    "style": "dashed",
+    "opacity": 0.4,
+    "labelBackground": "#595959"
+   },
+   "priceScale": {
+    "mode": "price",
+    "log": false,
+    "invert": false,
+    "borderColor": "#1e222d",
+    "labelsVisible": true,
+    "currentPriceLine": true,
+    "priceLabel": true,
+    "countdown": true,
+    "animateLastPrice": false
+   },
+   "animations": {
+    "zoom": true,
+    "pan": true,
+    "autoscale": true,
+    "intro": true
+   },
+   "panes": {
+    "separatorColor": "#1e222d"
+   },
+   "trades": {
+    "visible": true,
+    "labels": true,
+    "qty": true,
+    "longColor": "#2962ff",
+    "shortColor": "#f23645",
+    "exitColor": "#d500f9"
+   },
+   "timeScale": {
+    "timezone": "UTC"
+   },
+   "marks": {
+    "visible": true,
+    "groups": {}
+   },
+   "candles": {
+    "upColor": "#089981",
+    "downColor": "#f23645",
+    "bodyVisible": true,
+    "borderVisible": false,
+    "borderUpColor": "#089981",
+    "borderDownColor": "#f23645",
+    "wickVisible": true,
+    "wickUpColor": "#089981",
+    "wickDownColor": "#f23645"
+   },
+   "bars": {
+    "upColor": "#089981",
+    "downColor": "#f23645"
+   },
+   "line": {
+    "color": "#3b82f6",
+    "width": 2
+   },
+   "stacking": {
+    "candles": 0,
+    "series": {
+     "ind-1": -2,
+     "native-2": -1
+    }
+   },
+   "area": {
+    "lineColor": "#3b82f6",
+    "width": 2,
+    "topColor": "rgba(59,130,246,0.28)",
+    "bottomColor": "rgba(59,130,246,0.02)"
+   },
+   "baseline": {
+    "topLineColor": "#089981",
+    "bottomLineColor": "#f23645",
+    "topFillColor": "rgba(8,153,129,0.25)",
+    "topFillColor2": "rgba(8,153,129,0.05)",
+    "bottomFillColor": "rgba(242,54,69,0.25)",
+    "bottomFillColor2": "rgba(242,54,69,0.05)",
+    "width": 2,
+    "baselineLevel": 50
+   },
+   "series": {
+    "style": "candles",
+    "baseline": null,
+    "spacing": 1
+   },
+   "sessions": {
+    "premarketColor": "rgba(255,152,0,0.08)",
+    "postmarketColor": "rgba(41,98,255,0.08)",
+    "extendedColor": "rgba(41,98,255,0.08)"
+   }
+  },
+  "indicators": {
+   "manifest": [],
+   "natives": [
+    "volume"
+   ]
+  }
+ },
+ "chartProto": [
+  "constructor",
+  "registerEngine",
+  "addIndicator",
+  "addNativeIndicator",
+  "availableNativeIndicators",
+  "presentNativeIndicators",
+  "indicators",
+  "runScript",
+  "runIndicator",
+  "setMarket",
+  "market",
+  "ready",
+  "historyComplete",
+  "inspect",
+  "renderer",
+  "panes",
+  "data",
+  "drawings",
+  "marks",
+  "on",
+  "getVisibleRange",
+  "setVisibleRange",
+  "panBy",
+  "setVisibleRangePreset",
+  "resize",
+  "setTheme",
+  "destroy"
+ ]
+}

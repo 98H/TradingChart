@@ -285,6 +285,10 @@ export class StrategyTester {
     const btnCsv = this.container.querySelector('#btn-export-csv');
     if (btnCsv) {
       btnCsv.addEventListener('click', () => {
+        // TradingView parity: trades CSV export is Plus tier and above.
+        if (window.__TRADING_APP__?.auth && !window.__TRADING_APP__.auth.enforce('csvTradesExport', 0, 'trades CSV export', 'خروجی CSV معاملات')) {
+          return;
+        }
         const header = 'Trade ID,Side,Entry Time,Entry Price,Exit Time,Exit Price,Size,P&L ($),P&L (%)\n';
         const rows = r.trades.map(t => `${t.id},${t.side.toUpperCase()},${new Date(t.entryTime).toISOString()},${t.entryPrice},${new Date(t.exitTime).toISOString()},${t.exitPrice},${t.qty},${t.profit},${t.profitPct}%`).join('\n');
         const blob = new Blob([header + rows], { type: 'text/csv' });

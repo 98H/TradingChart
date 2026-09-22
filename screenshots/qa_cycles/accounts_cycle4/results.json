@@ -1,0 +1,22 @@
+[
+ {
+  "name": "FA1_rtl_guest_menu",
+  "defects": []
+ },
+ {
+  "name": "FA2_validation_errors_persian",
+  "defects": []
+ },
+ {
+  "name": "FA3_auth_modal_rtl_inputs_ltr",
+  "defects": []
+ },
+ {
+  "name": "FA4_signedin_plans_fa_complete",
+  "defects": []
+ },
+ {
+  "name": "FA5_mobile_modal_fit",
+  "defects": []
+ }
+]

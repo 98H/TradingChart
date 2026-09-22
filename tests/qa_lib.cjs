@@ -53,6 +53,7 @@ async function launch(viewportName = 'desktop') {
   const vp = VIEWPORTS[viewportName];
   const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
+    protocolTimeout: 300000, // heavy renders on this 2-core VPS exceed the 180s default
     userDataDir: `/tmp/qa_chrome_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--disable-extensions', '--disable-background-networking',
@@ -346,4 +347,25 @@ async function runSuite(suiteName, tests, opts = {}) {
   return { results, fails };
 }
 
-module.exports = { launch, boot, errorsOf, auditStatic, shots, runSuite, INPAGE, BASE, VIEWPORTS, EVID };
+/**
+ * Wait until the register rate limiter (5/min per IP) has a free slot.
+ * Probes with an invalid-email registration: 400 = limiter free (the probe
+ * consumes one slot but creates nothing), 429 = engaged → back off 36 s.
+ * Back-to-back suite runs otherwise cascade 429s into bogus failures.
+ */
+async function awaitRegisterWindow(fetchImpl = globalThis.fetch) {
+  for (let i = 0; i < 4; i++) {
+    try {
+      const r = await fetchImpl(`${BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'qa_probe_invalid@test.io', username: 'qa_probe_invalid', password: 'x' })
+      });
+      if (r.status !== 429) return true;
+    } catch (e) { return true; }
+    await new Promise(res => setTimeout(res, 36500));
+  }
+  return false;
+}
+
+module.exports = { launch, boot, errorsOf, auditStatic, shots, runSuite, INPAGE, BASE, VIEWPORTS, EVID, awaitRegisterWindow };
