@@ -31,9 +31,38 @@ export class PaperTrading {
   }
 
   saveAccounts() {
+    // Persist the UNION of in-memory and stored accounts: an in-memory save must
+    // never resurrect an account the user deleted on another device, and must
+    // never drop one another device just added.
     try {
+      const existing = JSON.parse(localStorage.getItem('tradingchart_paper_accounts') || '[]');
+      const deleted = JSON.parse(localStorage.getItem('tradingchart_paper_deleted') || '{}');
+      if (Array.isArray(existing) && existing.length) {
+        const byId = new Map((this.accounts || []).map(a => [a.id, a]));
+        for (const ext of existing) {
+          if (ext && ext.id && !byId.has(ext.id) && !deleted[ext.id]) byId.set(ext.id, ext);
+        }
+        this.accounts = [...byId.values()];
+      }
       localStorage.setItem('tradingchart_paper_accounts', JSON.stringify(this.accounts || []));
     } catch (e) { /* quota */ }
+  }
+
+  /** External state (cloud sync) replaced localStorage — refresh in-memory view.
+   *  Union by id: cloud adds accounts this tab never saw; locally-known accounts
+   *  survive (the sync layer already merged before writing localStorage). */
+  reloadFromStorage() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('tradingchart_paper_accounts') || '[]');
+      if (!Array.isArray(raw)) return;
+      const deleted = JSON.parse(localStorage.getItem('tradingchart_paper_deleted') || '{}');
+      const byId = new Map(raw.filter(a => a && a.id && !deleted[a.id]).map(a => [a.id, a]));
+      for (const loc of this.accounts || []) {
+        if (loc && loc.id && !byId.has(loc.id) && !deleted[loc.id]) byId.set(loc.id, loc);
+      }
+      this.accounts = [...byId.values()];
+      this.render?.();
+    } catch (e) { /* keep current */ }
   }
 
   accountDefaults() {
@@ -122,6 +151,13 @@ export class PaperTrading {
     const idx = this.accounts.findIndex(a => a.id === accountId);
     if (idx < 0) return false;
     this.accounts.splice(idx, 1);
+    // Tombstone: deletion must survive the save-time union merge, otherwise a
+    // stale localStorage copy resurrects the account the user just removed.
+    try {
+      const ts = JSON.parse(localStorage.getItem('tradingchart_paper_deleted') || '{}');
+      ts[accountId] = Date.now();
+      localStorage.setItem('tradingchart_paper_deleted', JSON.stringify(ts));
+    } catch (e) { /* quota */ }
     if (this.activeAccountId === accountId) {
       this.activeAccountId = this.accounts[0].id;
       this.hydrateFromActive();
@@ -174,7 +210,7 @@ export class PaperTrading {
                 $${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; min-height: 26px; color: var(--text-dim); font-weight: 700; border-radius: 4px;" title="${isFa ? `بازنشانی موجودی به $${Number(defaultCap).toLocaleString()}` : `Reset balance to $${Number(defaultCap).toLocaleString()}`}" aria-label="Reset account balance">
+            <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 5px 12px; min-height: 32px; color: var(--text-dim); font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? `بازنشانی موجودی به $${Number(defaultCap).toLocaleString()}` : `Reset balance to $${Number(defaultCap).toLocaleString()}`}" aria-label="Reset account balance">
               ${isFa ? 'بازنشانی' : 'Reset'}
             </button>
           </div>
@@ -183,10 +219,10 @@ export class PaperTrading {
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span style="font-size:10px; color:var(--text-dim);">${isFa ? 'حساب:' : 'Account:'}</span>
             ${this.accounts.map(a => `
-              <button class="paper-account-chip ${a.id === this.activeAccountId ? 'active' : ''}" data-acc="${a.id}" style="padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; cursor:pointer; border:1px solid ${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; background:${a.id === this.activeAccountId ? 'rgba(0,242,176,0.12)' : 'var(--bg-surface)'}; color:${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--text-dim)'};">
+              <button class="paper-account-chip ${a.id === this.activeAccountId ? 'active' : ''}" data-acc="${a.id}" style="padding:4px 10px; min-height:28px; border-radius:12px; font-size:10px; font-weight:700; cursor:pointer; border:1px solid ${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; background:${a.id === this.activeAccountId ? 'rgba(0,242,176,0.12)' : 'var(--bg-surface)'}; color:${a.id === this.activeAccountId ? 'var(--accent-cyan)' : 'var(--text-dim)'}; display: inline-flex; align-items: center;">
                 ${escapeHtmlAcc(this.displayNameFor(a, isFa))}
               </button>`).join('')}
-            <button id="btn-paper-new-account" title="${isFa ? 'حساب دمو جدید' : 'New paper account'}" style="width:22px; height:22px; border-radius:50%; border:1px dashed var(--border-subtle); background:transparent; color:var(--accent-cyan); font-weight:800; cursor:pointer;">+</button>
+            <button id="btn-paper-new-account" title="${isFa ? 'حساب دمو جدید' : 'New paper account'}" style="width:28px; height:28px; min-width:28px; min-height:28px; border-radius:50%; border:1px dashed var(--border-subtle); background:transparent; color:var(--accent-cyan); font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">+</button>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
@@ -250,10 +286,12 @@ export class PaperTrading {
               <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'اهرم (Leverage)' : 'Leverage'}</label>
               <select id="order-lev-sel" style="width: 100%; padding: 4px 6px; font-size: 11px;">
                 <option value="1" ${defaultLev === 1 ? 'selected' : ''}>1x (Spot)</option>
+                <option value="2" ${defaultLev === 2 ? 'selected' : ''}>2x</option>
                 <option value="5" ${defaultLev === 5 ? 'selected' : ''}>5x</option>
                 <option value="10" ${defaultLev === 10 ? 'selected' : ''}>10x</option>
                 <option value="20" ${defaultLev === 20 ? 'selected' : ''}>20x</option>
                 <option value="50" ${defaultLev === 50 ? 'selected' : ''}>50x</option>
+                <option value="100" ${defaultLev === 100 ? 'selected' : ''}>100x</option>
               </select>
             </div>
           </div>
@@ -522,7 +560,12 @@ export class PaperTrading {
         };
 
         window.__TRADING_APP__.tradeJournal.sampleExecutions.unshift(execClose, execOpen);
+        window.__TRADING_APP__.tradeJournal.saveExecutions?.();
         window.__TRADING_APP__.tradeJournal.render();
+        if (window.__TRADING_APP__?.fullPageJournal) {
+          window.__TRADING_APP__.fullPageJournal.sampleExecutions = window.__TRADING_APP__.tradeJournal.sampleExecutions;
+          window.__TRADING_APP__.fullPageJournal.render?.();
+        }
       }
 
       this.updatePositionsView();
@@ -533,6 +576,7 @@ export class PaperTrading {
     // Persist after every balance/positions mutation so accounts survive
     // reloads and sync with the user's cloud state.
     this.persistAccount();
+    if (!this.container) return;
     const isFa = getLanguage() === 'fa';
     const wrap = this.container.querySelector('#positions-table-wrap');
     const eqEl = this.container.querySelector('#paper-equity');
@@ -576,7 +620,7 @@ export class PaperTrading {
                 ${p.side.toUpperCase()} ${p.leverage}x
               </span>
             </div>
-            <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 3px 10px; font-size: 11px; min-height: 26px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.4); font-weight: 700; border-radius: 4px;" title="${isFa ? 'بستن پوزیشن' : 'Close position'}" aria-label="Close position">
+            <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 4px 12px; font-size: 11px; min-height: 30px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.4); font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'بستن پوزیشن' : 'Close position'}" aria-label="Close position">
               ${isFa ? 'بستن' : 'Close'}
             </button>
           </div>

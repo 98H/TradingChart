@@ -7,93 +7,221 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { FEATURES_CATALOG } from './featuresCatalog.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data', 'accounts');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const OUTBOX_FILE = path.join(DATA_DIR, 'outbox.json');
+const PLANS_FILE = path.join(DATA_DIR, 'plans.json');
 const STATE_DIR = path.join(DATA_DIR, 'states');
 
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000; // 30 days
 const STATE_MAX_BYTES = 2 * 1024 * 1024;      // 2MB cloud state budget
 const SESSION_COOKIE = 'tc_session';
+export const MASTER_KEY = process.env.TRADINGCHART_MASTER_KEY || 'tradingchart_master_nexus';
+
+export function isReqAdmin(req) {
+  if (req.user && (req.user.role === 'admin' || req.user.isAdmin === true)) return true;
+  const key = req.headers['x-master-key'] || req.query?.masterKey || (req.body && req.body.masterKey);
+  return Boolean(key && String(key).trim() === MASTER_KEY);
+}
 
 // ── Plan tiers (TradingView-parity entitlement matrix) ────────────────────
 export const PLAN_ORDER = ['basic', 'essential', 'plus', 'premium', 'ultimate'];
-export const PLANS = {
+export const PLANS = {};
+export const UNLIMITED = -1;
+
+const SEED_PLANS = {
   basic: {
-    id: 'basic', priceUSD: 0,
-    chartsPerTab: 1, savedLayouts: 1, indicatorsPerChart: 2, indicatorsOnIndicator: 1,
-    savedTemplates: 1, watchlists: 1, watchlistSymbols: 30, flagColors: 1,
-    priceAlerts: 3, technicalAlerts: 0, watchlistAlerts: 0, alertDays: 30,
-    webhookAlerts: false, multiCondAlerts: false,
-    paperAccounts: 1, holdingsPerAccount: 20,
-    histBars: 10000, secondIntervals: false, tickIntervals: false, customIntervals: false,
-    synthChartTypes: false, dataExport: false, multiTfAnalysis: false,
-    barReplayMinuteDays: 180, barReplaySecond: false,
-    deepBacktest: false, advancedReport: false, csvTradesExport: false, xlsxReport: false,
-    screenerAutoRefreshSec: 60, aiScreenerReq: 100, pineTimeLimitSec: 20,
-    marketSubscriptions: 2
+    id: 'basic', priceUSD: 0, priceYearlyUSD: 0, billingCycle: 'monthly',
+    nameEn: 'Basic', nameFa: 'پایه',
+    descriptionEn: 'Essential market charting for beginners and exploratory traders',
+    descriptionFa: 'چارت و تحلیل پایه بازار برای معامله‌گران مبتدی و کاوشگران',
+    badge: 'FREE', badgeFa: 'رایگان', color: '#8b93a7', order: 0, isDefault: true, isActive: true,
+    features: {
+      chartsPerTab: 1, savedLayouts: 1, indicatorsPerChart: 2, indicatorsOnIndicator: 1,
+      savedTemplates: 1, watchlists: 1, watchlistSymbols: 30, flagColors: 1,
+      priceAlerts: 3, technicalAlerts: 0, watchlistAlerts: 0, alertDays: 30,
+      webhookAlerts: false, multiCondAlerts: false,
+      paperAccounts: 1, holdingsPerAccount: 20,
+      histBars: 10000, secondIntervals: false, tickIntervals: false, customIntervals: false,
+      synthChartTypes: false, dataExport: false, multiTfAnalysis: false,
+      barReplayMinuteDays: 180, barReplaySecond: false,
+      deepBacktest: false, advancedReport: false, csvTradesExport: false, xlsxReport: false,
+      screenerAutoRefreshSec: 60, aiScreenerReq: 100, pineTimeLimitSec: 20,
+      marketSubscriptions: 2,
+      compareSymbol: true, volumeProfile: false, drawingTools: true,
+      marketTrackers: true, economicCalendar: true, marketNews: true,
+      propFirmSim: true, depthOfMarket: true, tradeJournal: true, technicalRating: true,
+      pineStudio: true, strategyTester: true, socialLinks: true, screenshotShare: true
+    }
   },
   essential: {
-    id: 'essential', priceUSD: 12.95,
-    chartsPerTab: 2, savedLayouts: 5, indicatorsPerChart: 5, indicatorsOnIndicator: 1,
-    savedTemplates: 5, watchlists: 5, watchlistSymbols: 1000, flagColors: 7,
-    priceAlerts: 20, technicalAlerts: 20, watchlistAlerts: 0, alertDays: 60,
-    webhookAlerts: false, multiCondAlerts: false,
-    paperAccounts: 3, holdingsPerAccount: 50,
-    histBars: 10000, secondIntervals: true, tickIntervals: false, customIntervals: true,
-    synthChartTypes: false, dataExport: true, multiTfAnalysis: true,
-    barReplayMinuteDays: 365, barReplaySecond: false,
-    deepBacktest: false, advancedReport: false, csvTradesExport: false, xlsxReport: false,
-    screenerAutoRefreshSec: 60, aiScreenerReq: 150, pineTimeLimitSec: 40,
-    marketSubscriptions: 4
+    id: 'essential', priceUSD: 12.95, priceYearlyUSD: 129.50, billingCycle: 'monthly',
+    nameEn: 'Essential', nameFa: 'اسنشیال',
+    descriptionEn: 'Unleash multi-timeframe analytics, custom intervals, and enhanced indicators',
+    descriptionFa: 'تحلیل چند‌تایم‌فریم، بازه‌های زمانی سفارشی و افزایش سقف اندیکاتورها',
+    badge: 'POPULAR', badgeFa: 'محبوب', color: '#3b82f6', order: 1, isDefault: false, isActive: true,
+    features: {
+      chartsPerTab: 2, savedLayouts: 5, indicatorsPerChart: 5, indicatorsOnIndicator: 1,
+      savedTemplates: 5, watchlists: 5, watchlistSymbols: 1000, flagColors: 7,
+      priceAlerts: 20, technicalAlerts: 20, watchlistAlerts: 0, alertDays: 60,
+      webhookAlerts: false, multiCondAlerts: false,
+      paperAccounts: 3, holdingsPerAccount: 50,
+      histBars: 10000, secondIntervals: true, tickIntervals: false, customIntervals: true,
+      synthChartTypes: false, dataExport: true, multiTfAnalysis: true,
+      barReplayMinuteDays: 365, barReplaySecond: false,
+      deepBacktest: false, advancedReport: false, csvTradesExport: false, xlsxReport: false,
+      screenerAutoRefreshSec: 60, aiScreenerReq: 150, pineTimeLimitSec: 40,
+      marketSubscriptions: 4,
+      compareSymbol: true, volumeProfile: false, drawingTools: true,
+      marketTrackers: true, economicCalendar: true, marketNews: true,
+      propFirmSim: true, depthOfMarket: true, tradeJournal: true, technicalRating: true,
+      pineStudio: true, strategyTester: true, socialLinks: true, screenshotShare: true
+    }
   },
   plus: {
-    id: 'plus', priceUSD: 29.95,
-    chartsPerTab: 4, savedLayouts: 10, indicatorsPerChart: 10, indicatorsOnIndicator: 9,
-    savedTemplates: 10, watchlists: 10, watchlistSymbols: 1000, flagColors: 7,
-    priceAlerts: 100, technicalAlerts: 100, watchlistAlerts: 2, alertDays: 60,
-    webhookAlerts: true, multiCondAlerts: true,
-    paperAccounts: 4, holdingsPerAccount: 75,
-    histBars: 10000, secondIntervals: true, tickIntervals: false, customIntervals: true,
-    synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
-    barReplayMinuteDays: -1, barReplaySecond: true,
-    deepBacktest: false, advancedReport: true, csvTradesExport: true, xlsxReport: false,
-    screenerAutoRefreshSec: 10, aiScreenerReq: 250, pineTimeLimitSec: 40,
-    marketSubscriptions: 6
+    id: 'plus', priceUSD: 29.95, priceYearlyUSD: 299.50, billingCycle: 'monthly',
+    nameEn: 'Plus', nameFa: 'پلاس',
+    descriptionEn: 'Intraday mastery with webhook alerts, synthetic charts, and 4-chart grids',
+    descriptionFa: 'تسلط روزانه با هشدارهای وب‌هوک، چارت‌های رنکو/کاگی و چیدمان ۴ چارت',
+    badge: 'RECOMMENDED', badgeFa: 'پیشنهادی', color: '#00F2B0', order: 2, isDefault: false, isActive: true,
+    features: {
+      chartsPerTab: 4, savedLayouts: 10, indicatorsPerChart: 10, indicatorsOnIndicator: 9,
+      savedTemplates: 10, watchlists: 10, watchlistSymbols: 1000, flagColors: 7,
+      priceAlerts: 100, technicalAlerts: 100, watchlistAlerts: 2, alertDays: 60,
+      webhookAlerts: true, multiCondAlerts: true,
+      paperAccounts: 4, holdingsPerAccount: 75,
+      histBars: 10000, secondIntervals: true, tickIntervals: false, customIntervals: true,
+      synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
+      barReplayMinuteDays: -1, barReplaySecond: true,
+      deepBacktest: false, advancedReport: true, csvTradesExport: true, xlsxReport: false,
+      screenerAutoRefreshSec: 10, aiScreenerReq: 250, pineTimeLimitSec: 40,
+      marketSubscriptions: 6,
+      compareSymbol: true, volumeProfile: true, drawingTools: true,
+      marketTrackers: true, economicCalendar: true, marketNews: true,
+      propFirmSim: true, depthOfMarket: true, tradeJournal: true, technicalRating: true,
+      pineStudio: true, strategyTester: true, socialLinks: true, screenshotShare: true
+    }
   },
   premium: {
-    id: 'premium', priceUSD: 59.95,
-    chartsPerTab: 8, savedLayouts: -1, indicatorsPerChart: 25, indicatorsOnIndicator: 24,
-    savedTemplates: 20, watchlists: 20, watchlistSymbols: 1000, flagColors: 7,
-    priceAlerts: 400, technicalAlerts: 400, watchlistAlerts: 2, alertDays: -1,
-    webhookAlerts: true, multiCondAlerts: true,
-    paperAccounts: 5, holdingsPerAccount: 100,
-    histBars: 20000, secondIntervals: true, tickIntervals: true, customIntervals: true,
-    synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
-    barReplayMinuteDays: -1, barReplaySecond: true,
-    deepBacktest: true, advancedReport: true, csvTradesExport: true, xlsxReport: true,
-    screenerAutoRefreshSec: 10, aiScreenerReq: 500, pineTimeLimitSec: 40,
-    marketSubscriptions: 6
+    id: 'premium', priceUSD: 59.95, priceYearlyUSD: 599.50, billingCycle: 'monthly',
+    nameEn: 'Premium', nameFa: 'پریمیوم',
+    descriptionEn: 'Institutional-grade depth, 20,000 bars, 8-chart layouts, and deep backtesting',
+    descriptionFa: 'قدرت نهادی، ۲۰ هزار کندل، چیدمان ۸ چارت و بک‌تست عمیق نامحدود',
+    badge: 'PRO', badgeFa: 'حرفه‌ای', color: '#a855f7', order: 3, isDefault: false, isActive: true,
+    features: {
+      chartsPerTab: 8, savedLayouts: -1, indicatorsPerChart: 25, indicatorsOnIndicator: 24,
+      savedTemplates: 20, watchlists: 20, watchlistSymbols: 1000, flagColors: 7,
+      priceAlerts: 400, technicalAlerts: 400, watchlistAlerts: 2, alertDays: -1,
+      webhookAlerts: true, multiCondAlerts: true,
+      paperAccounts: 5, holdingsPerAccount: 100,
+      histBars: 20000, secondIntervals: true, tickIntervals: true, customIntervals: true,
+      synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
+      barReplayMinuteDays: -1, barReplaySecond: true,
+      deepBacktest: true, advancedReport: true, csvTradesExport: true, xlsxReport: true,
+      screenerAutoRefreshSec: 10, aiScreenerReq: 500, pineTimeLimitSec: 40,
+      marketSubscriptions: 6,
+      compareSymbol: true, volumeProfile: true, drawingTools: true,
+      marketTrackers: true, economicCalendar: true, marketNews: true,
+      propFirmSim: true, depthOfMarket: true, tradeJournal: true, technicalRating: true,
+      pineStudio: true, strategyTester: true, socialLinks: true, screenshotShare: true
+    }
   },
   ultimate: {
-    id: 'ultimate', priceUSD: 199.95,
-    chartsPerTab: 16, savedLayouts: -1, indicatorsPerChart: 50, indicatorsOnIndicator: 49,
-    savedTemplates: 30, watchlists: 30, watchlistSymbols: 1000, flagColors: 7,
-    priceAlerts: 1000, technicalAlerts: 1000, watchlistAlerts: 15, alertDays: -1,
-    webhookAlerts: true, multiCondAlerts: true,
-    paperAccounts: 7, holdingsPerAccount: 150,
-    histBars: 40000, secondIntervals: true, tickIntervals: true, customIntervals: true,
-    synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
-    barReplayMinuteDays: -1, barReplaySecond: true,
-    deepBacktest: true, advancedReport: true, csvTradesExport: true, xlsxReport: true,
-    screenerAutoRefreshSec: 10, aiScreenerReq: 1000, pineTimeLimitSec: 100,
-    marketSubscriptions: 200
+    id: 'ultimate', priceUSD: 199.95, priceYearlyUSD: 1999.50, billingCycle: 'monthly',
+    nameEn: 'Ultimate', nameFa: 'آلتیمیت',
+    descriptionEn: 'Limitless power with 16-chart grids, 40,000 bars, 1000 alerts, and priority compute',
+    descriptionFa: 'نهایت قدرت با ۱۶ چارت همزمان، ۴۰ هزار کندل، ۱۰۰۰ هشدار و اولویت پردازش',
+    badge: 'VIP', badgeFa: 'ویژه', color: '#f59e0b', order: 4, isDefault: false, isActive: true,
+    features: {
+      chartsPerTab: 16, savedLayouts: -1, indicatorsPerChart: 50, indicatorsOnIndicator: 49,
+      savedTemplates: 30, watchlists: 30, watchlistSymbols: 1000, flagColors: 7,
+      priceAlerts: 1000, technicalAlerts: 1000, watchlistAlerts: 15, alertDays: -1,
+      webhookAlerts: true, multiCondAlerts: true,
+      paperAccounts: 7, holdingsPerAccount: 150,
+      histBars: 40000, secondIntervals: true, tickIntervals: true, customIntervals: true,
+      synthChartTypes: true, dataExport: true, multiTfAnalysis: true,
+      barReplayMinuteDays: -1, barReplaySecond: true,
+      deepBacktest: true, advancedReport: true, csvTradesExport: true, xlsxReport: true,
+      screenerAutoRefreshSec: 10, aiScreenerReq: 1000, pineTimeLimitSec: 100,
+      marketSubscriptions: 200,
+      compareSymbol: true, volumeProfile: true, drawingTools: true,
+      marketTrackers: true, economicCalendar: true, marketNews: true,
+      propFirmSim: true, depthOfMarket: true, tradeJournal: true, technicalRating: true,
+      pineStudio: true, strategyTester: true, socialLinks: true, screenshotShare: true
+    }
   }
 };
-export const UNLIMITED = -1;
+
+export function normalizePlan(raw) {
+  const p = { ...raw };
+  p.id = String(p.id || '').trim().toLowerCase();
+  p.nameEn = String(p.nameEn || p.id).trim();
+  p.nameFa = String(p.nameFa || p.nameEn).trim();
+  p.descriptionEn = String(p.descriptionEn || '').trim();
+  p.descriptionFa = String(p.descriptionFa || p.descriptionEn).trim();
+  p.priceUSD = typeof p.priceUSD === 'number' ? Math.max(0, p.priceUSD) : 0;
+  p.priceYearlyUSD = typeof p.priceYearlyUSD === 'number' ? Math.max(0, p.priceYearlyUSD) : Math.round(p.priceUSD * 10 * 100) / 100;
+  p.billingCycle = p.billingCycle || 'monthly';
+  p.badge = String(p.badge || '').trim();
+  p.badgeFa = String(p.badgeFa || p.badge).trim();
+  p.color = p.color || '#00F2B0';
+  p.order = typeof p.order === 'number' ? p.order : 0;
+  p.isActive = p.isActive !== false;
+  p.isDefault = Boolean(p.isDefault);
+
+  // Features object
+  p.features = { ...(p.features || {}) };
+  for (const f of FEATURES_CATALOG) {
+    if (p.features[f.id] === undefined) {
+      p.features[f.id] = (raw[f.id] !== undefined) ? raw[f.id] : f.default;
+    }
+    // Also flatten onto top level for backward compatibility
+    p[f.id] = p.features[f.id];
+  }
+  return p;
+}
+
+export function loadPlans() {
+  const store = readJson(PLANS_FILE, null);
+  Object.keys(PLANS).forEach(k => delete PLANS[k]);
+  PLAN_ORDER.length = 0;
+
+  if (store && store.plans && typeof store.plans === 'object') {
+    for (const [id, raw] of Object.entries(store.plans)) {
+      PLANS[id] = normalizePlan({ ...raw, id });
+    }
+    if (Array.isArray(store.planOrder)) {
+      PLAN_ORDER.push(...store.planOrder.filter(id => !!PLANS[id]));
+    }
+  }
+
+  // Ensure canonical seed plans exist
+  for (const [id, raw] of Object.entries(SEED_PLANS)) {
+    if (!PLANS[id]) {
+      PLANS[id] = normalizePlan(raw);
+    }
+    if (!PLAN_ORDER.includes(id)) {
+      PLAN_ORDER.push(id);
+    }
+  }
+
+  // Ensure at least one default plan exists
+  if (!Object.values(PLANS).some(p => p.isDefault)) {
+    if (PLANS.basic) PLANS.basic.isDefault = true;
+  }
+}
+
+export function savePlansStore() {
+  atomicWrite(PLANS_FILE, {
+    plans: PLANS,
+    planOrder: PLAN_ORDER,
+    updatedAt: Date.now()
+  });
+}
 
 // ── Atomic JSON store ─────────────────────────────────────────────────────
 function ensureDirs() {
@@ -125,6 +253,10 @@ function atomicWrite(file, obj) {
   fs.writeFileSync(tmp, JSON.stringify(obj, null, 1));
   fs.renameSync(tmp, file);
 }
+
+// Bootstrap plans on boot
+loadPlans();
+if (!fs.existsSync(PLANS_FILE)) savePlansStore();
 function scheduleFlush() {
   if (_flushTimer) return;
   _flushTimer = setTimeout(() => { _flushTimer = null; flushNow(); }, 150);
@@ -154,7 +286,24 @@ const sixDigitCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0')
 
 // ── Validation ────────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,24}$/;
-const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;
+// TradingView parity: letters, digits, underscore and hyphen; 3–24 chars.
+const USERNAME_RE = /^[a-zA-Z0-9_-]{3,24}$/;
+// Reserved/impersonation blocklist (TradingView House Rules parity).
+const USERNAME_BLOCK_RE = /(admin|moderator|tradingview|vela|nexus|support|official)/i;
+const USERNAME_CHANGE_LIMIT = 2; // TradingView: every user may change username twice
+
+// Social-link network allowlist per plan tier (TradingView parity):
+// basic → X, YouTube · essential/plus → + Facebook, Instagram · premium/ultimate → + Website
+const SOCIAL_NETWORKS_BY_PLAN = {
+  basic: ['x', 'youtube'],
+  essential: ['x', 'youtube', 'facebook', 'instagram'],
+  plus: ['x', 'youtube', 'facebook', 'instagram'],
+  premium: ['x', 'youtube', 'facebook', 'instagram', 'website'],
+  ultimate: ['x', 'youtube', 'facebook', 'instagram', 'website']
+};
+const SOCIAL_NETWORKS_ALL = ['x', 'youtube', 'facebook', 'instagram', 'website'];
+const URL_RE = /^https?:\/\/[^\s]{3,200}$/i;
+const X_HANDLE_RE = /^@?[A-Za-z0-9_]{1,15}$/;
 
 function normalizeEmail(v) { return String(v || '').trim().toLowerCase(); }
 function passwordOk(pw) {
@@ -166,8 +315,48 @@ function validateRegistration({ email, username, password }) {
   const errors = [];
   if (!EMAIL_RE.test(email || '')) errors.push({ field: 'email', code: 'invalid_email' });
   if (!USERNAME_RE.test(username || '')) errors.push({ field: 'username', code: 'invalid_username' });
+  else if (USERNAME_BLOCK_RE.test(username)) errors.push({ field: 'username', code: 'username_blocked' });
   if (!passwordOk(password)) errors.push({ field: 'password', code: password.length > 128 ? 'password_length' : 'password_weak' });
   return errors;
+}
+
+// ── RFC 6238 TOTP (zero-dependency, authenticator-app parity) ─────────────
+const B32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function base32Encode(buf) {
+  let bits = 0, value = 0, out = '';
+  for (const byte of buf) {
+    value = (value << 8) | byte; bits += 8;
+    while (bits >= 5) { out += B32_ALPHABET[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32_ALPHABET[(value << (5 - bits)) & 31];
+  return out;
+}
+function base32Decode(str) {
+  let bits = 0, value = 0; const out = [];
+  for (const ch of String(str).replace(/=+$/, '').toUpperCase()) {
+    const idx = B32_ALPHABET.indexOf(ch);
+    if (idx === -1) continue;
+    value = (value << 5) | idx; bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return Buffer.from(out);
+}
+function totpCode(secret, timeStep = 30, offsetSteps = 0) {
+  const key = base32Decode(secret);
+  const counter = Math.floor(Date.now() / 1000 / timeStep) + offsetSteps;
+  const msg = Buffer.alloc(8);
+  msg.writeBigUInt64BE(BigInt(counter));
+  const h = crypto.createHmac('sha1', key).update(msg).digest();
+  const off = h[h.length - 1] & 0xf;
+  const code = ((h[off] & 0x7f) << 24 | h[off + 1] << 16 | h[off + 2] << 8 | h[off + 3]) % 1000000;
+  return String(code).padStart(6, '0');
+}
+function totpVerify(secret, code) {
+  const c = String(code || '').trim();
+  if (!/^\d{6}$/.test(c)) return false;
+  // ±1 step tolerance (30s clock drift either way)
+  for (const off of [-1, 0, 1]) if (totpCode(secret, 30, off) === c) return true;
+  return false;
 }
 
 // ── Rate limiting (sliding window, per IP+action) ─────────────────────────
@@ -303,8 +492,14 @@ function publicUser(u) {
   return {
     id: u.id, email: u.email, username: u.username, displayName: u.displayName,
     bio: u.bio || '', avatarPreset: u.avatarPreset || 'mecha',
+    location: u.location || '', signature: u.signature || '',
+    socialLinks: u.socialLinks || {},
     plan: u.plan || 'basic', planSince: u.planSince || null,
+    role: u.role || 'user',
+    isAdmin: Boolean(u.role === 'admin' || u.isAdmin === true),
     emailVerified: !!u.emailVerified, createdAt: u.createdAt,
+    usernameChangesLeft: Math.max(0, USERNAME_CHANGE_LIMIT - (u.usernameChanges || 0)),
+    totpEnabled: !!u.totpSecret,
     timezone: u.timezone || 'UTC', currency: u.currency || 'USD'
   };
 }
@@ -388,6 +583,16 @@ export function mountAccountSystem(app) {
     if (!u || !verifyPassword(String(body.password || ''), u.salt, u.hash)) {
       return res.status(401).json({ ok: false, error: 'invalid_credentials' });
     }
+    // 2FA second step: account has TOTP enabled → require a live code.
+    // No code yet → tell the client to prompt (do NOT create a session).
+    if (u.totpSecret) {
+      if (body.totpCode === undefined) {
+        return res.status(200).json({ ok: true, totpRequired: true });
+      }
+      if (!totpVerify(u.totpSecret, body.totpCode)) {
+        return res.status(401).json({ ok: false, error: 'invalid_totp', totpRequired: true });
+      }
+    }
     const row = createSessionRow(u, req);
     addSessionRow(row); flushNow();
     setSessionCookie(res, row.token, SESSION_TTL_MS);
@@ -422,15 +627,44 @@ export function mountAccountSystem(app) {
       const uname = String(b.username).trim();
       if (!USERNAME_RE.test(uname))
         return res.status(400).json({ ok: false, errors: [{ field: 'username', code: 'invalid_username' }] });
-      if (users().users.some(x => x.id !== u.id && x.usernameLower === uname.toLowerCase()))
-        return res.status(409).json({ ok: false, errors: [{ field: 'username', code: 'username_taken' }] });
-      u.username = uname; u.usernameLower = uname.toLowerCase();
+      if (USERNAME_BLOCK_RE.test(uname))
+        return res.status(400).json({ ok: false, errors: [{ field: 'username', code: 'username_blocked' }] });
+      if (uname.toLowerCase() !== u.usernameLower) {
+        // TradingView parity: each user may change their username at most twice.
+        if ((u.usernameChanges || 0) >= USERNAME_CHANGE_LIMIT)
+          return res.status(403).json({ ok: false, errors: [{ field: 'username', code: 'username_limit' }] });
+        if (users().users.some(x => x.id !== u.id && x.usernameLower === uname.toLowerCase()))
+          return res.status(409).json({ ok: false, errors: [{ field: 'username', code: 'username_taken' }] });
+        u.username = uname; u.usernameLower = uname.toLowerCase();
+        u.usernameChanges = (u.usernameChanges || 0) + 1;
+      }
     }
     if (b.displayName !== undefined) u.displayName = String(b.displayName).slice(0, 64);
     if (b.bio !== undefined) u.bio = String(b.bio).slice(0, 280);
+    if (b.location !== undefined) u.location = String(b.location).slice(0, 80);
+    if (b.signature !== undefined) u.signature = String(b.signature).slice(0, 140);
     if (b.avatarPreset !== undefined) u.avatarPreset = String(b.avatarPreset).slice(0, 24);
     if (b.timezone !== undefined) u.timezone = String(b.timezone).slice(0, 48);
     if (b.currency !== undefined) u.currency = String(b.currency).slice(0, 8);
+    if (b.socialLinks !== undefined) {
+      // Plan-gated social networks (TradingView parity). Unknown networks and
+      // networks above the user's tier are rejected; malformed values dropped.
+      const allowed = SOCIAL_NETWORKS_BY_PLAN[u.plan || 'basic'] || SOCIAL_NETWORKS_BY_PLAN.basic;
+      const incoming = typeof b.socialLinks === 'object' && b.socialLinks ? b.socialLinks : {};
+      const next = { ...(u.socialLinks || {}) };
+      for (const net of SOCIAL_NETWORKS_ALL) {
+        if (!(net in incoming)) continue;
+        const raw = String(incoming[net] || '').trim();
+        if (!raw) { delete next[net]; continue; } // empty string clears the link
+        if (!allowed.includes(net))
+          return res.status(403).json({ ok: false, errors: [{ field: `socialLinks.${net}`, code: 'plan_required' }] });
+        const valid = net === 'x' ? X_HANDLE_RE.test(raw) : URL_RE.test(raw);
+        if (!valid)
+          return res.status(400).json({ ok: false, errors: [{ field: `socialLinks.${net}`, code: 'invalid_link' }] });
+        next[net] = net === 'x' ? raw.replace(/^@/, '') : raw;
+      }
+      u.socialLinks = next;
+    }
     if (b.email !== undefined) {
       const email = normalizeEmail(b.email);
       if (!EMAIL_RE.test(email))
@@ -519,6 +753,53 @@ export function mountAccountSystem(app) {
     res.json({ ok: true, user: publicUser(req.user) });
   });
 
+      // ── Two-factor authentication (TOTP authenticator app — TradingView parity) ──
+  // Step 1: request a secret + otpauth URI (does NOT enable yet).
+  // Repeating setup replaces the pending secret and is NOT rate-limited — the
+  // caller is already authenticated and the pending value is harmless until a
+  // valid code confirms it. Rate gates stay on enable/disable/login instead.
+  router.post('/2fa/setup', (req, res) => {
+    if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    if (req.user.totpSecret) return res.status(409).json({ ok: false, error: 'already_enabled' });
+    const secret = base32Encode(crypto.randomBytes(20));
+    req.user.pendingTotpSecret = secret;
+    flushNow();
+    const issuer = 'TradingChart';
+    const label = encodeURIComponent(`${issuer}:${req.user.username}`);
+    res.json({
+      ok: true, secret,
+      otpauthUrl: `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&digits=6&period=30`
+    });
+  });
+
+  // Step 2: confirm with a live code from the authenticator app
+  router.post('/2fa/enable', (req, res) => {
+    if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    if (rateGate(req, res, 'twofa', 6, 60000)) return;
+    const pending = req.user.pendingTotpSecret;
+    if (!pending) return res.status(400).json({ ok: false, error: 'no_pending_setup' });
+    if (!totpVerify(pending, req.body?.code))
+      return res.status(400).json({ ok: false, error: 'invalid_code' });
+    req.user.totpSecret = pending;
+    req.user.pendingTotpSecret = null;
+    flushNow();
+    res.json({ ok: true, totpEnabled: true });
+  });
+
+  // Disable requires password + live code (protects against session hijack)
+  router.post('/2fa/disable', (req, res) => {
+    if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    if (rateGate(req, res, 'twofa', 6, 60000)) return;
+    if (!req.user.totpSecret) return res.status(400).json({ ok: false, error: 'not_enabled' });
+    if (!verifyPassword(String(req.body?.password || ''), req.user.salt, req.user.hash))
+      return res.status(400).json({ ok: false, error: 'invalid_credentials' });
+    if (!totpVerify(req.user.totpSecret, req.body?.code))
+      return res.status(400).json({ ok: false, error: 'invalid_code' });
+    req.user.totpSecret = null;
+    flushNow();
+    res.json({ ok: true, totpEnabled: false });
+  });
+
   app.use('/api/auth', router);
 
   // ── Housekeeping: drop expired sessions hourly so the store stays small ──
@@ -562,8 +843,10 @@ export function mountAccountSystem(app) {
       return res.status(403).json({ ok: false, error: 'limit_exceeded', violations });
     }
     const current = readState(req.user.id);
-    // Optimistic concurrency: stale base → 409 with the server copy for merge review.
-    if (baseUpdatedAt && current.updatedAt > baseUpdatedAt) {
+    // Optimistic concurrency: stale base → 409 with the server copy for merge
+    // review. A client claiming base 0 ("I know nothing") is only honest when
+    // the server truly has no state yet — otherwise it IS a stale writer.
+    if (current.updatedAt > 0 && Number(baseUpdatedAt || 0) < current.updatedAt) {
       return res.status(409).json({
         ok: false, error: 'conflict',
         serverUpdatedAt: current.updatedAt, serverState: current.state
@@ -605,7 +888,7 @@ export function mountAccountSystem(app) {
     const allSessions = sessions().sessions
       .filter(s => s.userId === u.id)
       .map(({ id, device, ua, ip, createdAt, lastSeen }) => ({ id, device, ua, ip, createdAt, lastSeen }));
-    const { salt, hash, ...safeUser } = u;
+    const { salt, hash, totpSecret, pendingTotpSecret, verifyCode, resetCode, ...safeUser } = u;
     res.json({ ok: true, exportedAt: new Date().toISOString(), user: safeUser, state: rec.state || {}, sessions: allSessions });
   });
 
@@ -635,9 +918,198 @@ export function mountAccountSystem(app) {
     res.json({
       ok: true,
       plans: Object.fromEntries(Object.entries(PLANS).map(([id, p]) => [id, { ...p }])),
+      planOrder: PLAN_ORDER,
       current: req.user ? (req.user.plan || 'basic') : null,
-      usage: req.user ? computeUsage(req.user) : null
+      usage: req.user ? computeUsage(req.user) : null,
+      isAdmin: isReqAdmin(req)
     });
+  });
+
+  // ── Admin: Master Key Auth & Promotion ───────────────────────────────────
+  app.post('/api/admin/auth', (req, res) => {
+    const key = req.body?.masterKey || req.headers['x-master-key'];
+    if (!key || String(key).trim() !== MASTER_KEY) {
+      return res.status(401).json({ ok: false, error: 'invalid_master_key' });
+    }
+    if (req.user) {
+      req.user.role = 'admin';
+      req.user.isAdmin = true;
+      flushNow();
+    }
+    res.json({ ok: true, isAdmin: true, masterKeyAccepted: true });
+  });
+
+  // ── Admin: Full Plans Catalog & Management ───────────────────────────────
+  app.get('/api/admin/plans', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    res.json({
+      ok: true,
+      plans: PLANS,
+      planOrder: PLAN_ORDER,
+      catalog: FEATURES_CATALOG
+    });
+  });
+
+  // Create new custom plan
+  app.post('/api/admin/plans', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    const raw = req.body || {};
+    const id = String(raw.id || '').trim().toLowerCase();
+    if (!id || !/^[a-z0-9_-]{2,32}$/.test(id)) {
+      return res.status(400).json({ ok: false, error: 'invalid_plan_id', message: 'Plan ID must be 2–32 alphanumeric chars or hyphens/underscores' });
+    }
+    if (PLANS[id]) {
+      return res.status(400).json({ ok: false, error: 'plan_exists', message: 'A plan with this ID already exists' });
+    }
+    const plan = normalizePlan({ ...raw, id });
+    if (plan.isDefault) {
+      Object.values(PLANS).forEach(p => { p.isDefault = false; });
+    }
+    PLANS[id] = plan;
+    if (!PLAN_ORDER.includes(id)) {
+      PLAN_ORDER.push(id);
+    }
+    savePlansStore();
+    res.json({ ok: true, plan, planOrder: PLAN_ORDER });
+  });
+
+  // Update existing plan
+  app.put('/api/admin/plans/:id', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    const id = String(req.params.id || '').trim().toLowerCase();
+    if (!PLANS[id]) {
+      return res.status(404).json({ ok: false, error: 'plan_not_found' });
+    }
+    const existing = PLANS[id];
+    const raw = req.body || {};
+    const updated = normalizePlan({
+      ...existing,
+      ...raw,
+      id, // keep immutable ID
+      features: { ...existing.features, ...(raw.features || {}) }
+    });
+
+    if (updated.isDefault) {
+      Object.values(PLANS).forEach(p => { p.isDefault = (p.id === id); });
+    }
+    PLANS[id] = updated;
+    savePlansStore();
+    res.json({ ok: true, plan: updated, planOrder: PLAN_ORDER });
+  });
+
+  // Delete plan
+  app.delete('/api/admin/plans/:id', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    const id = String(req.params.id || '').trim().toLowerCase();
+    if (!PLANS[id]) {
+      return res.status(404).json({ ok: false, error: 'plan_not_found' });
+    }
+    if (PLAN_ORDER.length <= 1) {
+      return res.status(400).json({ ok: false, error: 'cannot_delete_last_plan' });
+    }
+    if (PLANS[id].isDefault) {
+      return res.status(400).json({ ok: false, error: 'cannot_delete_default_plan', message: 'Set another plan as default before deleting this one' });
+    }
+
+    // Find fallback default plan
+    const defaultPlan = Object.values(PLANS).find(p => p.isDefault && p.id !== id) || PLANS.basic || Object.values(PLANS).find(p => p.id !== id);
+    const fallbackId = defaultPlan.id;
+
+    // Migrate any users on this plan to fallback plan
+    const uStore = users();
+    let migratedCount = 0;
+    uStore.users.forEach(u => {
+      if (u.plan === id) {
+        u.plan = fallbackId;
+        u.planSince = Date.now();
+        migratedCount++;
+      }
+    });
+    if (migratedCount > 0) {
+      flushNow();
+    }
+
+    delete PLANS[id];
+    const orderIdx = PLAN_ORDER.indexOf(id);
+    if (orderIdx >= 0) PLAN_ORDER.splice(orderIdx, 1);
+    savePlansStore();
+
+    res.json({ ok: true, deleted: id, fallbackPlan: fallbackId, migratedUsers: migratedCount, planOrder: PLAN_ORDER });
+  });
+
+  // Reorder plans
+  app.post('/api/admin/plans/reorder', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    const { order } = req.body || {};
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ ok: false, error: 'invalid_order' });
+    }
+    const valid = order.filter(id => !!PLANS[id]);
+    Object.keys(PLANS).forEach(id => {
+      if (!valid.includes(id)) valid.push(id);
+    });
+    PLAN_ORDER.length = 0;
+    PLAN_ORDER.push(...valid);
+    PLAN_ORDER.forEach((id, idx) => {
+      if (PLANS[id]) PLANS[id].order = idx;
+    });
+    savePlansStore();
+    res.json({ ok: true, planOrder: PLAN_ORDER });
+  });
+
+  // Clone plan
+  app.post('/api/admin/plans/clone', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    const { sourceId, newId, nameEn, nameFa } = req.body || {};
+    const src = PLANS[sourceId];
+    if (!src) return res.status(404).json({ ok: false, error: 'source_plan_not_found' });
+    const targetId = String(newId || '').trim().toLowerCase();
+    if (!targetId || !/^[a-z0-9_-]{2,32}$/.test(targetId)) {
+      return res.status(400).json({ ok: false, error: 'invalid_new_id' });
+    }
+    if (PLANS[targetId]) {
+      return res.status(400).json({ ok: false, error: 'plan_exists' });
+    }
+    const cloned = normalizePlan({
+      ...src,
+      id: targetId,
+      nameEn: nameEn || `${src.nameEn} (Copy)`,
+      nameFa: nameFa || `${src.nameFa} (کپی)`,
+      isDefault: false,
+      order: PLAN_ORDER.length,
+      features: { ...src.features }
+    });
+    PLANS[targetId] = cloned;
+    PLAN_ORDER.push(targetId);
+    savePlansStore();
+    res.json({ ok: true, plan: cloned, planOrder: PLAN_ORDER });
+  });
+
+  // Reset to default seed plans
+  app.post('/api/admin/plans/reset', (req, res) => {
+    if (!isReqAdmin(req)) {
+      return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
+    }
+    Object.keys(PLANS).forEach(k => delete PLANS[k]);
+    PLAN_ORDER.length = 0;
+    for (const [id, raw] of Object.entries(SEED_PLANS)) {
+      PLANS[id] = normalizePlan(raw);
+      PLAN_ORDER.push(id);
+    }
+    savePlansStore();
+    res.json({ ok: true, plans: PLANS, planOrder: PLAN_ORDER });
   });
 
   // Simulated billing (self-hosted product): switch plan instantly.
@@ -645,6 +1117,9 @@ export function mountAccountSystem(app) {
     if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
     const planId = String(req.body?.plan || '');
     if (!PLANS[planId]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
+    if (PLANS[planId].isActive === false && !isReqAdmin(req)) {
+      return res.status(400).json({ ok: false, error: 'plan_inactive', message: 'This plan is currently inactive.' });
+    }
     req.user.plan = planId;
     req.user.planSince = Date.now();
     flushNow();

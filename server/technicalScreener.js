@@ -78,7 +78,9 @@ async function computeSingleSymbol(sym) {
 
     return {
       symbol: sym.symbol,
+      tickerFa: sym.tickerFa || sym.symbol,
       name: sym.name,
+      nameFa: sym.nameFa || sym.name,
       category: sym.category,
       exchange: sym.exchange,
       price: ticker.lastPrice,

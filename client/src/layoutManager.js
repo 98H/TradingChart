@@ -11,7 +11,7 @@ export const DEFAULT_LAYOUT_PRESETS = [
     id: 'single',
     layoutId: '1',
     nameEn: '1x1 Single Chart',
-    nameFa: 'چارت تک‌پنجره‌ای (1x1)',
+    nameFa: 'تک‌چارت (1x1)',
     cols: 1,
     rows: 1,
     descEn: 'Focus on single asset with full technical markers',
@@ -94,9 +94,12 @@ export class LayoutManager {
     this.app = app;
     this.activeLayoutId = '1';
     this.activeLayoutName = '1x1 Single Chart';
+    this.activeSavedLayoutId = null;
     this.isMaximizedCell = false;
     this.searchQuery = '';
     this.sortBy = 'date'; // 'date' | 'name'
+    this._wiredCells = new WeakSet();
+    this._wsEventsBound = false;
     
     // TradingView 6-Axis Sync
     this.syncOpts = {
@@ -112,12 +115,112 @@ export class LayoutManager {
     this.autoSaveEnabled = localStorage.getItem('tradingchart_layout_autosave') !== 'false';
     this.isDirty = false;
     this.autoSaveTimer = null;
+    this._persistDebounceTimer = null;
 
     this.savedLayouts = this.loadSavedLayouts();
     this.restoreCurrentLayout();
     this.initDOM();
     this.setupAutoSave();
     this.setupCellStrip();
+    this.setupUnloadHandler();
+  }
+
+  setupUnloadHandler() {
+    window.addEventListener('beforeunload', () => {
+      this.persistCurrentLayout();
+    });
+    window.addEventListener('pagehide', () => {
+      this.persistCurrentLayout();
+    });
+  }
+
+  // Bind reactive listeners to all cells in workspace (indicators, inputs, visibility, drawings, configs)
+  bindWorkspaceCellListeners() {
+    const ws = this.app?.chartManager?.workspace;
+    if (!ws) return;
+
+    if (!this._wiredCells) this._wiredCells = new WeakSet();
+
+    const wireCell = (cell) => {
+      if (!cell || this._wiredCells.has(cell)) return;
+      this._wiredCells.add(cell);
+
+      const chart = cell.chart;
+      const orch = chart?.orchestrator;
+      if (orch?.events?.on) {
+        orch.events.on('indicator:inputs', () => this.schedulePersist());
+        orch.events.on('indicator:visibility', () => this.schedulePersist());
+        orch.events.on('indicator:removed', () => this.schedulePersist());
+        orch.events.on('indicator:added', () => this.schedulePersist());
+        orch.events.on('indicator:moved', () => this.schedulePersist());
+        orch.events.on('market:changed', () => this.schedulePersist());
+        orch.events.on('timeframe:changed', () => this.schedulePersist());
+        orch.events.on('style:changed', () => this.schedulePersist());
+      }
+
+      if (chart?.drawings?.events?.on) {
+        chart.drawings.events.on('drawing:created', () => this.schedulePersist());
+        chart.drawings.events.on('drawing:edited', () => this.schedulePersist());
+        chart.drawings.events.on('drawing:removed', () => this.schedulePersist());
+      } else if (chart?.drawings?.on) {
+        try {
+          chart.drawings.on('drawing:created', () => this.schedulePersist());
+          chart.drawings.on('drawing:edited', () => this.schedulePersist());
+          chart.drawings.on('drawing:removed', () => this.schedulePersist());
+        } catch (e) {}
+      }
+
+      if (typeof chart?.onConfigChanged === 'function') {
+        try { chart.onConfigChanged(() => this.schedulePersist()); } catch (e) {}
+      }
+    };
+
+    if (ws.cellsById) {
+      for (const cell of ws.cellsById.values()) {
+        wireCell(cell);
+      }
+    }
+    if (ws.active) {
+      wireCell(ws.active);
+    }
+
+    if (ws.events?.on && !this._wsEventsBound) {
+      this._wsEventsBound = true;
+      ws.events.on('cell:created', ({ id }) => {
+        const cell = ws.cellsById?.get(id);
+        if (cell) wireCell(cell);
+        this.updateCellStrip();
+        this.schedulePersist();
+      });
+      ws.events.on('cell:destroyed', () => {
+        this.updateCellStrip();
+        this.schedulePersist();
+      });
+      ws.events.on('layout:changed', () => {
+        if (ws.cellsById) {
+          for (const cell of ws.cellsById.values()) wireCell(cell);
+        }
+        this.updateCellStrip();
+      });
+      ws.events.on('cell:active', ({ id }) => {
+        const cell = ws.cellsById?.get(id) || ws.active;
+        if (cell) {
+          if (cell.symbol) {
+            const cleanSym = cell.symbol.replace(/^.*:/, '').toUpperCase();
+            this.app.currentSymbol = cleanSym;
+            if (this.app.chartManager) this.app.chartManager.activeSymbol = cleanSym;
+            this.app.depthOfMarket?.setSymbol?.(cleanSym);
+            this.app.watchlist?.setSymbol?.(cleanSym);
+          }
+          if (cell.timeframe) {
+            this.app.currentTimeframe = String(cell.timeframe);
+            if (this.app.chartManager) this.app.chartManager.activeTimeframe = String(cell.timeframe);
+          }
+          this.updateCellStrip();
+          this.schedulePersist();
+        }
+      });
+    }
   }
 
   // Restore the last-active grid after a page reload (TradingView parity).
@@ -129,35 +232,289 @@ export class LayoutManager {
       if (parsed && parsed.layoutId) {
         this.activeLayoutId = parsed.layoutId;
         if (parsed.name) this.activeLayoutName = parsed.name;
+        this.activeSavedLayoutId = parsed.savedLayoutId || parsed.state?.savedLayoutId || null;
         if (parsed.sync) this.syncOpts = { ...this.syncOpts, ...parsed.sync };
-        setTimeout(() => {
-          this.setLayout(parsed.layoutId, parsed.name, {
-            state: parsed.state,
-            skipSave: true
-          });
-          this.applyAllSyncOptions();
-        }, 600);
+        this.updateTopbarLabel();
+
+        let attempts = 0;
+        const pollAndRestore = () => {
+          const ws = this.app?.chartManager?.workspace;
+          const isReady = ws && ws.active && ws.active.chart && ws.active.chart.orchestrator;
+          if (isReady) {
+            this.setLayout(parsed.layoutId, parsed.name, {
+              state: parsed.state,
+              skipPersist: true,
+              savedLayoutId: this.activeSavedLayoutId
+            });
+            this.applyAllSyncOptions();
+            this.bindWorkspaceCellListeners();
+          } else if (attempts++ < 60) {
+            setTimeout(pollAndRestore, 100);
+          }
+        };
+        setTimeout(pollAndRestore, 150);
       }
     } catch (e) {}
+  }
+
+  schedulePersist() {
+    if (this._persistDebounceTimer) clearTimeout(this._persistDebounceTimer);
+    this._persistDebounceTimer = setTimeout(() => {
+      this.persistCurrentLayout();
+    }, 600);
+  }
+
+  persistCurrentLayout() {
+    if (!this.autoSaveEnabled) return false;
+    try {
+      const state = this.captureWorkspaceState();
+      if (!state) return false;
+
+      localStorage.setItem('tradingchart_current_layout', JSON.stringify({
+        layoutId: this.activeLayoutId,
+        name: this.activeLayoutName,
+        savedLayoutId: this.activeSavedLayoutId,
+        state,
+        sync: { ...this.syncOpts },
+        timestamp: Date.now()
+      }));
+
+      // If active layout corresponds to a saved layout item, update its state too
+      let activeIdx = -1;
+      if (this.activeSavedLayoutId) {
+        activeIdx = this.savedLayouts.findIndex(l => l.id === this.activeSavedLayoutId);
+      }
+      if (activeIdx === -1) {
+        activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
+      }
+      if (activeIdx !== -1) {
+        this.activeSavedLayoutId = this.savedLayouts[activeIdx].id;
+        this.savedLayouts[activeIdx].state = state;
+        this.savedLayouts[activeIdx].sync = { ...this.syncOpts };
+        this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
+        this.saveSavedLayouts();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   captureWorkspaceState() {
     try {
       const ws = this.app?.chartManager?.workspace;
-      if (!ws || typeof ws.getState !== 'function') return null;
-      return JSON.parse(JSON.stringify(ws.getState()));
-    } catch (e) { return null; }
+      if (!ws) return null;
+
+      const cells = [];
+      const orderedCells = (ws.order && ws.order.length > 0)
+        ? ws.order.map(id => ws.cellsById.get(id)).filter(Boolean)
+        : (ws.cellsById && ws.cellsById.size > 0 
+          ? Array.from(ws.cellsById.values()) 
+          : (ws.active ? [ws.active] : []));
+
+      for (let i = 0; i < orderedCells.length; i++) {
+        const cell = orderedCells[i];
+        if (!cell) continue;
+        const chart = cell.chart;
+        const orch = chart?.orchestrator;
+        const handlesList = Array.from(orch?.handles ? (orch.handles.values ? orch.handles.values() : Object.values(orch.handles)) : []);
+
+        const indicators = handlesList.map(h => {
+          const nativeType = h.nativeType || orch?.registry?.get?.(h.id)?.native?.type || (h.source ? null : h.id);
+          const source = h.source || orch?.registry?.get?.(h.id)?.source || null;
+          const inputs = orch?.inputValuesOf ? orch.inputValuesOf(h.id) : (h.inputValues ? h.inputValues() : {});
+          const props = orch?.propValuesOf ? orch.propValuesOf(h.id) : (h.propValues ? h.propValues() : {});
+          return {
+            id: h.id,
+            title: h.title,
+            nativeType: nativeType || null,
+            source: source || null,
+            language: h.language || (source ? 'pine' : null),
+            visible: h.visible !== false,
+            inputs: inputs || {},
+            props: props || {}
+          };
+        });
+
+        let drawings = null;
+        try {
+          if (chart?.drawings?.toJSON) drawings = chart.drawings.toJSON();
+        } catch (e) {}
+
+        cells.push({
+          id: cell.id || `c${i + 1}`,
+          symbol: cell.symbol || 'universal:BTCUSDT',
+          timeframe: cell.timeframe || '60',
+          priceStyle: cell.priceStyle || 'candles',
+          watermark: cell.watermarkOn !== false,
+          drawings,
+          indicators
+        });
+      }
+
+      let velaState = null;
+      try {
+        if (typeof ws.getState === 'function') velaState = JSON.parse(JSON.stringify(ws.getState()));
+      } catch (e) {}
+
+      return {
+        version: 2,
+        layoutId: this.activeLayoutId,
+        name: this.activeLayoutName,
+        savedLayoutId: this.activeSavedLayoutId,
+        activeCellId: ws.active?.id || (cells[0]?.id || 'c1'),
+        sync: { ...this.syncOpts },
+        cells,
+        velaState,
+        timestamp: Date.now()
+      };
+    } catch (e) {
+      console.warn('[LayoutManager] captureWorkspaceState failed:', e);
+      return null;
+    }
   }
 
-  applyWorkspaceState(state) {
+  async applyWorkspaceState(state) {
+    if (!state) return false;
+    const ws = this.app?.chartManager?.workspace;
+    if (!ws) return false;
+
     try {
-      const ws = this.app?.chartManager?.workspace;
-      if (!ws || typeof ws.applyState !== 'function' || !state) return false;
-      ws.applyState(state);
+      // 1. Restore sync options
+      if (state.sync) {
+        this.syncOpts = { ...this.syncOpts, ...state.sync };
+        this.applyAllSyncOptions();
+      }
+
+      if (state.savedLayoutId) {
+        this.activeSavedLayoutId = state.savedLayoutId;
+      }
+
+      // 2. Legacy fallback if no cells array
+      if (!Array.isArray(state.cells) || state.cells.length === 0) {
+        if (typeof ws.applyState === 'function') {
+          const s = state.velaState || state;
+          ws.applyState(s);
+          this.bindWorkspaceCellListeners();
+          this.updateCellStrip();
+          return true;
+        }
+        return false;
+      }
+
+      // 3. Rich state v2: Wait for expected cell count in workspace
+      const expectedCellCount = state.cells.length;
+      let attempts = 0;
+      while ((!ws.cellsById || ws.cellsById.size < expectedCellCount) && attempts < 35) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+
+      const liveCells = (ws.order && ws.order.length > 0)
+        ? ws.order.map(id => ws.cellsById.get(id)).filter(Boolean)
+        : (ws.cellsById ? Array.from(ws.cellsById.values()) : (ws.active ? [ws.active] : []));
+
+      for (let i = 0; i < state.cells.length; i++) {
+        const savedCell = state.cells[i];
+        const cell = liveCells.find(c => c.id === savedCell.id) || liveCells[i];
+        if (!cell) continue;
+
+        // Apply symbol
+        if (savedCell.symbol && typeof cell.setSymbol === 'function') {
+          try { cell.setSymbol(savedCell.symbol); } catch (e) {}
+        }
+
+        // Apply timeframe
+        if (savedCell.timeframe && typeof cell.setTimeframe === 'function') {
+          try { cell.setTimeframe(savedCell.timeframe); } catch (e) {}
+        }
+
+        // Apply price style
+        if (savedCell.priceStyle && typeof cell.setPriceStyle === 'function') {
+          try { cell.setPriceStyle(savedCell.priceStyle); } catch (e) {}
+        }
+
+        // Apply watermark
+        if (typeof savedCell.watermark === 'boolean' && typeof cell.setWatermarkVisible === 'function') {
+          try { cell.setWatermarkVisible(savedCell.watermark); } catch (e) {}
+        }
+
+        // Synchronize topbar symbol and timeframe if active cell or primary cell
+        if (cell === ws.active || i === 0) {
+          if (savedCell.symbol) {
+            const cleanSym = savedCell.symbol.replace(/^.*:/, '').toUpperCase();
+            this.app.currentSymbol = cleanSym;
+            if (this.app.chartManager) this.app.chartManager.activeSymbol = cleanSym;
+            this.app.depthOfMarket?.setSymbol?.(cleanSym);
+            this.app.watchlist?.setSymbol?.(cleanSym);
+          }
+          if (savedCell.timeframe) {
+            this.app.currentTimeframe = String(savedCell.timeframe);
+            if (this.app.chartManager) this.app.chartManager.activeTimeframe = String(savedCell.timeframe);
+          }
+        }
+
+        // Apply drawings
+        if (savedCell.drawings && cell.chart?.drawings?.fromJSON) {
+          try { cell.chart.drawings.fromJSON(savedCell.drawings); } catch (e) {}
+        }
+
+        // Apply indicators
+        const chart = cell.chart;
+        const orch = chart?.orchestrator;
+        if (orch && Array.isArray(savedCell.indicators)) {
+          // Clear current handles to avoid duplicates/stale indicators
+          const currentHandles = Array.from(orch.handles ? (orch.handles.values ? orch.handles.values() : Object.values(orch.handles)) : []);
+          for (const ch of currentHandles) {
+            try { orch.removeIndicator(ch.id); } catch (e) {}
+          }
+
+          // Restore saved indicators
+          for (const ind of savedCell.indicators) {
+            let handle = null;
+            if (ind.nativeType) {
+              if (ind.nativeType === 'volume') orch.volumeOptedOut = false;
+              try {
+                handle = chart.addNativeIndicator(ind.nativeType, {
+                  inputs: ind.inputs || {}
+                });
+              } catch (e) {}
+            } else if (ind.source) {
+              const sanitizedSource = (ind.source || '').replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)');
+              try {
+                handle = chart.addIndicator(sanitizedSource, {
+                  language: ind.language || 'pine',
+                  title: ind.title,
+                  inputs: ind.inputs || {},
+                  props: ind.props || {}
+                });
+              } catch (e) {}
+            }
+            if (handle) {
+              if (ind.inputs && Object.keys(ind.inputs).length > 0 && typeof orch.applyInputs === 'function') {
+                try { orch.applyInputs(handle.id, ind.inputs); } catch (e) {}
+              }
+              if (ind.props && Object.keys(ind.props).length > 0 && typeof orch.applyProps === 'function') {
+                try { orch.applyProps(handle.id, ind.props); } catch (e) {}
+              }
+              if (ind.visible === false && typeof orch.setVisible === 'function') {
+                try { orch.setVisible(handle.id, false); } catch (e) {}
+              }
+            }
+          }
+        }
+      }
+
+      if (state.activeCellId && ws.setActiveCell) {
+        try { ws.setActiveCell(state.activeCellId); } catch (e) {}
+      }
+
+      this.bindWorkspaceCellListeners();
       this.updateCellStrip();
+      window.dispatchEvent(new Event('resize'));
       return true;
-    } catch (e) {
-      console.warn('[Layout] applyState failed, falling back to grid-only:', e.message);
+    } catch (err) {
+      console.warn('[LayoutManager] applyWorkspaceState failed:', err);
       return false;
     }
   }
@@ -167,17 +524,25 @@ export class LayoutManager {
     if (!l) return false;
     l.name = newName;
     l.nameFa = newName;
+    if (l.state) {
+      l.state.name = newName;
+    }
     this.saveSavedLayouts();
-    if (this.activeLayoutId === l.layoutId) {
+    if (this.activeSavedLayoutId === id || (this.activeLayoutId === l.layoutId && (this.activeLayoutName === l.name || this.activeLayoutName === l.nameFa))) {
       this.activeLayoutName = newName;
+      this.activeSavedLayoutId = id;
       this.updateTopbarLabel();
+      this.persistCurrentLayout();
     }
     return true;
   }
 
-  duplicateLayout(id) {
-    // TradingView-parity plan gate: saved-layouts entitlement.
-    if (this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
+  getUserSavedLayoutsCount() {
+    return this.savedLayouts.filter(l => l.id !== 'usr_default' && l.id !== 'usr_macro' && !l.isSystemTemplate).length;
+  }
+
+  duplicateLayout(id, opts = {}) {
+    if (opts.enforcePlan && this.app?.auth && !this.app.auth.enforce('savedLayouts', this.getUserSavedLayoutsCount(), 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
     const l = this.savedLayouts.find(x => x.id === id);
     if (!l) return null;
     const copy = {
@@ -199,10 +564,9 @@ export class LayoutManager {
     return JSON.stringify({ __tradingchart_layout: true, ...l }, null, 2);
   }
 
-  importLayout(json) {
+  importLayout(json, opts = {}) {
     try {
-      // TradingView-parity plan gate: importing consumes a saved-layout slot.
-      if (this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
+      if (opts.enforcePlan && this.app?.auth && !this.app.auth.enforce('savedLayouts', this.getUserSavedLayoutsCount(), 'saved layouts', 'چیدمان‌های ذخیره‌شده')) return null;
       const obj = typeof json === 'string' ? JSON.parse(json) : json;
       if (!obj || obj.__tradingchart_layout !== true || !obj.layoutId) return null;
       const copy = { ...obj, id: 'usr_' + Date.now() };
@@ -225,6 +589,17 @@ export class LayoutManager {
           badge: '4 Charts',
           badgeFa: '۴ چارت',
           sync: { symbol: false, timeframe: false, crosshair: true, viewport: true, drawings: false, style: false },
+          state: {
+            version: 2,
+            layoutId: '4',
+            name: 'Institutional SMC Master',
+            cells: [
+              { id: 'c1', symbol: 'universal:BTCUSDT', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }] },
+              { id: 'c2', symbol: 'universal:ETHUSDT', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }] },
+              { id: 'c3', symbol: 'universal:SOLUSDT', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }] },
+              { id: 'c4', symbol: 'universal:XAUUSD', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }] }
+            ]
+          },
           date: new Date().toISOString().split('T')[0]
         },
         {
@@ -235,6 +610,15 @@ export class LayoutManager {
           badge: '2 Charts',
           badgeFa: '۲ چارت',
           sync: { symbol: false, timeframe: true, crosshair: true, viewport: true, drawings: false, style: false },
+          state: {
+            version: 2,
+            layoutId: '2h',
+            name: 'Macro Confluence (BTC+Gold)',
+            cells: [
+              { id: 'c1', symbol: 'universal:BTCUSDT', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }] },
+              { id: 'c2', symbol: 'universal:XAUUSD', timeframe: '60', priceStyle: 'candles', indicators: [{ nativeType: 'volume' }, { nativeType: 'rsi', inputs: { length: 14 } }] }
+            ]
+          },
           date: new Date().toISOString().split('T')[0]
         }
       ];
@@ -271,10 +655,15 @@ export class LayoutManager {
     if (!labelEl) return;
     const isFa = getLanguage() === 'fa';
     const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId);
+    const genericNames = new Set(['1', '1x1', '1x1 Single Chart', '2h', '2v', '4', 'g1x3', 'g3x1', 'g2x3', '8', preset?.nameEn, preset?.nameFa]);
+    if (this.activeLayoutName && !genericNames.has(this.activeLayoutName)) {
+      labelEl.innerText = this.activeLayoutName;
+      return;
+    }
     if (preset) {
       labelEl.innerText = isFa ? preset.nameFa : preset.nameEn;
     } else {
-      labelEl.innerText = this.activeLayoutName;
+      labelEl.innerText = this.activeLayoutName || (isFa ? 'چیدمان' : 'Layout');
     }
   }
 
@@ -297,31 +686,9 @@ export class LayoutManager {
 
   executeAutoSave() {
     if (!this.autoSaveEnabled) return false;
-    const state = this.captureWorkspaceState();
-    if (!state) return false;
-    
-    // 1. Always persist the active workspace state for seamless reload recovery
-    try {
-      localStorage.setItem('tradingchart_current_layout', JSON.stringify({
-        layoutId: this.activeLayoutId,
-        name: this.activeLayoutName,
-        state,
-        sync: { ...this.syncOpts },
-        timestamp: Date.now()
-      }));
-    } catch (e) {}
-
-    // 2. If the active layout corresponds to a saved layout item, update its state too
-    const activeIdx = this.savedLayouts.findIndex(l => l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
-    if (activeIdx !== -1) {
-      this.savedLayouts[activeIdx].state = state;
-      this.savedLayouts[activeIdx].date = new Date().toISOString().split('T')[0];
-      this.saveSavedLayouts();
-    }
-
-    // 3. Briefly show subtle saving -> saved indicator
-    this.flashAutoSaveStatus();
-    return true;
+    const ok = this.persistCurrentLayout();
+    if (ok) this.flashAutoSaveStatus();
+    return ok;
   }
 
   setupAutoSave() {
@@ -329,7 +696,7 @@ export class LayoutManager {
     if (!this.autoSaveEnabled) return;
     this.autoSaveTimer = setInterval(() => {
       this.executeAutoSave();
-    }, 25000);
+    }, 15000);
   }
 
   flashAutoSaveStatus() {
@@ -364,37 +731,75 @@ export class LayoutManager {
 
     const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId);
     const count = preset ? preset.cols * preset.rows : 1;
-    const layoutNameEn = preset ? preset.nameEn : this.activeLayoutName;
-    const layoutNameFa = preset ? preset.nameFa : this.activeLayoutName;
+    const genericNames = new Set([
+      '1', '1x1', '1x1 Single Chart', 'چارت تک‌پنجره‌ای (1x1)', 'تک‌چارت (1x1)',
+      '2h', '2x1 Dual Horizontal', 'دو چارت افقی (2x1)',
+      '2v', '1x2 Dual Vertical', 'دو چارت عمودی (1x2)',
+      '4', '2x2 Quad Grid', 'چهار چارت مربعی (2x2)',
+      'g1x3', '3x1 Triple Horizontal', 'سه چارت افقی (3x1)',
+      'g3x1', '1x3 Triple Vertical', 'سه چارت عمودی (1x3)',
+      'g2x3', '3x2 Six-Chart Matrix', 'شش چارت ماتریسی (3x2)',
+      '8', '4x2 Institutional Matrix', 'هشت چارت نهادی (4x2)',
+      preset?.nameEn, preset?.nameFa
+    ]);
+
+    let targetNameEn = this.activeLayoutName;
+    let targetNameFa = this.activeLayoutName;
+
+    // Only fallback to preset name if active layout name is empty or a generic preset default
+    if (!this.activeLayoutName || genericNames.has(this.activeLayoutName)) {
+      targetNameEn = preset ? preset.nameEn : (this.activeLayoutName || '1x1 Single Chart');
+      targetNameFa = preset ? preset.nameFa : (this.activeLayoutName || 'تک‌چارت (1x1)');
+    }
+
     const badgeText = count === 1 ? '1 Chart' : `${count} Charts`;
     const badgeFa = count === 1 ? '۱ چارت' : `${toPersianDigits(count)} چارت`;
     const state = this.captureWorkspaceState();
 
-    this.savedLayouts = this.savedLayouts.filter(l => l.name !== layoutNameEn);
-    this.savedLayouts.unshift({
-      id: 'usr_' + Date.now(),
-      name: layoutNameEn,
-      nameFa: layoutNameFa,
-      layoutId: this.activeLayoutId,
-      badge: badgeText,
-      badgeFa: badgeFa,
-      sync: { ...this.syncOpts },
-      state,
-      date: new Date().toISOString().split('T')[0]
-    });
-    this.saveSavedLayouts();
+    // Check if we are updating an existing saved layout
+    let targetIdx = -1;
+    if (this.activeSavedLayoutId) {
+      const existing = this.savedLayouts.find(l => l.id === this.activeSavedLayoutId);
+      // Only treat as update if the saved layout has matching name or matching layoutId
+      if (existing && (existing.name === targetNameEn || existing.nameFa === targetNameFa || existing.layoutId === this.activeLayoutId)) {
+        targetIdx = this.savedLayouts.indexOf(existing);
+      }
+    }
+    if (targetIdx === -1) {
+      targetIdx = this.savedLayouts.findIndex(l => l.name === targetNameEn || l.nameFa === targetNameFa || l.name === targetNameFa);
+    }
 
-    // Also persist into active current layout
-    try {
-      localStorage.setItem('tradingchart_current_layout', JSON.stringify({
+    if (targetIdx !== -1) {
+      const existing = this.savedLayouts[targetIdx];
+      existing.name = targetNameEn;
+      existing.nameFa = targetNameFa;
+      existing.layoutId = this.activeLayoutId;
+      existing.badge = badgeText;
+      existing.badgeFa = badgeFa;
+      existing.sync = { ...this.syncOpts };
+      existing.state = state;
+      existing.date = new Date().toISOString().split('T')[0];
+      this.activeSavedLayoutId = existing.id;
+    } else {
+      const newId = 'usr_' + Date.now();
+      this.activeSavedLayoutId = newId;
+      this.savedLayouts.unshift({
+        id: newId,
+        name: targetNameEn,
+        nameFa: targetNameFa,
         layoutId: this.activeLayoutId,
-        name: layoutNameEn,
+        badge: badgeText,
+        badgeFa: badgeFa,
+        sync: { ...this.syncOpts },
         state,
-        sync: { ...this.syncOpts }
-      }));
-    } catch (e) {}
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
 
-    this.app.showExecutionToast(isFa ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
+    this.saveSavedLayouts();
+    this.persistCurrentLayout();
+
+    this.app?.showExecutionToast?.(isFa ? 'چیدمان' : 'LAYOUT', 1, this.activeLayoutName);
 
     setTimeout(() => {
       if (label) label.innerText = isFa ? 'ذخیره' : 'Save';
@@ -406,10 +811,21 @@ export class LayoutManager {
   }
 
   setLayout(layoutId, layoutName, opts = {}) {
+    const norm = String(layoutId || '1').toLowerCase();
+    const resolvedLayoutId = norm === '2x2' ? '4' : (norm === '1x1' ? '1' : norm);
+    layoutId = resolvedLayoutId;
+
     this.activeLayoutId = layoutId;
-    if (layoutName) this.activeLayoutName = layoutName;
-    if (!opts.skipPersist) {
-      try { localStorage.setItem('tradingchart_current_layout', JSON.stringify({ layoutId, name: this.activeLayoutName })); } catch (e) {}
+    if (layoutName) {
+      this.activeLayoutName = layoutName;
+    } else if (!this.activeLayoutName) {
+      const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId);
+      this.activeLayoutName = preset ? preset.nameEn : '1x1 Single Chart';
+    }
+    if (opts.savedLayoutId !== undefined) {
+      this.activeSavedLayoutId = opts.savedLayoutId;
+    } else {
+      this.activeSavedLayoutId = null;
     }
     this.updateTopbarLabel();
 
@@ -423,12 +839,16 @@ export class LayoutManager {
       }
 
       if (opts.state) {
-        const applyFull = () => {
-          const ok = this.applyWorkspaceState(opts.state);
-          if (ok && this.app?.showToast) {
+        const applyFull = async () => {
+          const ok = await this.applyWorkspaceState(opts.state);
+          if (ok && this.app?.showToast && opts.stateName) {
             const isFa = getLanguage() === 'fa';
-            this.app.showToast(isFa ? `ستاپ «${opts.stateName || ''}» با موفقیت بازیابی شد` : 'Full layout setup restored', 'success');
+            this.app.showToast(isFa ? `ستاپ «${opts.stateName}» با موفقیت بازیابی شد` : `Layout "${opts.stateName}" restored`, 'success');
           }
+          if (!opts.skipPersist) {
+            this.persistCurrentLayout();
+          }
+          this.bindWorkspaceCellListeners();
           this.updateCellStrip();
         };
         const expected = (DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === layoutId)?.cols || 1) *
@@ -436,10 +856,10 @@ export class LayoutManager {
         let tries = 0;
         const waitThenApply = () => {
           const count = this.app.chartManager.workspace?.cellsById?.size || 1;
-          if (count >= expected || tries++ > 30) { applyFull(); return; }
-          setTimeout(waitThenApply, 150);
+          if (count >= expected || tries++ > 35) { applyFull(); return; }
+          setTimeout(waitThenApply, 100);
         };
-        setTimeout(waitThenApply, 300);
+        setTimeout(waitThenApply, 200);
         window.dispatchEvent(new Event('resize'));
         return;
       }
@@ -456,17 +876,25 @@ export class LayoutManager {
               cell.setSymbol(defaultSymbols[idx]);
             }
           });
+          this.bindWorkspaceCellListeners();
           this.updateCellStrip();
+          if (!opts.skipPersist) {
+            setTimeout(() => this.persistCurrentLayout(), 400);
+          }
         };
         let tries = 0;
         const waitForCells = () => {
           const count = this.app.chartManager.workspace?.cellsById?.size || 0;
           if (count >= expected || tries++ > 40) { assign(); return; }
-          setTimeout(waitForCells, 150);
+          setTimeout(waitForCells, 100);
         };
-        setTimeout(waitForCells, 300);
+        setTimeout(waitForCells, 200);
       } else {
+        this.bindWorkspaceCellListeners();
         this.updateCellStrip();
+        if (!opts.skipPersist) {
+          setTimeout(() => this.persistCurrentLayout(), 300);
+        }
       }
     }
     window.dispatchEvent(new Event('resize'));
@@ -632,7 +1060,7 @@ export class LayoutManager {
               <span>⚡</span>
               <span>${isFa ? (this.autoSaveEnabled ? 'ذخیره خودکار: فعال' : 'ذخیره خودکار: غیرفعال') : (this.autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF')}</span>
             </button>
-            <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
+            <button class="modal-close-btn" id="btn-close-layout-studio" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -859,36 +1287,43 @@ export class LayoutManager {
     modal.querySelector('#btn-save-as-new-layout')?.addEventListener('click', (e) => {
       e.stopPropagation();
       const isFaLang = getLanguage() === 'fa';
-      // TradingView-parity plan gate: overwriting an existing name is allowed;
-      // creating a NEW saved layout consumes an entitlement slot.
-      const input0 = modal.querySelector('#new-layout-name-input');
-      const name0 = (input0?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`).replace(/×/g, 'x');
-      const isNewName = !this.savedLayouts.some(l => l.name === name0);
-      if (isNewName && this.app?.auth && !this.app.auth.enforce('savedLayouts', this.savedLayouts.length, 'saved layouts', 'چیدمان‌های ذخیره‌شده')) {
+      const input = modal.querySelector('#new-layout-name-input');
+      const name = (input?.value.trim() || `Layout ${this.activeLayoutId.toUpperCase()}`).replace(/×/g, 'x');
+      const isNewName = !this.savedLayouts.some(l => l.name === name || l.nameFa === name);
+      if (isNewName && this.app?.auth && !this.app.auth.enforce('savedLayouts', this.getUserSavedLayoutsCount(), 'saved layouts', 'چیدمان‌های ذخیره‌شده')) {
         return;
       }
-      const input = modal.querySelector('#new-layout-name-input');
-      const name = name0;
-      this.savedLayouts = this.savedLayouts.filter(l => l.name !== name);
+      this.activeLayoutName = name;
+      this.updateTopbarLabel();
+
+      const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId);
+      const count = preset ? preset.cols * preset.rows : 1;
+      const badgeText = count === 1 ? '1 Chart' : `${count} Charts`;
+      const badgeFa = count === 1 ? '۱ چارت' : `${toPersianDigits(count)} چارت`;
+
+      const newId = 'usr_' + Date.now();
+      this.activeSavedLayoutId = newId;
+      this.savedLayouts = this.savedLayouts.filter(l => l.name !== name && l.nameFa !== name);
       this.savedLayouts.unshift({
-        id: 'usr_' + Date.now(),
+        id: newId,
         name,
         nameFa: name,
         layoutId: this.activeLayoutId,
-        badge: `${this.activeLayoutId.toUpperCase()} Grid`,
-        badgeFa: `${this.activeLayoutId.toUpperCase()} گرید`,
+        badge: badgeText,
+        badgeFa: badgeFa,
         sync: { ...this.syncOpts },
         state: this.captureWorkspaceState(),
         date: new Date().toISOString().split('T')[0]
       });
       this.saveSavedLayouts();
+      this.persistCurrentLayout();
       const list = modal.querySelector('.saved-layouts-list');
       if (list) {
-        list.innerHTML = this.renderSavedLayoutsList(isFa);
-        this.bindSavedLayoutRowEvents(modal, isFa);
+        list.innerHTML = this.renderSavedLayoutsList(isFaLang);
+        this.bindSavedLayoutRowEvents(modal, isFaLang);
         this.updateSavedLayoutsCount();
       }
-      this.app?.showToast?.(isFa ? 'چیدمان با موفقیت ذخیره شد' : 'Layout saved', 'success');
+      this.app?.showToast?.(isFaLang ? 'چیدمان با موفقیت ذخیره شد' : 'Layout saved', 'success');
     });
 
     // Import — read JSON file
@@ -902,7 +1337,7 @@ export class LayoutManager {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        const imported = this.importLayout(String(reader.result || ''));
+        const imported = this.importLayout(String(reader.result || ''), { enforcePlan: true });
         if (imported) {
           this.app?.showToast?.(isFa ? 'چیدمان با موفقیت وارد شد' : 'Layout imported', 'success');
           const list = modal.querySelector('.saved-layouts-list');
@@ -966,7 +1401,8 @@ export class LayoutManager {
     const escapeHtml = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     return filteredLayouts.map(l => {
-      const isCurrent = l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName);
+      const isCurrent = (this.activeSavedLayoutId && l.id === this.activeSavedLayoutId) ||
+        (l.layoutId === this.activeLayoutId && (l.name === this.activeLayoutName || l.nameFa === this.activeLayoutName));
       const rawTitle = (isFa ? (l.nameFa || l.name) : l.name).replace(/×/g, 'x');
       const safeTitle = escapeHtml(rawTitle);
       return `
@@ -1011,7 +1447,12 @@ export class LayoutManager {
           try { localStorage.setItem('tradingchart_layout_sync', JSON.stringify(this.syncOpts)); } catch (err) {}
           this.applyAllSyncOptions();
         }
-        this.setLayout(layoutId, name, saved?.state ? { state: saved.state, stateName: name } : {});
+        this.activeSavedLayoutId = id;
+        this.setLayout(layoutId, name, {
+          state: saved?.state,
+          stateName: name,
+          savedLayoutId: id
+        });
         close();
       });
     });
@@ -1048,7 +1489,8 @@ export class LayoutManager {
     modal.querySelectorAll('.btn-dup-layout').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.duplicateLayout(btn.getAttribute('data-id'));
+        const dup = this.duplicateLayout(btn.getAttribute('data-id'), { enforcePlan: true });
+        if (!dup) return;
         const list = modal.querySelector('.saved-layouts-list');
         if (list) {
           list.innerHTML = this.renderSavedLayoutsList(isFa);
@@ -1089,8 +1531,12 @@ export class LayoutManager {
           cancelText: isFa ? 'انصراف' : 'Cancel',
           danger: true,
           onConfirm: () => {
+            if (this.activeSavedLayoutId === id) {
+              this.activeSavedLayoutId = null;
+            }
             this.savedLayouts = this.savedLayouts.filter(l => l.id !== id);
             this.saveSavedLayouts();
+            this.persistCurrentLayout();
             const list = modal.querySelector('.saved-layouts-list');
             if (list) {
               list.innerHTML = this.renderSavedLayoutsList(isFa);

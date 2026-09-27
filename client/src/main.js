@@ -15,7 +15,7 @@ import { SettingsModal } from './settingsModal.js';
 import { BarReplay } from './barReplay.js';
 import { ShortcutsModal } from './shortcutsModal.js';
 import { LayoutManager } from './layoutManager.js';
-import { UserProfileModal } from './userProfileModal.js';
+import { UserProfileModal, AVATAR_PRESETS } from './userProfileModal.js';
 import { AuthManager } from './authManager.js';
 import { TradeJournalModal } from './tradeJournalModal.js';
 import { ScreenshotModal } from './screenshotModal.js';
@@ -34,6 +34,9 @@ import { GoToDateModal } from './goToDate.js';
 import { CommandPalette } from './commandPalette.js';
 import { ChartAlertsOverlay } from './chartAlertsOverlay.js';
 import { MarketNewsView } from './marketNewsView.js';
+import { GoldBubbleView } from './goldBubbleView.js';
+import { TseTapeView } from './tseTapeView.js';
+import { MarketSourcesModal } from './marketSourcesModal.js';
 import { ChartStylePicker } from './chartStylePicker.js';
 import { CanvasContextMenu } from './canvasContextMenu.js';
 import { SoundEngine } from './soundEngine.js';
@@ -73,6 +76,9 @@ class TradingChartApp {
     this.dataExportModal = null;
     this.indicatorSettingsModal = null;
     this.timeframeManager = null;
+    this.goldBubbleView = null;
+    this.tseTapeView = null;
+    this.marketSourcesModal = null;
     // Last known-good candle series per symbol/timeframe, used to guarantee the
     // chart and indicator engine never receive an empty series during an outage.
     this.seriesCache = new Map();
@@ -113,6 +119,7 @@ class TradingChartApp {
             if (handle) {
               const isFa = getLanguage() === 'fa';
               this.showToast(isFa ? `اندیکاتور «${item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+              this.layoutManager?.schedulePersist?.();
               return { success: true, handleId: handle.id };
             }
           } catch (e) {
@@ -210,6 +217,7 @@ class TradingChartApp {
     this.dataExportModal = new DataExportModal(this);
     this.indicatorSettingsModal = new IndicatorSettingsModal(this);
     this.timeframeManager = new TimeframeManager(this);
+    this.marketSourcesModal = new MarketSourcesModal({ app: this });
 
     // 6. Wire Top App Header & Modals
     this.bindEvents();
@@ -294,6 +302,22 @@ class TradingChartApp {
         app: this
       });
     }
+
+    const goldEl = document.querySelector('#view-gold');
+    if (goldEl) {
+      this.goldBubbleView = new GoldBubbleView({
+        container: goldEl,
+        app: this
+      });
+    }
+
+    const tseEl = document.querySelector('#view-tse');
+    if (tseEl) {
+      this.tseTapeView = new TseTapeView({
+        container: tseEl,
+        app: this
+      });
+    }
   }
 
   initFullPageJournal() {
@@ -316,23 +340,57 @@ class TradingChartApp {
   }
 
   mountPaperTrading(body) {
-    this.paperTrading = new PaperTrading({
-      app: this,
-      container: body
-    });
+    if (!this.paperTrading) {
+      this.paperTrading = new PaperTrading({
+        app: this,
+        container: body
+      });
+    } else {
+      this.paperTrading.container = body;
+      this.paperTrading.render();
+    }
     if (this.activeBars.length > 0) {
       this.paperTrading.setMarket(this.currentSymbol, this.activeBars[this.activeBars.length - 1].close);
     }
   }
 
   mountAlerts(body) {
-    this.alertsManager = new AlertsManager({
-      app: this,
-      container: body
+    if (!this.alertsManager) {
+      this.alertsManager = new AlertsManager({
+        app: this,
+        container: body
+      });
+    } else {
+      this.alertsManager.container = body;
+      this.alertsManager.render();
+    }
+  }
+
+  renderFeatureLocked(body, featureKey, labelEn, labelFa) {
+    const isFa = getLanguage() === 'fa';
+    body.innerHTML = `
+      <div class="tc-feature-locked" data-locked-feature="${featureKey}" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; gap:14px; background:var(--bg-card,#151c2d); color:#fff; ${isFa ? 'direction:rtl;' : ''}">
+        <div style="font-size:36px; background:rgba(255,255,255,0.04); border-radius:50%; width:68px; height:68px; display:flex; align-items:center; justify-content:center;">🔒</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <strong style="font-size:13px; color:#fff;">${isFa ? `قابلیت «${labelFa}» در پلن شما فعال نیست` : `The "${labelEn}" feature is not enabled`}</strong>
+          <span style="font-size:11px; color:var(--text-dim,#8b93a7); line-height:1.6; max-width:280px;">
+            ${isFa ? 'برای دسترسی به این بخش، لطفاً پلن کاربری خود را ارتقا دهید.' : 'Upgrade your subscription plan to unlock full access to this feature.'}
+          </span>
+        </div>
+        <button class="tc-upgrade-btn btn-primary" style="padding:8px 18px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; background:var(--accent-cyan,#00F2B0); color:#04121e; border:none;">
+          ${isFa ? 'مشاهده پلن‌ها و ارتقا' : 'View Plans & Upgrade'}
+        </button>
+      </div>`;
+    body.querySelector('.tc-upgrade-btn')?.addEventListener('click', () => {
+      this.auth?.openPlansModal();
     });
   }
 
   mountPineEditor(body) {
+    if (this.auth && !this.auth.feature('pineStudio')) {
+      this.renderFeatureLocked(body, 'pineStudio', 'Pine Script Studio', 'استودیو پاین‌اسکریپت');
+      return;
+    }
     new PineStudio({
       container: body,
       onAddToChart: (code) => {
@@ -346,6 +404,10 @@ class TradingChartApp {
   }
 
   mountStrategyTester(body) {
+    if (this.auth && !this.auth.feature('strategyTester')) {
+      this.renderFeatureLocked(body, 'strategyTester', 'Strategy Tester', 'تستر استراتژی');
+      return;
+    }
     const st = new StrategyTester({
       container: body,
       onExportToPropSim: (profile) => {
@@ -357,18 +419,30 @@ class TradingChartApp {
   }
 
   mountPropFirmSim(body) {
+    if (this.auth && !this.auth.feature('propFirmSim')) {
+      this.renderFeatureLocked(body, 'propFirmSim', 'Prop-Firm Simulator', 'شبیه‌ساز چالش‌های پراپ‌فرم');
+      return;
+    }
     new PropFirmSimulator({
       container: body
     });
   }
 
   mountTradeJournal(body) {
+    if (this.auth && !this.auth.feature('tradeJournal')) {
+      this.renderFeatureLocked(body, 'tradeJournal', 'Trade Journal', 'ژورنال معاملاتی');
+      return;
+    }
     new TradeJournal({
       container: body
     });
   }
 
   mountMarketTrackers(body) {
+    if (this.auth && !this.auth.feature('marketTrackers')) {
+      this.renderFeatureLocked(body, 'marketTrackers', 'Institutional Trackers', 'دیده‌بان معامله‌گران نهادی');
+      return;
+    }
     new MarketTrackersView({
       container: body
     });
@@ -379,6 +453,10 @@ class TradingChartApp {
   }
 
   mountEconomicCalendar(body) {
+    if (this.auth && !this.auth.feature('economicCalendar')) {
+      this.renderFeatureLocked(body, 'economicCalendar', 'Economic Calendar', 'تقویم اقتصادی');
+      return;
+    }
     // Keep a reference: this instance lives in Vela's drawer/dock, so it must be
     // reachable for language re-renders like every other surface.
     this.economicCalendarSide = new EconomicCalendarView({
@@ -396,6 +474,10 @@ class TradingChartApp {
   }
 
   mountDepthOfMarket(body) {
+    if (this.auth && !this.auth.feature('depthOfMarket')) {
+      this.renderFeatureLocked(body, 'depthOfMarket', 'Depth of Market (DOM)', 'عمق بازار (DOM)');
+      return;
+    }
     this.depthOfMarket = new DepthOfMarketView({
       container: body,
       app: this
@@ -404,6 +486,10 @@ class TradingChartApp {
   }
 
   mountMarketNews(body) {
+    if (this.auth && !this.auth.feature('marketNews')) {
+      this.renderFeatureLocked(body, 'marketNews', 'Market News', 'اخبار بازار');
+      return;
+    }
     this.marketNewsSide = new MarketNewsView({
       container: body,
       app: this
@@ -467,14 +553,14 @@ class TradingChartApp {
     body.querySelectorAll('.btn-ws-layout').forEach(btn => {
       btn.addEventListener('click', () => {
         const lay = btn.getAttribute('data-layout');
-        this.chartManager.setLayout(lay);
+        this.layoutManager?.setLayout(lay);
       });
     });
 
-    body.querySelector('#sync-symbol-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('symbol', e.target.checked));
-    body.querySelector('#sync-tf-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('timeframe', e.target.checked));
-    body.querySelector('#sync-cross-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('crosshair', e.target.checked));
-    body.querySelector('#sync-drawings-check')?.addEventListener('change', (e) => this.chartManager.workspace?.sync?.set('drawings', e.target.checked));
+    body.querySelector('#sync-symbol-check')?.addEventListener('change', (e) => this.layoutManager?.toggleSync?.('symbol', e.target.checked));
+    body.querySelector('#sync-tf-check')?.addEventListener('change', (e) => this.layoutManager?.toggleSync?.('timeframe', e.target.checked));
+    body.querySelector('#sync-cross-check')?.addEventListener('change', (e) => this.layoutManager?.toggleSync?.('crosshair', e.target.checked));
+    body.querySelector('#sync-drawings-check')?.addEventListener('change', (e) => this.layoutManager?.toggleSync?.('drawings', e.target.checked));
   }
 
   // ── Data Loading & Symbol Navigation ───────────────────────────────
@@ -539,6 +625,8 @@ class TradingChartApp {
     }
 
     this.currentSymbol = clean;
+    this.updateTopbarSourceBadge(clean);
+    this.tseTapeView?.setSymbol?.(clean);
     this.chartManager?.setSymbol?.(clean);
     this.depthOfMarket?.setSymbol(clean);
     this.watchlist?.setSymbol(clean);
@@ -710,6 +798,18 @@ class TradingChartApp {
           this.dataExportModal?.open();
           return;
         }
+        if (panelId === 'gold') {
+          this.switchBottomView('gold');
+          return;
+        }
+        if (panelId === 'tse') {
+          this.switchBottomView('tse');
+          return;
+        }
+        if (panelId === 'sources') {
+          this.marketSourcesModal?.open();
+          return;
+        }
 
         if (this.activeWorkspaceView !== 'quant') {
           this.switchWorkspace('quant');
@@ -744,7 +844,11 @@ class TradingChartApp {
       this.shortcutsModal?.open();
     });
 
-    // 4c. Topbar Compare, Export & Replay Triggers
+    // 4c. Topbar Compare, Export, Market Sources & Replay Triggers
+    document.querySelector('#btn-topbar-market-source')?.addEventListener('click', () => {
+      this.marketSourcesModal?.open();
+    });
+
     document.querySelector('#btn-topbar-compare')?.addEventListener('click', () => {
       this.compareModal?.open();
     });
@@ -798,7 +902,8 @@ class TradingChartApp {
         replayBtn?.classList.remove('active');
       } else {
         const total = this.activeBars?.length || 500;
-        this.barReplay?.startReplay(total, Math.floor(total * 0.7));
+        const __tfMs = ({'1s':1e3,'1':6e4,'3':18e4,'5':3e5,'15':9e5,'30':18e5,'45':27e5,'60':36e5,'120':72e5,'180':108e5,'240':144e5,'D':864e5,'W':6048e5,'M':2592e6})[String(this.currentTimeframe||'60')] || 36e5;
+        this.barReplay?.startReplay(total, Math.floor(total * 0.7), __tfMs);
         replayBtn?.classList.add('active');
       }
     });
@@ -906,6 +1011,15 @@ class TradingChartApp {
     document.querySelectorAll('.rail-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const panelId = btn.getAttribute('data-panel');
+        if (panelId === 'gold') {
+          this.switchBottomView('gold');
+          return;
+        }
+        if (panelId === 'tse') {
+          this.switchBottomView('tse');
+          return;
+        }
+
         const isAlreadyActive = btn.classList.contains('active') && this.chartManager.openPanelId === panelId;
 
         document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
@@ -971,11 +1085,24 @@ class TradingChartApp {
         this.tradeJournalModal?.open();
         return;
       }
-      const indSettingsBtn = e.target.closest('[class*="vela-sl-settings"], [aria-label*="Settings"], [class*="legend-settings"], [data-action="settings"]');
-      if (indSettingsBtn) {
+      const indSettingsBtn = e.target.closest('[class*="vela-sl-settings"], [aria-label*="Settings"], [class*="legend-settings"], [data-action="settings"], .vela-ind-ctl');
+      if (indSettingsBtn && (indSettingsBtn.getAttribute('aria-label') === 'Settings' || indSettingsBtn.classList.contains('vela-sl-settings') || indSettingsBtn.classList.contains('legend-settings'))) {
         e.stopPropagation();
         e.preventDefault();
-        this.indicatorSettingsModal?.open();
+        let targetHandleId = null;
+        try {
+          const chart = this.chartManager?.workspace?.active?.chart;
+          const rows = chart?.orchestrator?.renderer?.inputsUI?.rows;
+          if (rows) {
+            for (const [id, r] of rows.entries()) {
+              if (r.el?.contains(indSettingsBtn)) {
+                targetHandleId = id;
+                break;
+              }
+            }
+          }
+        } catch (err) {}
+        this.indicatorSettingsModal?.open(targetHandleId);
         return;
       }
     }, true);
@@ -995,6 +1122,12 @@ class TradingChartApp {
 
     // 9. Global TradingView Keyboard Shortcuts Engine & Universal Modal Dismiss
     window.addEventListener('keydown', (e) => {
+      // Global shortcut for Plans Admin Studio: Ctrl+Shift+P or Alt+P
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) || (e.altKey && (e.key === 'p' || e.key === 'P'))) {
+        e.preventDefault();
+        this.auth?.openPlanAdminStudio?.();
+        return;
+      }
       if (e.key === 'Escape') {
         const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay.active');
         if (openModals.length > 0) {
@@ -1126,6 +1259,50 @@ class TradingChartApp {
     this.settingsModal?.open();
   }
 
+  updateTopbarSourceBadge(symbol) {
+    const sym = String(symbol || '').toUpperCase();
+    const lbl = document.querySelector('#topbar-source-label');
+    const rte = document.querySelector('#topbar-source-route');
+    if (!lbl || !rte) return;
+
+    const TSE_SYMS = ['FOOLAD', 'FAMELI', 'KHODRO', 'SAIPA', 'SHASTA', 'AHRAM', 'AGAS', 'TALA', 'AYAR', 'TAVAN', 'PALAYESH', 'SHPNA', 'SHETRAN', 'DARAYEKOM', 'VABANKE', 'FARABOURSE'];
+    const GOLD_SYMS = ['GOLD_ABSHODEH', 'GOLD_18K', 'COIN_EMAMI', 'COIN_BAHAR', 'COIN_NIM', 'COIN_ROB', 'COIN_GERMI'];
+    const FX_IR_SYMS = ['USD_TEHRAN', 'USDT_TOMAN', 'AED_DIRHAM'];
+    const FOREX_SYMS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP', 'GBPJPY'];
+    const COMMODITY_SYMS = ['XAUUSD', 'XAGUSD', 'USOIL', 'UKOIL', 'NATGAS'];
+    const EQUITY_SYMS = ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'];
+
+    if (TSE_SYMS.includes(sym)) {
+      lbl.innerText = 'TSETMC';
+      rte.innerText = 'BOURSE';
+      lbl.style.color = '#34d399';
+    } else if (GOLD_SYMS.includes(sym)) {
+      lbl.innerText = 'TEHRAN BAZAAR';
+      rte.innerText = 'LIVE';
+      lbl.style.color = '#fbbf24';
+    } else if (FX_IR_SYMS.includes(sym)) {
+      lbl.innerText = sym.includes('USDT') ? 'NOBITEX' : 'TEHRAN FX';
+      rte.innerText = 'LIVE';
+      lbl.style.color = '#38bdf8';
+    } else if (FOREX_SYMS.includes(sym)) {
+      lbl.innerText = 'FX_IDC';
+      rte.innerText = 'BRIDGE';
+      lbl.style.color = '#60a5fa';
+    } else if (COMMODITY_SYMS.includes(sym)) {
+      lbl.innerText = 'NYMEX/TV';
+      rte.innerText = 'COMMODITY';
+      lbl.style.color = '#f87171';
+    } else if (EQUITY_SYMS.includes(sym)) {
+      lbl.innerText = 'NASDAQ';
+      rte.innerText = 'EQUITY';
+      lbl.style.color = '#c084fc';
+    } else {
+      lbl.innerText = 'BINANCE';
+      rte.innerText = 'REALTIME';
+      lbl.style.color = '#00F2B0';
+    }
+  }
+
   openSymbolSearch() {
     const modal = document.querySelector('#modal-symbol-search');
     if (modal) {
@@ -1182,14 +1359,18 @@ class TradingChartApp {
       }
     });
 
+    const exchangeSelect = document.querySelector('#symbol-exchange-filter');
+
     const updateSearch = () => {
       const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
+      const activeEx = exchangeSelect ? exchangeSelect.value : 'all';
       const q = input ? input.value.trim() : '';
       if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
-      this.populateSymbolSearch(q, activeCat);
+      this.populateSymbolSearch(q, activeCat, activeEx);
     };
 
     input?.addEventListener('input', updateSearch);
+    exchangeSelect?.addEventListener('change', updateSearch);
     clearBtn?.addEventListener('click', () => {
       if (input) {
         input.value = '';
@@ -1213,7 +1394,7 @@ class TradingChartApp {
     });
   }
 
-  async populateSymbolSearch(query = '', category = 'all') {
+  async populateSymbolSearch(query = '', category = 'all', exchange = 'all') {
     const listCont = document.querySelector('#symbol-results-list');
     const countBadge = document.querySelector('#sym-count-badge');
     if (!listCont) return;
@@ -1221,7 +1402,7 @@ class TradingChartApp {
     const isFa = getLanguage() === 'fa';
 
     try {
-      const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}`);
+      const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}&exchange=${exchange}`);
       if (res.ok) {
         const symbols = await res.json();
         if (countBadge) {
@@ -1239,7 +1420,9 @@ class TradingChartApp {
           commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
           forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
           indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
-          stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }
+          stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' },
+          iran_gold: { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
+          iran_tse: { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }
         };
 
         const CAT_NAMES_FA = {
@@ -1248,13 +1431,16 @@ class TradingChartApp {
           commodities: 'کالاها',
           forex: 'فارکس',
           indices: 'شاخص‌ها',
-          stocks: 'سهام'
+          stocks: 'سهام بین‌الملل',
+          iran_gold: 'طلای تهران و ارز',
+          iran_tse: 'بورس و فرابورس ایران'
         };
 
         listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
           const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
           const exchangeLabel = s.exchange || (isFa ? 'جهانی' : 'Global');
+          const displayName = (isFa && s.nameFa) ? s.nameFa : s.name;
           return `
             <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
               <div style="display: flex; align-items: center; gap: 12px;">
@@ -1268,7 +1454,7 @@ class TradingChartApp {
                       ${catLabel}
                     </span>
                   </div>
-                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${s.name} (${s.base}/${s.quote})</div>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName} (${s.base}/${s.quote})</div>
                 </div>
               </div>
               <div style="text-align: right;">
@@ -1426,6 +1612,14 @@ class TradingChartApp {
     }
     panel.classList.remove('maximized');
     panel.classList.toggle('collapsed', this.isBottomPanelCollapsed);
+    if (this.isBottomPanelCollapsed) {
+      this.goldBubbleView?.unmount?.();
+      this.tseTapeView?.unmount?.();
+    } else {
+      const activeTab = document.querySelector('.panel-tab.active')?.getAttribute('data-view');
+      if (activeTab === 'gold') this.goldBubbleView?.mount?.();
+      if (activeTab === 'tse') this.tseTapeView?.mount?.();
+    }
     window.dispatchEvent(new Event('resize'));
   }
 
@@ -1436,7 +1630,15 @@ class TradingChartApp {
     document.querySelectorAll('.panel-view').forEach(view => {
       view.classList.toggle('active', view.id === `view-${viewName}`);
     });
-    if (viewName === 'screener') {
+    if (viewName !== 'gold') {
+      this.goldBubbleView?.unmount?.();
+    }
+    if (viewName !== 'tse') {
+      this.tseTapeView?.unmount?.();
+    }
+    if (viewName === 'pine') {
+      this.pineStudio?.render?.();
+    } else if (viewName === 'screener') {
       this.technicalScreener?.fetchData();
     } else if (viewName === 'calendar') {
       this.economicCalendar?.fetchEvents();
@@ -1446,6 +1648,13 @@ class TradingChartApp {
       this.strategyTester?.renderReport?.();
     } else if (viewName === 'journal') {
       this.tradeJournal?.render?.();
+    } else if (viewName === 'gold') {
+      this.goldBubbleView?.mount?.();
+    } else if (viewName === 'tse') {
+      this.tseTapeView?.mount?.();
+      if (this.currentSymbol) {
+        this.tseTapeView?.setSymbol?.(this.currentSymbol);
+      }
     }
     // UX Mutex: Close identical right-rail panel if currently open to prevent dual-rendering clutter
     if (this.chartManager?.openPanelId === viewName) {
@@ -1466,7 +1675,8 @@ class TradingChartApp {
       replayBtn?.classList.remove('active');
     } else {
       const total = this.activeBars?.length || 500;
-      this.barReplay?.startReplay(total, Math.floor(total * 0.7));
+      const __tfMs = ({'1s':1e3,'1':6e4,'3':18e4,'5':3e5,'15':9e5,'30':18e5,'45':27e5,'60':36e5,'120':72e5,'180':108e5,'240':144e5,'D':864e5,'W':6048e5,'M':2592e6})[String(this.currentTimeframe||'60')] || 36e5;
+      this.barReplay?.startReplay(total, Math.floor(total * 0.7), __tfMs);
       replayBtn?.classList.add('active');
     }
   }
@@ -1502,7 +1712,23 @@ class TradingChartApp {
     if (prof.defaultAsset && this.chartManager?.setSymbol) {
       try { this.chartManager.setSymbol(prof.defaultAsset.replace(/^.*:/, '').toUpperCase()); } catch (e) {}
     }
+    // In-memory managers that cache localStorage state must reload it now.
+    this.paperTrading?.reloadFromStorage?.();
+    this.watchlist?.reloadFromStorage?.();
+    this.alertsManager?.reloadFromStorage?.();
     if (this.userProfileModal) this.userProfileModal.profile = this.userProfileModal.loadProfile();
+    // The account's avatar preset is the source of truth for the header badge —
+    // keep the legacy profile avatar aligned so syncTopbarAvatar never clobbers it.
+    const preset = this.auth?.user?.avatarPreset;
+    if (preset && this.userProfileModal) {
+      const found = AVATAR_PRESETS.find(a => a.id === preset);
+      if (found) {
+        this.userProfileModal.profile.avatar = found.icon;
+        try {
+          localStorage.setItem('tradingchart_user_profile', JSON.stringify(this.userProfileModal.profile));
+        } catch (e) {}
+      }
+    }
     this.userProfileModal?.syncTopbarAvatar?.();
     this.renderWorkspaces?.();
   }
@@ -1521,6 +1747,10 @@ class TradingChartApp {
     // Plan entitlements changed → re-evaluate gates that already rendered
     // (e.g. re-render panels whose buttons are plan-limited).
     this.renderWorkspaces?.();
+    // Screener auto-refresh cadence is plan-gated: restart both instances so a
+    // plan switch takes effect without a page reload.
+    this.technicalScreener?.startAutoRefresh?.();
+    this.technicalScreenerSide?.startAutoRefresh?.();
   }
 
 
@@ -1555,11 +1785,34 @@ class TradingChartApp {
     this.scaleControls?.render?.();
     this.floatingDrawingToolbar?.render?.();
     this.layoutManager?.updateTopbarLabel?.();
+    this.goldBubbleView?.render?.();
+    if (this.goldBubbleView?.data) this.goldBubbleView.updateUI?.();
+    this.tseTapeView?.render?.();
+    if (this.tseTapeView?.data) this.tseTapeView.updateUI?.();
+    if (document.querySelector('#modal-market-sources')?.classList.contains('open')) {
+      this.marketSourcesModal?.renderContent?.();
+    }
     if (document.querySelector('#modal-layout-studio')?.classList.contains('open')) {
       this.layoutManager?.openLayoutStudio?.();
     }
     if (document.querySelector('#modal-user-profile')?.classList.contains('open')) {
       this.userProfileModal?.open?.();
+    }
+    // Account-system modals build their HTML at open() time — an open modal
+    // keeps stale language after a switch, so re-render it in place.
+    const accSettings = document.querySelector('#tc-account-settings-modal');
+    if (accSettings) {
+      const active = accSettings.querySelector('[data-atab][style*="0,242,176"], [data-atab][style*="var(--accent-cyan"]');
+      this.auth?.openAccountSettingsModal?.(active?.dataset.atab || 'account');
+    }
+    const plansModal = document.querySelector('#tc-plans-modal');
+    if (plansModal) this.auth?.openPlansModal?.();
+    const devicesModal = document.querySelector('#tc-devices-modal');
+    if (devicesModal) this.auth?.openDevicesModal?.();
+    const authModal = document.querySelector('#tc-auth-modal');
+    if (authModal) {
+      const activeMode = authModal.querySelector('.tc-auth-tab.active')?.dataset.tab || 'login';
+      this.auth?.openAuthModal?.(activeMode);
     }
     this.layoutManager?.updateCellStrip?.();
     // Modals & side panels that live in separate mount containers
@@ -1575,6 +1828,10 @@ class TradingChartApp {
     this.alertsManager?.render?.();
     this.marketTrackers?.render?.();
     this.templateManager?.render?.();
+    this.goldBubbleView?.render?.();
+    this.goldBubbleView?.updateUI?.();
+    this.tseTapeView?.render?.();
+    this.tseTapeView?.updateUI?.();
     this.tradeJournalModal?.render?.();
     this.screenshotModal?.render?.();
     this.chartAlertsOverlay?.updateAlerts(

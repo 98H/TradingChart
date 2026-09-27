@@ -74,7 +74,8 @@ export class UniversalMarketProvider {
                       high: Math.max(cached.high, msg.price),
                       low: Math.min(cached.low, msg.price),
                       close: msg.price,
-                      volume: (cached.volume || 1) + 1
+                      volume: (cached.volume || 1) + 1,
+                      openTime: bucketTime
                     };
                   } else {
                     sub.currentBar = {
@@ -83,7 +84,8 @@ export class UniversalMarketProvider {
                       high: Math.max(cached ? cached.close : msg.price, msg.price),
                       low: Math.min(cached ? cached.close : msg.price, msg.price),
                       close: msg.price,
-                      volume: 1
+                      volume: 1,
+                      openTime: bucketTime
                     };
                   }
                 } else {
@@ -166,7 +168,8 @@ export class UniversalMarketProvider {
           high: Number(b.high),
           low: Number(b.low),
           close: Number(b.close),
-          volume: Number(b.volume || 0)
+          volume: Number(b.volume || 0),
+          openTime: Number(b.time)
         }));
 
       const cacheKey = `${clean}_${timeframe}`;
@@ -179,7 +182,19 @@ export class UniversalMarketProvider {
           const lg = lastGood.map(b => ({ ...b }));
           return synth ? synth.fn(lg) : lg;
         }
-        return [];
+        // If brand new ticker with no cache yet, synthesize a minimal valid seed bar
+        // so PineTS indicator engine never throws `Cannot read properties of undefined (reading 'openTime')`
+        const now = Math.floor(Date.now() / 1000);
+        const seedBar = [{
+          time: now,
+          open: 100,
+          high: 100,
+          low: 100,
+          close: 100,
+          volume: 0,
+          openTime: now
+        }];
+        return synth ? synth.fn(seedBar) : seedBar;
       }
 
       this.seriesCache.set(cacheKey, bars.map(b => ({ ...b })));
@@ -203,7 +218,8 @@ export class UniversalMarketProvider {
       const cacheKey = `${clean}_${timeframe}`;
       const lastGood = this.seriesCache.get(cacheKey);
       if (lastGood && lastGood.length) return lastGood.map(b => ({ ...b }));
-      return [];
+      const now = Math.floor(Date.now() / 1000);
+      return [{ time: now, open: 100, high: 100, low: 100, close: 100, volume: 0, openTime: now }];
     }
   }
 
@@ -286,8 +302,17 @@ export class UniversalMarketProvider {
     if (clean.includes('BNB')) {
       return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%23f3ba2f"/><path fill="%23fff" d="m12.11 12.12 3.89-3.88 3.89 3.88 2.01-2.01-5.9-5.9-5.9 5.9zm-3.89 3.88 2.01-2.01-2.01-2.01-2.01 2.01zm19.56 0-2.01-2.01 2.01-2.01 2.01 2.01zm-11.78 3.88-3.89-3.88 3.89-3.88 3.89 3.88zm0 7.91 5.9-5.9-2.01-2.01-3.89 3.88-3.89-3.88-2.01 2.01z"/></svg>';
     }
-    if (clean.includes('XAU')) {
+    if (clean.includes('XAU') || clean.includes('ABSHODEH') || clean.includes('GOLD') || clean.includes('COIN_') || clean.includes('TALA') || clean.includes('AYAR')) {
       return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%23e5a93c"/><text x="16" y="21" font-family="sans-serif" font-weight="900" font-size="14" fill="%23fff" text-anchor="middle">Au</text></svg>';
+    }
+    if (clean.includes('FOOLAD') || clean.includes('FAMELI') || clean.includes('KHODRO') || clean.includes('AHRAM') || clean.includes('SHASTA') || clean.includes('SAIPA') || clean.includes('AGAS') || clean.includes('TAVAN')) {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%2310b981"/><text x="16" y="21" font-family="sans-serif" font-weight="900" font-size="11" fill="%23fff" text-anchor="middle">TSE</text></svg>';
+    }
+    if (clean.includes('USD') || clean.includes('EUR') || clean.includes('GBP') || clean.includes('JPY') || clean.includes('DIRHAM')) {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%233b82f6"/><text x="16" y="21" font-family="sans-serif" font-weight="900" font-size="12" fill="%23fff" text-anchor="middle">FX</text></svg>';
+    }
+    if (clean.includes('OIL') || clean.includes('GAS')) {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="%23ef4444"/><text x="16" y="21" font-family="sans-serif" font-weight="900" font-size="11" fill="%23fff" text-anchor="middle">OIL</text></svg>';
     }
     return null;
   }

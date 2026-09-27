@@ -7,7 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getCandles, get24hTicker } from './dataFeed.js';
+import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus } from './dataFeed.js';
 import { searchSymbols, getSymbolMeta } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
 import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
@@ -15,7 +15,7 @@ import { getScreenerData } from './technicalScreener.js';
 import { getOrderBookDepth } from './depthFeed.js';
 import { globalRelay } from './tradeRelay.js';
 import { getMarketNews } from './newsFeed.js';
-import { mountAccountSystem } from './accounts.js';
+import { mountAccountSystem, PLANS } from './accounts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,13 +57,19 @@ app.get('/api/candles', async (req, res) => {
   try {
     const symbol = req.query.symbol || 'BTCUSDT';
     const timeframe = req.query.timeframe || '60';
-    const limit = parseInt(req.query.limit, 10) || 500;
+    let limit = parseInt(req.query.limit, 10) || 500;
     const fromTime = req.query.from_time ? Number(req.query.from_time) : null;
     const toTime = req.query.to_time ? Number(req.query.to_time) : null;
 
+    // Plan-gated history depth (TradingView parity: histBars entitlement).
+    const histCap = req.user
+      ? (PLANS[req.user.plan]?.histBars ?? PLANS.basic.histBars)
+      : PLANS.basic.histBars;
+    const truncated = limit > histCap;
+    if (truncated) limit = histCap;
+    res.setHeader('X-History-Limit', String(histCap));
+
     const candles = await getCandles(symbol, timeframe, limit, fromTime, toTime);
-    // An empty series means the instrument is unknown/unsupported — say so
-    // explicitly (404) rather than returning a silently empty 200 payload.
     if (candles.length === 0) {
       return res.status(404).json({
         symbol,
@@ -98,11 +104,12 @@ app.get('/api/tickers', async (req, res) => {
   }
 });
 
-// 4. Symbol Search & Catalog
+// 4. Symbol Search & Catalog (Supports category, exchange and query filtering)
 app.get('/api/symbols', (req, res) => {
   const query = req.query.q || '';
   const category = req.query.category || 'all';
-  const results = searchSymbols(query, category);
+  const exchange = req.query.exchange || 'all';
+  const results = searchSymbols(query, category, exchange);
   res.json(results);
 });
 
@@ -111,6 +118,30 @@ app.get('/api/symbol-info', (req, res) => {
   const symbol = req.query.symbol || 'BTCUSDT';
   const meta = getSymbolMeta(symbol);
   res.json(meta);
+});
+
+// 5b. Multi-Tier Market Data Sources Status & Latency Waterfall
+app.get('/api/market-sources', (req, res) => {
+  res.json(getMarketSourceStatus());
+});
+
+// 5c. Tehran Gold Market & Coin Bubbles Engine (Melted Gold, Coins, FX)
+app.get('/api/gold-snapshot', (req, res) => {
+  try {
+    res.json(getGoldMarketSnapshot());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5d. Tehran Stock Exchange (TSETMC) Market Tape & Smart Money
+app.get('/api/tse-tape', (req, res) => {
+  try {
+    const symbol = req.query.symbol || 'FOOLAD';
+    res.json(getTseMarketTape(symbol));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 6. Market Trackers (SEC EDGAR & US Government Alternative Data)
@@ -236,7 +267,6 @@ wss.on('connection', (ws) => {
 setInterval(async () => {
   if (wss.clients.size === 0) return;
 
-  // Gather unique subscribed symbols
   const allSymbols = new Set();
   for (const subs of activeSubscriptions.values()) {
     for (const s of subs) allSymbols.add(s);
@@ -272,7 +302,6 @@ setInterval(async () => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[TradingChart Server] Running on http://0.0.0.0:${PORT}`);
   console.log(`[TradingChart Server] WebSocket live stream on ws://0.0.0.0:${PORT}/ws/live`);
-  // Pre-warm technical screener and economic calendar cache on startup
   setTimeout(() => {
     getScreenerData().then(items => console.log(`[Screener Pre-Warmed] ${items.length} instruments ready`)).catch(() => {});
   }, 200);

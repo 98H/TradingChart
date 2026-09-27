@@ -207,11 +207,11 @@ export class StrategyTester {
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نسبت شارپ / امید ریاضی' : 'Sharpe / Expectancy'}</div>
             <div id="strat-sharpe" style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
           </div>
-          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 4px; justify-content: center; border: 1px solid var(--border-subtle);">
-            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 10px; min-height: 28px; width: 100%; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'انتقال نتایج به شبیه‌ساز پراپ' : 'Export results to Prop-Sim'}" aria-label="Export to Prop-Sim">
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 6px; justify-content: center; border: 1px solid var(--border-subtle);">
+            <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 12px; min-height: 32px; width: 100%; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'انتقال نتایج به شبیه‌ساز پراپ' : 'Export results to Prop-Sim'}" aria-label="Export to Prop-Sim">
               ${isFa ? 'انتقال به شبیه‌ساز پراپ →' : 'Export to Prop-Sim →'}
             </button>
-            <button id="btn-export-csv" class="btn-secondary" style="font-size: 11px; padding: 5px 10px; min-height: 26px; width: 100%; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'دانلود دفتر کل معاملات به صورت CSV' : 'Download CSV Ledger'}" aria-label="Download CSV Ledger">
+            <button id="btn-export-csv" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; min-height: 32px; width: 100%; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'دانلود دفتر کل معاملات به صورت CSV' : 'Download CSV Ledger'}" aria-label="Download CSV Ledger">
               ${isFa ? 'دریافت دفتر کل CSV' : 'Download CSV Ledger'}
             </button>
           </div>

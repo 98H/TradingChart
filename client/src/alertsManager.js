@@ -14,14 +14,50 @@ export class AlertsManager {
     this.render();
   }
 
+  /** Cross-device merge: alerts are additive by id — the union of in-memory
+   *  and stored lists wins (device A's alert must survive device B's pull),
+   *  respecting deletion tombstones so a deleted alert is never resurrected. */
+  mergeStored() {
+    try {
+      const stored = this.loadAlerts();
+      const deleted = JSON.parse(localStorage.getItem('tradingchart_alerts_deleted') || '{}');
+      const byId = new Map((this.alerts || []).filter(a => a && a.id && !deleted[a.id]).map(a => [a.id, a]));
+      for (const ext of stored) {
+        if (ext && ext.id && !byId.has(ext.id) && !deleted[ext.id]) {
+          byId.set(ext.id, ext);
+        }
+      }
+      this.alerts = [...byId.values()];
+      localStorage.setItem('tradingchart_alerts', JSON.stringify(this.alerts));
+    } catch (e) { /* quota */ }
+  }
+
   // ── Alerts persistence (TradingView parity: alerts belong to the account
   // and survive reloads; the cloud state syncs them across devices) ──
+  /** External state (cloud sync) replaced localStorage — refresh in-memory view. */
+  reloadFromStorage() {
+    try {
+      const raw = localStorage.getItem('tradingchart_alerts');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          const deleted = JSON.parse(localStorage.getItem('tradingchart_alerts_deleted') || '{}');
+          this.alerts = arr.filter(a => a && a.id && !deleted[a.id]);
+          this.render?.();
+        }
+      }
+    } catch (e) { /* keep current */ }
+  }
+
   loadAlerts() {
     try {
       const raw = localStorage.getItem('tradingchart_alerts');
       if (raw) {
         const arr = JSON.parse(raw);
-        if (Array.isArray(arr)) return arr;
+        if (Array.isArray(arr)) {
+          const deleted = JSON.parse(localStorage.getItem('tradingchart_alerts_deleted') || '{}');
+          return arr.filter(a => a && a.id && !deleted[a.id]);
+        }
       }
     } catch (e) { /* fall through to defaults */ }
     return [
@@ -89,7 +125,7 @@ export class AlertsManager {
     this.render();
   }
 
-  addAlert(targetPrice, condition = null) {
+  addAlert(targetPrice, condition = null, extra = {}) {
     const numPrice = Number(targetPrice);
     if (!numPrice || isNaN(numPrice)) return null;
     // TradingView-parity plan gate: price-alert entitlement.
@@ -99,22 +135,32 @@ export class AlertsManager {
     const cleanSym = (this.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
     const dir = numPrice >= this.currentPrice ? 'above' : 'below';
     const newId = 'alt-' + Date.now();
-    const defaultCondition = condition || `Price Crossing ${dir === 'above' ? 'Above' : 'Below'} $${numPrice.toLocaleString()}`;
+    const defaultCondition = condition || (extra.note ? extra.note : `Price Crossing ${dir === 'above' ? 'Above' : 'Below'} $${numPrice.toLocaleString()}`);
     const defaultConditionFa = `تقاطع قیمت با تراز $${numPrice.toLocaleString()}`;
 
-    this.alerts.unshift({
+    const created = {
       id: newId,
       symbol: cleanSym,
       condition: defaultCondition,
       conditionFa: defaultConditionFa,
       targetPrice: numPrice,
       direction: dir,
-      channel: 'Sound & Popup',
-      channelFa: 'صوتی و اعلان تصویری',
+      channel: extra.channel || 'Sound & Popup',
+      channelFa: extra.channelFa || 'صوتی و اعلان تصویری',
       active: true,
       triggered: false,
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
-    });
+    };
+
+    this.alerts.unshift(created);
+
+    try {
+      const ts = JSON.parse(localStorage.getItem('tradingchart_alerts_deleted') || '{}');
+      if (ts[newId]) {
+        delete ts[newId];
+        localStorage.setItem('tradingchart_alerts_deleted', JSON.stringify(ts));
+      }
+    } catch (e) { /* quota */ }
 
     this.saveAlerts();
     this.render();
@@ -122,6 +168,35 @@ export class AlertsManager {
       window.__TRADING_APP__.chartAlertsOverlay.updateAlerts(this.alerts, cleanSym, this.currentPrice);
     }
     return newId;
+  }
+
+  createAlert(opts = {}) {
+    if (typeof opts === 'object' && opts !== null) {
+      const target = opts.targetPrice ?? opts.price;
+      return this.addAlert(target, opts.condition, opts);
+    }
+    return this.addAlert(...arguments);
+  }
+
+  deleteAlert(id) {
+    if (!id) return false;
+    const initialLen = this.alerts.length;
+    this.alerts = this.alerts.filter(a => a.id !== id);
+    if (this.alerts.length !== initialLen) {
+      try {
+        const ts = JSON.parse(localStorage.getItem('tradingchart_alerts_deleted') || '{}');
+        ts[id] = Date.now();
+        localStorage.setItem('tradingchart_alerts_deleted', JSON.stringify(ts));
+      } catch (e) { /* quota */ }
+      this.saveAlerts();
+      this.render();
+      const cleanSym = (this.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
+      if (window.__TRADING_APP__?.chartAlertsOverlay) {
+        window.__TRADING_APP__.chartAlertsOverlay.updateAlerts(this.alerts, cleanSym, this.currentPrice);
+      }
+      return true;
+    }
+    return false;
   }
 
   checkPrice(symbol, price) {
@@ -348,10 +423,10 @@ export class AlertsManager {
                   </div>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-                  <button class="btn-secondary toggle-alert-btn" data-id="${a.id}" style="padding: 4px 10px; font-size: 11px; font-weight: 600; min-height: 28px; border-radius: 4px; color: ${a.active ? 'var(--accent-cyan)' : 'var(--text-dim)'}; border-color: ${a.active ? 'rgba(0, 242, 176, 0.4)' : 'var(--border-subtle)'}; background: ${a.active ? 'rgba(0, 242, 176, 0.08)' : 'transparent'};">
+                  <button class="btn-secondary toggle-alert-btn" data-id="${a.id}" style="padding: 5px 12px; font-size: 11px; font-weight: 600; min-height: 32px; border-radius: 6px; color: ${a.active ? 'var(--accent-cyan)' : 'var(--text-dim)'}; border-color: ${a.active ? 'rgba(0, 242, 176, 0.4)' : 'var(--border-subtle)'}; background: ${a.active ? 'rgba(0, 242, 176, 0.08)' : 'transparent'}; display: inline-flex; align-items: center; justify-content: center;">
                     ${a.active ? (isFa ? '🟢 فعال' : '🟢 Active') : (isFa ? '⏸️ متوقف' : '⏸️ Paused')}
                   </button>
-                  <button class="btn-secondary delete-alert-btn" data-id="${a.id}" title="${isFa ? 'حذف این هشدار' : 'Delete Alert'}" style="padding: 4px 8px; font-size: 10px; min-height: 28px; border-radius: 4px; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+                  <button class="btn-secondary delete-alert-btn" data-id="${a.id}" title="${isFa ? 'حذف این هشدار' : 'Delete Alert'}" style="padding: 5px 10px; font-size: 11px; min-height: 32px; border-radius: 6px; color: #f87171; border-color: rgba(239, 68, 68, 0.3); display: inline-flex; align-items: center; justify-content: center;">
                     ${isFa ? 'حذف' : 'Delete'}
                   </button>
                 </div>
@@ -461,9 +536,7 @@ export class AlertsManager {
         // (icon/label) would otherwise yield null and silently delete nothing.
         const id = btn.getAttribute('data-id') || e.currentTarget.getAttribute('data-id');
         if (!id) return;
-        this.alerts = this.alerts.filter(a => a.id !== id);
-        this.saveAlerts();
-        this.render();
+        this.deleteAlert(id);
       });
     });
   }

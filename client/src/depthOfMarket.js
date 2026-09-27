@@ -60,10 +60,10 @@ export class DepthOfMarketView {
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حجم سفارش:' : 'Size:'}</span>
-              <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden;">
-                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
-                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 11px; padding: 0 2px; appearance: textfield; -moz-appearance: textfield;" aria-label="Order size" />
-                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 3px 8px; min-width: 26px; min-height: 24px; cursor: pointer; font-weight: 800; font-size: 13px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
+              <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden;">
+                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 4px 10px; min-width: 32px; min-height: 32px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
+                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; height: 32px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 12px; padding: 0 4px; appearance: textfield; -moz-appearance: textfield;" aria-label="Order size" />
+                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 4px 10px; min-width: 32px; min-height: 32px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
               </div>
             </div>
           </div>
@@ -203,7 +203,7 @@ export class DepthOfMarketView {
           <div class="dom-row dom-ask-row" data-price="${ask.price}" data-side="sell" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(246,70,93,0.12); pointer-events: none; z-index: 0;"></div>
             <div style="text-align: start; z-index: 1;">
-              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 3px 8px; font-size: 10px; min-height: 22px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'سفارش لیمیت فروش' : 'Limit Sell'}" aria-label="Limit Sell">
+              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 4px 8px; font-size: 11px; min-height: 28px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت فروش' : 'Limit Sell'}" aria-label="Limit Sell">
                 ${isFa ? '− فروش' : '− Sell'}
               </button>
             </div>
@@ -223,7 +223,7 @@ export class DepthOfMarketView {
           <div class="dom-row dom-bid-row" data-price="${bid.price}" data-side="buy" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(14,203,129,0.12); pointer-events: none; z-index: 0;"></div>
             <div style="text-align: start; z-index: 1;">
-              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 3px 8px; font-size: 10px; min-height: 22px; font-weight: 800; border-radius: 4px; cursor: pointer;" title="${isFa ? 'سفارش لیمیت خرید' : 'Limit Buy'}" aria-label="Limit Buy">
+              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 4px 8px; font-size: 11px; min-height: 28px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت خرید' : 'Limit Buy'}" aria-label="Limit Buy">
                 ${isFa ? '+ خرید' : '+ Buy'}
               </button>
             </div>

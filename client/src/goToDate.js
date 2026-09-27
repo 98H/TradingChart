@@ -59,11 +59,11 @@ export class GoToDateModal {
               ['1w-ago', isFa ? 'هفته پیش' : '1w ago', 7 * 86400000],
               ['1m-ago', isFa ? 'ماه پیش' : '1M ago', 30 * 86400000],
               ['ytd', isFa ? 'ابتدای سال' : 'YTD', 'ytd'],
-            ].map(([k, label, off]) => `<button class="btn-secondary gtd-quick" data-off="${off}" style="padding: 4px 10px; font-size: 11px;">${label}</button>`).join('')}
+            ].map(([k, label, off]) => `<button class="btn-secondary gtd-quick" data-off="${off}" style="padding: 5px 12px; font-size: 11px; min-height: 30px; border-radius: 6px;">${label}</button>`).join('')}
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
-            <button class="btn-secondary" id="gtd-cancel" style="padding: 6px 14px; font-size: 12px;">${isFa ? 'انصراف' : 'Cancel'}</button>
-            <button class="btn-primary" id="gtd-apply" style="padding: 6px 16px; font-size: 12px;">${isFa ? 'برو به تاریخ' : 'Go'}</button>
+            <button class="btn-secondary" id="gtd-cancel" style="padding: 6px 14px; font-size: 12px; min-height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">${isFa ? 'انصراف' : 'Cancel'}</button>
+            <button class="btn-primary" id="gtd-apply" style="padding: 6px 16px; font-size: 12px; min-height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700;">${isFa ? 'برو به تاریخ' : 'Go'}</button>
           </div>
         </div>
       </div>`;

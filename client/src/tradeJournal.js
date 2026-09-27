@@ -5,10 +5,68 @@
 import { buildRoundTrips, byWeekday, byDirection } from '@luxalgo/journal-core';
 import { getLanguage } from './i18n.js';
 
+const STORAGE_KEY = 'tradingchart_trade_journal';
+
 export class TradeJournal {
   constructor(options = {}) {
     this.container = options.container;
+    this.sampleExecutions = this.loadExecutions();
+    this.render();
+  }
+
+  get executions() {
+    return this.sampleExecutions;
+  }
+
+  set executions(v) {
+    this.sampleExecutions = v;
+  }
+
+  loadExecutions() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('trading_journal_executions');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('[TradeJournal] Error loading executions from storage:', e);
+    }
+    const seed = this.generateSampleExecutions();
+    this.saveExecutions(seed);
+    return seed;
+  }
+
+  saveExecutions(data = this.sampleExecutions) {
+    try {
+      const payload = JSON.stringify(data || []);
+      localStorage.setItem(STORAGE_KEY, payload);
+      localStorage.setItem('trading_journal_executions', payload);
+    } catch (e) {
+      console.warn('[TradeJournal] Error saving executions to storage:', e);
+    }
+  }
+
+  reloadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          this.sampleExecutions = parsed;
+          this.render();
+          return;
+        }
+      }
+    } catch (e) {}
     this.sampleExecutions = this.generateSampleExecutions();
+    this.render();
+  }
+
+  addExecution(exec) {
+    if (!exec) return;
+    this.sampleExecutions.unshift(exec);
+    this.saveExecutions();
     this.render();
   }
 
@@ -123,7 +181,7 @@ export class TradeJournal {
             <div style="font-size: 13px; font-weight: 700; color: #fff;">${isFa ? 'تقویم حرارتی سود/زیان (سپتامبر ۲۰۲۶)' : 'P&L Heatmap (September 2026)'}</div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <span style="color: var(--accent-cyan); font-weight: 600; font-size: 11px;">${trips.length} ${isFa ? 'معامله بسته‌شده' : 'Closed Trades'}</span>
-              <button id="btn-journal-add" class="btn-primary" style="font-size: 11px; padding: 5px 12px; min-height: 28px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'ثبت معامله جدید' : 'Log new trade'}" aria-label="Log new trade">${isFa ? '+ ثبت معامله' : '+ Log Trade'}</button>
+              <button id="btn-journal-add" class="btn-primary" style="font-size: 11px; padding: 6px 14px; min-height: 32px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'ثبت معامله جدید' : 'Log new trade'}" aria-label="Log new trade">${isFa ? '+ ثبت معامله' : '+ Log Trade'}</button>
             </div>
           </div>
 

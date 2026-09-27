@@ -62,10 +62,10 @@ export class EconomicCalendarView {
       <div class="calendar-panel-wrapper" style="display: flex; flex-direction: column; height: 100%; background: var(--bg-surface);">
         <!-- Top Filter Strip -->
         <div style="padding: 10px 12px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; gap: 6px; align-items: center;">
-            <input type="text" id="calendar-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجوی رویداد اقتصادی (CPI, FOMC, NFP)...' : 'Search economic event (CPI, FOMC, NFP)...'}" style="flex: 1; height: 30px; font-size: 11px; padding: 4px 8px;" />
-            <button id="btn-refresh-calendar" class="btn-icon-only" title="Refresh Calendar" style="height: 30px; width: 30px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-dim); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="calendar-search-input" value="${this.searchQuery}" placeholder="${isFa ? 'جستجوی رویداد اقتصادی (CPI, FOMC, NFP)...' : 'Search economic event (CPI, FOMC, NFP)...'}" style="flex: 1; height: 36px; min-height: 36px; font-size: 13px; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;" />
+            <button id="btn-refresh-calendar" class="btn-icon-only" title="Refresh Calendar" style="height: 36px; width: 36px; min-height: 36px; min-width: 36px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-dim); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             </button>
           </div>
 

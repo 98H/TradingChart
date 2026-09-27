@@ -1,7 +1,7 @@
 // tests/qa_accounts_cycle4.cjs — i18n/RTL + mobile UX + validation edge cases.
 const fs = require('fs');
 const path = require('path');
-const { launch, boot, EVID } = require('./qa_lib.cjs');
+const { launch, boot, EVID, awaitRegisterWindow } = require('./qa_lib.cjs');
 
 const OUT_DIR = path.join(EVID || path.join(process.cwd(), 'screenshots', 'qa_cycles'), 'accounts_cycle4');
 fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -45,6 +45,7 @@ const EN_LEAK = /([A-Za-z]{4,})/g;
 const ALLOW = /^(Sign|In|Up|OK|ID|PIN|OK|TC|GU|Plan|PRO)$/;
 
 (async () => {
+  await awaitRegisterWindow();
   // ── Persian mode: full account surface sweep ──
   const ctx = await launch('desktop');
   await boot(ctx, { lang: 'fa', settle: 4000 });

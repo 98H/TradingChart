@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 
-const CHROME = '/root/.cache/puppeteer/chrome-headless-shell/linux-153.0.8010.36/chrome-headless-shell-linux64/chrome-headless-shell';
+const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : '/usr/bin/chromium-browser');
 const BASE = 'http://127.0.0.1:8088';
 const EVID = path.resolve(__dirname, '../screenshots/qa_cycles');
 
@@ -21,12 +21,17 @@ function ensureEvid() { fs.mkdirSync(EVID, { recursive: true }); }
 // ~200MB RSS each and would starve the 2GB VPS. Every launched browser is
 // tracked and force-closed on any exit path.
 const LIVE_BROWSERS = new Set();
+const ACTIVE_PROFILES = new Set();
 
 async function closeAllBrowsers() {
   for (const b of LIVE_BROWSERS) {
     try { await b.close(); } catch (e) { try { b.process()?.kill('SIGKILL'); } catch (e2) { /* gone */ } }
   }
   LIVE_BROWSERS.clear();
+  for (const dir of ACTIVE_PROFILES) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* gone */ }
+  }
+  ACTIVE_PROFILES.clear();
 }
 
 ['exit', 'SIGINT', 'SIGTERM', 'unhandledRejection', 'uncaughtException'].forEach(sig => {
@@ -51,16 +56,27 @@ async function launch(viewportName = 'desktop') {
     throw new Error(`Refusing to launch Chrome: only ${freeMB}MB available (need ≥250MB). Close other browsers first.`);
   }
   const vp = VIEWPORTS[viewportName];
+  const headlessBase = fs.existsSync('/root/snap/chromium/common')
+    ? '/root/snap/chromium/common/chromium-headless'
+    : '/tmp';
+  fs.mkdirSync(headlessBase, { recursive: true });
+  const profileDir = path.join(headlessBase, `qa_chrome_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`);
+  ACTIVE_PROFILES.add(profileDir);
+
   const browser = await puppeteer.launch({
     executablePath: CHROME, headless: true,
     protocolTimeout: 300000, // heavy renders on this 2-core VPS exceed the 180s default
-    userDataDir: `/tmp/qa_chrome_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`,
+    userDataDir: profileDir,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--disable-extensions', '--disable-background-networking',
            `--window-size=${vp.width},${vp.height}`]
   });
   LIVE_BROWSERS.add(browser);
-  browser.on('disconnected', () => LIVE_BROWSERS.delete(browser));
+  browser.on('disconnected', () => {
+    LIVE_BROWSERS.delete(browser);
+    ACTIVE_PROFILES.delete(profileDir);
+    try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (e) {}
+  });
   const page = await browser.newPage();
   await page.setViewport(vp);
   const logs = [];
@@ -165,7 +181,7 @@ const INPAGE = {
     // in the app): LuxAlgo, PineTS, Vela, TradingChart, TradingView, Nexus.
     // Proper nouns that never translate: person names (Nancy Pelosi), stock
     // tickers (NVDA/AAPL/MSFT), news outlets (Nikkei Asia), company names.
-    const allowRe = new RegExp(allow || 'BTC|ETH|SOL|BNB|USDT|USD|XAU|EUR|USDJPY|RSI|SMA|EMA|MACD|ATR|BB|VWAP|Pine|WebGL|Sharpe|Monte|R:R|pine|v5|v6|JSON|CSV|PNG|SVG|OHLC|TP|SL|EV|Q|SB|SP|ES|NQ|DXY|GBP|JPY|AUD|CAD|CHF|NZD|SEC|EDGAR|FOMC|CPI|NFP|GDP|FINRA|13F|Live|ID|UTC|GMT|LuxAlgo|PineTS|Vela|TradingChart|TradingView|Nexus|Nikkei|Reuters|Bloomberg|CNBC|FT\\b|WSJ|Barron|MarketWatch|CoinDesk|CoinTelegraph|Pelosi|Tuberville|Goldman|Mullin|Gottheimer|NVDA|AAPL|MSFT|TSLA|AMZN|GOOG|META|NFLX|USOIL|Common Stock|Inc\\.|Corporation|Corp\\.|\\(D-[A-Z]{2}\\)|\\(R-[A-Z]{2}\\)', 'i');
+    const allowRe = new RegExp(allow || 'BTC|ETH|SOL|BNB|USDT|USD|XAU|EUR|USDJPY|RSI|SMA|EMA|MACD|ATR|BB|VWAP|Pine|WebGL|Sharpe|Monte|R:R|pine|v5|v6|JSON|CSV|PNG|SVG|OHLC|TP|SL|EV|Q|SB|SP|ES|NQ|DXY|GBP|JPY|AUD|CAD|CHF|NZD|SEC|EDGAR|FOMC|CPI|NFP|GDP|FINRA|13F|Live|ID|UTC|GMT|LuxAlgo|PineTS|Vela|TradingChart|TradingView|Nexus|Nikkei|Reuters|Bloomberg|CNBC|FT\\b|WSJ|Barron|MarketWatch|CoinDesk|CoinTelegraph|Pelosi|Tuberville|Goldman|Mullin|Gottheimer|NVDA|AAPL|MSFT|TSLA|AMZN|GOOG|META|NFLX|USOIL|UKOIL|NATGAS|NDX|DJI|SPX|XAG|Common Stock|Inc\\.|Corporation|Corp\\.|\\(D-[A-Z]{2}\\)|\\(R-[A-Z]{2}\\)', 'i');
     const out = [];
     const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let n;

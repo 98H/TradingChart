@@ -2347,7 +2347,40 @@ body.persian-mode .nav-export-btn svg {
 #dom-order-qty::-webkit-inner-spin-button,
 #dom-order-qty::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* ══ Mobile Landscape (short height) — header must never clip tools ══ */
+#active-layout-name {
+  max-width: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+body.persian-mode #active-layout-name {
+  max-width: 95px;
+}
+
+/* ══ Intermediate desktop viewports (1101–1380px): gracefully compress secondary tools
+   to ensure zero header overflow across English and RTL Persian layouts. ══ */
+@media (min-width: 1101px) and (max-width: 1380px) {
+  #top-app-header {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .top-nav-left, .top-nav-right { flex-wrap: nowrap !important; gap: 4px; min-width: 0; }
+  .top-nav-left { overflow: hidden; }
+  .top-nav-layout-suite #btn-magnet,
+  .top-nav-layout-suite #btn-fullscreen { display: none !important; }
+  .top-nav-layout-suite { display: flex !important; flex-wrap: nowrap !important; gap: 3px; min-width: 0; }
+  .nav-compare-btn span,
+  .nav-export-btn span,
+  #topbar-replay-label { display: none !important; }
+  .latency-badge { display: none !important; }
+  #active-layout-name { max-width: 80px; }
+}
+
 /* ══ Medium-width viewports (769–1100px, tablets & small laptops, any
    orientation): compress the header so it never overflows its container.
    At ≤768px the mobile rules take over completely. ══ */

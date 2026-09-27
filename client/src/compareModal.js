@@ -55,6 +55,9 @@ export class CompareModal {
   }
 
   open() {
+    if (this.app?.auth && !this.app.auth.enforce('compareSymbol', 0, 'Symbol Comparison', 'مقایسه نماد')) {
+      return;
+    }
     if (this.modalEl) {
       this.render();
       this.modalEl.classList.add('open');

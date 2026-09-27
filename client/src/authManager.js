@@ -4,6 +4,8 @@
 // TradingView parity: guest mode stays fully usable; auth is progressive, not blocking.
 
 import { getLanguage, t, toPersianDigits } from './i18n.js';
+import { AVATAR_PRESETS } from './userProfileModal.js';
+import { PlanAdminManager } from './planAdminManager.js';
 
 // ── Central storage bus: every 'tradingchart_*' localStorage write dispatches
 // a 'storage-write' event so the cloud sync engine can debounce-push changes.
@@ -46,7 +48,11 @@ const SYNC_MAP = {
   price_style: 'priceStyle',
   drawing_favorites: 'drawingFavorites',
   pine_code: 'pineCode',
-  theme: 'theme'
+  theme: 'theme',
+  trade_journal: 'tradeJournal',
+  custom_timeframes: 'customTimeframes',
+  layout_sync: 'layoutSync',
+  sound_muted: 'soundMuted'
 };
 const LS_PREFIX = 'tradingchart_';
 const LOCAL_MIRROR = 'tradingchart_auth_mirror'; // guest→user handoff buffer
@@ -58,7 +64,8 @@ export class AuthManager {
     this.entitlements = PLANS.basic;
     this.usage = null;
     this.plansMeta = PLANS;
-    this.syncEnabled = true;
+    this.planAdmin = new PlanAdminManager(app, this);
+    this.syncEnabled = (() => { try { return localStorage.getItem('tradingchart_sync_enabled') !== '0'; } catch (e) { return true; } })();
     this.syncTimer = null;
     this.syncInFlight = false;
     this.lastSyncAt = 0;
@@ -79,7 +86,10 @@ export class AuthManager {
     this.entitlements = PLANS[this.user?.plan || 'basic'] || PLANS.basic;
     await this.refreshPlans();
     // 3. Sync direction: cloud → local on boot (logged-in), local → cloud after
-    if (this.user) await this.pullCloudState();
+    if (this.user) {
+      await this.pullCloudState();
+      this.syncAuthUserToProfile();
+    }
     this.renderAccountBadge();
     this.bindAvatar();
     this.startAutoSync();
@@ -88,32 +98,69 @@ export class AuthManager {
 
   // ── Entitlement helpers ────────────────────────────────────────────────
   plan() { return this.user?.plan || 'basic'; }
-  ent(key) { return this.entitlements?.[key]; }
+  ent(key) {
+    if (!this.entitlements) return undefined;
+    if (this.entitlements.features && this.entitlements.features[key] !== undefined) {
+      return this.entitlements.features[key];
+    }
+    return this.entitlements[key];
+  }
   isUnlimited(v) { return v === UNLIMITED; }
 
-  /** Check a numeric entitlement. Returns {allowed, limit, plan, needUpgrade}. */
+  /** Check a numeric or boolean entitlement. Returns {allowed, limit, plan, needUpgrade, isBoolean}. */
   check(key, currentCount = 0) {
-    const limit = this.ent(key);
+    const val = this.ent(key);
     const plan = this.plan();
-    if (limit === undefined) return { allowed: true, plan };
-    if (this.isUnlimited(limit)) return { allowed: true, limit: UNLIMITED, plan };
-    if (currentCount < limit) return { allowed: true, limit, plan };
-    return { allowed: false, limit, plan, needUpgrade: this.nextPlanWith(key, limit) };
+    if (val === undefined) return { allowed: true, plan };
+    // Boolean toggle
+    if (typeof val === 'boolean') {
+      if (val === true) return { allowed: true, plan, isBoolean: true };
+      return { allowed: false, limit: 0, plan, isBoolean: true, needUpgrade: this.nextPlanWith(key, 0) };
+    }
+    // Numeric quota
+    if (this.isUnlimited(val)) return { allowed: true, limit: UNLIMITED, plan };
+    if (currentCount < val) return { allowed: true, limit: val, plan };
+    return { allowed: false, limit: val, plan, needUpgrade: this.nextPlanWith(key, val) };
   }
 
   /** Boolean feature gate (secondIntervals, synthChartTypes, deepBacktest…). */
-  feature(key) { return !!this.ent(key); }
+  feature(key) { return Boolean(this.ent(key)); }
 
   nextPlanWith(key, currentLimit) {
-    const idx = PLAN_ORDER.indexOf(this.plan());
-    for (let i = idx + 1; i < PLAN_ORDER.length; i++) {
-      const p = PLANS[PLAN_ORDER[i]];
-      if (p[key] !== undefined && (p[key] === UNLIMITED || p[key] > currentLimit)) return p.id;
+    const curPlan = this.plan();
+    const idx = PLAN_ORDER.indexOf(curPlan);
+    const start = idx >= 0 ? idx + 1 : 0;
+    // Search higher tiers first
+    for (let i = start; i < PLAN_ORDER.length; i++) {
+      const p = this.plansMeta[PLAN_ORDER[i]] || PLANS[PLAN_ORDER[i]];
+      if (!p) continue;
+      const v = (p.features && p.features[key] !== undefined) ? p.features[key] : p[key];
+      if (typeof v === 'boolean' && v === true) return p.id;
+      if (typeof v === 'number' && (v === UNLIMITED || v > currentLimit)) return p.id;
     }
-    return 'ultimate';
+    // Search any other plan
+    for (let i = 0; i < PLAN_ORDER.length; i++) {
+      const p = this.plansMeta[PLAN_ORDER[i]] || PLANS[PLAN_ORDER[i]];
+      if (!p || p.id === curPlan) continue;
+      const v = (p.features && p.features[key] !== undefined) ? p.features[key] : p[key];
+      if (typeof v === 'boolean' && v === true) return p.id;
+      if (typeof v === 'number' && (v === UNLIMITED || v > currentLimit)) return p.id;
+    }
+    return PLAN_ORDER[PLAN_ORDER.length - 1] || 'ultimate';
   }
 
   planRank(id) { return PLAN_ORDER.indexOf(id); }
+
+  isAdmin() {
+    if (this.user?.role === 'admin' || this.user?.isAdmin === true) return true;
+    const key = sessionStorage.getItem('tradingchart_admin_key') || localStorage.getItem('tradingchart_admin_key');
+    return Boolean(key && key.trim() === 'tradingchart_master_nexus');
+  }
+
+  openPlanAdminStudio() {
+    this.closeAccountMenu();
+    return this.planAdmin.open();
+  }
 
   /** Enforce a limit; shows the TradingView-style upgrade toast and returns false when blocked. */
   enforce(key, currentCount, featureLabelEn, featureLabelFa) {
@@ -121,16 +168,32 @@ export class AuthManager {
     if (chk.allowed) return true;
     const isFa = getLanguage() === 'fa';
     const label = isFa ? (featureLabelFa || featureLabelEn) : featureLabelEn;
-    const limStr = this.isUnlimited(chk.limit) ? '∞' : toPersianDigits(String(chk.limit));
-    const next = chk.needUpgrade ? PLANS[chk.needUpgrade] : PLANS.ultimate;
-    const nextName = isFa ? ({ basic: 'پایه', essential: 'اسنشیال', plus: 'پلاس', premium: 'پریمیوم', ultimate: 'آلتیمیت' }[next.id]) : next.id.charAt(0).toUpperCase() + next.id.slice(1);
+    const next = chk.needUpgrade
+      ? (this.plansMeta[chk.needUpgrade] || PLANS[chk.needUpgrade] || { id: chk.needUpgrade, priceUSD: 0 })
+      : (this.plansMeta.ultimate || PLANS.ultimate || { id: 'ultimate', priceUSD: 199.95 });
+    const planNameMap = { basic: 'پایه', essential: 'اسنشیال', plus: 'پلاس', premium: 'پریمیوم', ultimate: 'آلتیمیت' };
+    const nextName = isFa
+      ? (next?.nameFa || planNameMap[next?.id] || next?.id || 'پلن بالاتر')
+      : (next?.nameEn || (next?.id ? next.id.charAt(0).toUpperCase() + next.id.slice(1) : 'Higher Tier'));
+    const priceText = next?.priceUSD === 0 ? (isFa ? 'رایگان' : 'Free') : `$${next?.priceUSD ?? 0}${isFa ? ' در ماه' : '/mo'}`;
+
     if (this.app?.showToast) {
-      this.app.showToast(
-        isFa
-          ? `سقف پلن ${limStr === '∞' ? 'نامحدود' : limStr} برای ${label} در پلن شما پر شده است — ارتقا به ${nextName} (${next.priceUSD === 0 ? 'رایگان' : '$' + next.priceUSD + ' در ماه'})`
-          : `You've reached your plan's ${label} limit (${chk.limit}) — upgrade to ${nextName} ($${next.priceUSD}/mo)`,
-        'warning'
-      );
+      if (chk.isBoolean) {
+        this.app.showToast(
+          isFa
+            ? `قابلیت «${label}» در پلن فعلی شما غیرفعال است — ارتقا به ${nextName} (${priceText})`
+            : `The "${label}" feature is disabled in your current plan — upgrade to ${nextName} (${priceText})`,
+          'warning'
+        );
+      } else {
+        const limStr = this.isUnlimited(chk.limit) ? '∞' : toPersianDigits(String(chk.limit));
+        this.app.showToast(
+          isFa
+            ? `سقف پلن ${limStr === '∞' ? 'نامحدود' : limStr} برای ${label} در پلن شما پر شده است — ارتقا به ${nextName} (${priceText})`
+            : `You've reached your plan's ${label} limit (${chk.limit}) — upgrade to ${nextName} ($${next.priceUSD}/mo)`,
+          'warning'
+        );
+      }
     }
     return false;
   }
@@ -139,9 +202,16 @@ export class AuthManager {
     try {
       const res = await fetch('/api/plans', { credentials: 'same-origin' });
       const data = await res.json();
-      if (data.ok) {
+      if (data.ok && data.plans) {
         this.plansMeta = data.plans;
-        if (data.current) { this.entitlements = data.plans[data.current] || this.entitlements; }
+        if (Array.isArray(data.planOrder)) {
+          PLAN_ORDER.length = 0;
+          PLAN_ORDER.push(...data.planOrder);
+        }
+        Object.keys(PLANS).forEach(k => delete PLANS[k]);
+        Object.assign(PLANS, data.plans);
+        const curPlan = this.user?.plan || data.current || 'basic';
+        this.entitlements = data.plans[curPlan] || data.plans.basic || this.entitlements;
         this.usage = data.usage || null;
       }
     } catch (e) { /* keep local mirror */ }
@@ -194,10 +264,31 @@ export class AuthManager {
       const local = this.collectLocalState();
       const hasCloudData = Object.keys(cloud).length > 0;
       const hasLocalData = Object.keys(local).length > 0;
+      // Managers that keep an in-memory mirror must absorb cloud state NOW
+      // (at login), not lazily on the next conflict — otherwise a user edit
+      // right after login would save the stale in-memory copy over the cloud.
+      this.app?.paperTrading?.reloadFromStorage?.();
+      this.app?.watchlist?.reloadFromStorage?.();
+      this.app?.alertsManager?.reloadFromStorage?.();
+      this.app?.tradeJournal?.reloadFromStorage?.();
+      this.app?.fullPageJournal?.reloadFromStorage?.();
+      this.app?.timeframeManager?.reloadFromStorage?.();
       if (hasCloudData) {
         // Merge: cloud wins for keys it has; local-only keys upload on next push.
         this.applyCloudState(cloud);
         this.app?.onCloudStateApplied?.(cloud);
+        // ...and after the apply, managers reload once more so in-memory
+        // mirrors equal what storage now holds.
+        this.app?.paperTrading?.reloadFromStorage?.();
+        this.app?.watchlist?.reloadFromStorage?.();
+        this.app?.alertsManager?.reloadFromStorage?.();
+        this.app?.tradeJournal?.reloadFromStorage?.();
+        this.app?.fullPageJournal?.reloadFromStorage?.();
+        this.app?.timeframeManager?.reloadFromStorage?.();
+        if (this.app?.userProfileModal) {
+          this.app.userProfileModal.profile = this.app.userProfileModal.loadProfile();
+          this.app.userProfileModal.syncTopbarAvatar?.();
+        }
       } else if (hasLocalData) {
         // First login of a guest with local work: mirror it up (TradingView does the same
         // — a fresh account inherits the browser's current workspace).
@@ -219,13 +310,87 @@ export class AuthManager {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ state, baseUpdatedAt: force ? 0 : this.cloudUpdatedAt || 0 })
       });
-      if (res.status === 409) {
-        // Conflict: server is newer. Server wins (TradingView semantics) + notify.
+    if (res.status === 409) {
+        // Conflict: server is newer. Server wins for keys IT holds, but local
+        // keys the server has never seen (added offline / in a second tab) are
+        // merged in and re-pushed. CRITICAL: localState is collected INSIDE
+        // the merge callback — applyCloudState() would overwrite the very
+        // localStorage keys we are merging from if collected earlier.
         const conflict = await res.json();
         this.cloudUpdatedAt = conflict.serverUpdatedAt;
-        this.applyCloudState(conflict.serverState);
-        this.app?.onCloudStateApplied?.(conflict.serverState);
+        const serverState = conflict.serverState || {};
+        let localState;
+        const merged = { ...serverState };
+        const mergeLocal = () => {
+          if (!localState) localState = this.collectLocalState();
+          for (const [k, v] of Object.entries(localState)) {
+            if (serverState[k] === undefined) merged[k] = v; // local-only key survives
+          }
+        };
+        mergeLocal();
+        // In-memory manager state is authoritative for keys this tab touched
+        // since the last pull — but only for keys whose localStorage value
+        // the manager actually MIRRORS (watchlistManager tracks customSymbols
+        // in memory while user_watchlists lives only in storage, so memory
+        // must not resurrect a storage key the cloud just refreshed).
+        const memState = this.collectLocalState();
+        const memAuthoritative = { paperAccounts: true, watchlists: true, alerts: true, userWatchlists: false, profile: true, tradeJournal: true };
+        for (const [k, v] of Object.entries(memState)) {
+          if (merged[k] === undefined && memAuthoritative[k] !== false) merged[k] = v;
+        }
+        // Union list-valued keys that managers cache in memory — computed
+        // BEFORE apply (apply makes in-memory == merged, losing additions).
+        try {
+          const tj = this.app?.tradeJournal;
+          if (tj?.sampleExecutions?.length) {
+            const cloud = JSON.parse(merged.tradeJournal || '[]');
+            const byId = new Map(cloud.map(a => [a.id, a]));
+            for (const loc of tj.sampleExecutions) if (loc?.id && !byId.has(loc.id)) byId.set(loc.id, loc);
+            merged.tradeJournal = JSON.stringify([...byId.values()]);
+          }
+          const wl = this.app?.watchlist;
+          if (wl?.customSymbols?.length) {
+            const cloud = JSON.parse(merged.watchlists || '[]');
+            const union = new Set([...cloud, ...wl.customSymbols]);
+            merged.watchlists = JSON.stringify([...union]);
+          }
+          const al = this.app?.alertsManager;
+          if (al?.alerts?.length) {
+            const cloud = JSON.parse(merged.alerts || '[]');
+            const byId = new Map(cloud.map(a => [a.id, a]));
+            for (const loc of al.alerts) if (loc?.id && !byId.has(loc.id)) byId.set(loc.id, loc);
+            merged.alerts = JSON.stringify([...byId.values()]);
+          }
+          const pt = this.app?.paperTrading;
+          if (pt?.accounts?.length) {
+            const inCloud = new Map(JSON.parse(merged.paperAccounts || '[]').map(a => [a.id, a]));
+            for (const loc of pt.accounts) if (loc?.id && !inCloud.has(loc.id)) inCloud.set(loc.id, loc);
+            merged.paperAccounts = JSON.stringify([...inCloud.values()]);
+          }
+        } catch (e) { /* non-fatal */ }
+        this.applyCloudState(merged);
+        this.app?.onCloudStateApplied?.(merged);
+        // Re-collect AFTER reload for memory-mirrored keys only.
+        const afterState = this.collectLocalState();
+        for (const [k, v] of Object.entries(afterState)) {
+          if (merged[k] === undefined && memAuthoritative[k] !== false) merged[k] = v;
+        }
         this.lastSyncError = 'conflict';
+        // Rebase resolved → push the merged view once with the fresh base.
+        // Direct fetch (not recursion) so syncInFlight never wedges.
+        try {
+          const retry = await fetch('/api/user/state', {
+            method: 'PUT', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: merged, baseUpdatedAt: this.cloudUpdatedAt })
+          });
+          if (retry.ok) {
+            const d2 = await retry.json();
+            this.cloudUpdatedAt = d2.updatedAt;
+            this.lastSyncError = null;
+            this.lastSyncAt = Date.now();
+          }
+        } catch (e) { /* next auto-sync tick retries */ }
       } else if (res.ok) {
         const data = await res.json();
         this.cloudUpdatedAt = data.updatedAt;
@@ -269,6 +434,22 @@ export class AuthManager {
     return { status: res.status, ok: res.ok && data.ok !== false, data };
   }
 
+  syncAuthUserToProfile() {
+    if (!this.user || !this.app?.userProfileModal) return;
+    const up = this.app.userProfileModal;
+    if (this.user.displayName) up.profile.name = this.user.displayName;
+    if (this.user.username) up.profile.handle = this.user.username;
+    if (this.user.bio) up.profile.bio = this.user.bio;
+    if (this.user.avatarPreset) {
+      const icon = (AVATAR_PRESETS.find(a => a.id === this.user.avatarPreset) || {}).icon;
+      if (icon) up.profile.avatar = icon;
+    }
+    if (this.user.timezone) up.profile.timezone = this.user.timezone;
+    if (this.user.currency) up.profile.currency = this.user.currency;
+    up.saveProfile(false);
+    up.syncTopbarAvatar?.();
+  }
+
   async register({ email, username, password, displayName }) {
     const r = await this.api('register', { body: { email, username, password, displayName } });
     if (r.ok) {
@@ -276,22 +457,50 @@ export class AuthManager {
       this.entitlements = PLANS[this.user.plan] || PLANS.basic;
       this.stashGuestMirror();
       await this.pullCloudState();
+      this.syncAuthUserToProfile();
       this.renderAccountBadge();
       this.startAutoSync();
     }
     return r;
   }
 
-  async login({ identity, password }) {
-    const r = await this.api('login', { body: { identity, password } });
+  async login({ identity, password, totpCode }) {
+    const body = { identity, password };
+    if (totpCode !== undefined) body.totpCode = totpCode;
+    const r = await this.api('login', { body });
+    if (r.ok && r.data.totpRequired) {
+      // 2FA second step pending — caller must collect the code and retry.
+      return r;
+    }
     if (r.ok) {
       this.user = r.data.user;
       this.entitlements = PLANS[this.user.plan] || PLANS.basic;
       this.stashGuestMirror();
+      // Snapshot the pre-pull UI language: the cloud pull may carry an older
+      // stored preference that would silently flip the user's current choice.
+      const prePullLang = getLanguage();
       await this.pullCloudState();
+      if (getLanguage() !== prePullLang) {
+        // Prefer the live UI language the user was just interacting with.
+        this.app?.switchLanguage?.(prePullLang);
+      }
+      this.syncAuthUserToProfile();
       this.renderAccountBadge();
       this.startAutoSync();
     }
+    return r;
+  }
+
+  // ── 2FA (TOTP) helpers ──────────────────────────────────────────────────
+  async twofaSetup() { return this.api('2fa/setup'); }
+  async twofaEnable(code) {
+    const r = await this.api('2fa/enable', { body: { code } });
+    if (r.ok && this.user) this.user.totpEnabled = true;
+    return r;
+  }
+  async twofaDisable(password, code) {
+    const r = await this.api('2fa/disable', { body: { password, code } });
+    if (r.ok && this.user) this.user.totpEnabled = false;
     return r;
   }
 
@@ -301,6 +510,10 @@ export class AuthManager {
     this.user = null;
     this.entitlements = PLANS.basic;
     this.cloudUpdatedAt = 0;
+    if (this.app?.userProfileModal) {
+      this.app.userProfileModal.profile = this.app.userProfileModal.loadProfile();
+      this.app.userProfileModal.syncTopbarAvatar?.();
+    }
     this.renderAccountBadge();
     this.app?.onAuthChanged?.('logout');
     return r;
@@ -308,7 +521,24 @@ export class AuthManager {
 
   async updateProfile(patch) {
     const r = await this.api('me', { method: 'PATCH', body: patch });
-    if (r.ok) { this.user = r.data.user; this.renderAccountBadge(); }
+    if (r.ok) {
+      this.user = r.data.user;
+      if (this.app?.userProfileModal) {
+        const up = this.app.userProfileModal;
+        if (patch.displayName) up.profile.name = patch.displayName;
+        if (patch.username) up.profile.handle = patch.username;
+        if (patch.bio !== undefined) up.profile.bio = patch.bio;
+        if (patch.timezone) up.profile.timezone = patch.timezone;
+        if (patch.currency) up.profile.currency = patch.currency;
+        if (patch.avatarPreset) {
+          const icon = (AVATAR_PRESETS.find(a => a.id === patch.avatarPreset) || {}).icon;
+          if (icon) up.profile.avatar = icon;
+        }
+        up.saveProfile(false);
+        up.syncTopbarAvatar?.();
+      }
+      this.renderAccountBadge();
+    }
     return r;
   }
 
@@ -356,18 +586,31 @@ export class AuthManager {
     const circle = badge.querySelector('.avatar-circle');
     const isFa = getLanguage() === 'fa';
     if (this.user) {
-      const initials = this.user.displayName
-        ? this.user.displayName.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
-        : this.user.username.slice(0, 2).toUpperCase();
-      if (circle) circle.textContent = initials || 'TC';
+      // Account avatar preset wins over initials (TradingView avatar parity).
+      const preset = AVATAR_PRESETS.find(a => a.id === this.user.avatarPreset);
+      if (preset && preset.id !== 'initials') {
+        if (circle) circle.textContent = preset.icon;
+      } else {
+        const initials = this.user.displayName
+          ? this.user.displayName.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+          : this.user.username.slice(0, 2).toUpperCase();
+        if (circle) circle.textContent = initials || 'TC';
+      }
       badge.title = `${this.user.displayName || this.user.username} · ${this.planLabel()} · ${this.user.email}`;
       badge.dataset.auth = 'in';
       badge.dataset.plan = this.plan();
     } else {
+      const up = this.app?.userProfileModal?.profile || (() => {
+        try {
+          const raw = localStorage.getItem('tradingchart_user_profile');
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      })();
       if (circle) {
-        circle.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+        if (up?.avatar) circle.textContent = up.avatar;
+        else circle.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
       }
-      badge.title = isFa ? 'ورود / ثبت‌نام' : 'Sign in / Sign up';
+      badge.title = `${up?.name || 'Trader'} (@${up?.handle || 'guest'}) — ${isFa ? 'میز دمو' : 'Demo Desk'}`;
       badge.dataset.auth = 'out';
       badge.dataset.plan = 'basic';
     }
@@ -384,8 +627,15 @@ export class AuthManager {
     if (!badge) return;
     badge.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (this.menuOpen) this.closeAccountMenu();
-      else this.openAccountMenu();
+      // Sync the flag with the DOM: an externally-removed menu (suite cleanup,
+      // overlay click, Escape elsewhere) must not leave us thinking it's open.
+      if (!document.querySelector('#tc-account-menu')) this.menuOpen = false;
+      if (this.menuOpen) {
+        this.closeAccountMenu();
+      } else {
+        this.openAccountMenu();
+        this.app?.userProfileModal?.open?.();
+      }
     });
     document.addEventListener('click', (e) => {
       if (this.menuOpen && !e.target.closest('#tc-account-menu') && !e.target.closest('.user-avatar-badge')) {
@@ -442,6 +692,7 @@ export class AuthManager {
         ${this.menuItem('profile', isFa ? 'پروفایل و تنظیمات' : 'Profile & Settings', '👤')}
         ${this.menuItem('account', isFa ? 'حساب و صورت‌حساب' : 'Account & Billing', '🧾')}
         ${this.menuItem('plans', isFa ? 'پلن‌ها و ارتقا' : 'Plans & Upgrade', '⭐')}
+        ${this.menuItem('plan-admin', isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans & Feature Studio', '⚙️')}
         ${this.menuItem('devices', isFa ? 'دستگاه‌های فعال' : 'Active Devices', '📱')}
         ${this.menuItem('sync', this.syncEnabled ? (isFa ? 'همگام‌سازی: روشن' : 'Sync: On') : (isFa ? 'همگام‌سازی: خاموش' : 'Sync: Off'), '☁️')}
         <div style="border-top: 1px solid var(--border-subtle); margin: 6px 0;"></div>
@@ -456,9 +707,12 @@ export class AuthManager {
         <div style="color: var(--text-dim, #8b93a7); font-size: 11px; line-height: 1.5;">${isFa ? 'برای ذخیره ابری تنظیمات، واچ‌لیست‌ها و چیدمان‌ها وارد شوید.' : 'Sign in to sync your settings, watchlists and layouts to the cloud.'}</div>
       </div>
       <div style="padding: 6px;">
-        ${this.menuItem('login', isFa ? 'ورود' : 'Sign In', '→')}
+        ${this.menuItem('profile', isFa ? 'پروفایل و کارنامه معامله‌گر' : 'Trader Profile & Stats', '👤')}
+        ${this.menuItem('login', isFa ? 'ورود به حساب' : 'Sign In', '→')}
         ${this.menuItem('signup', isFa ? 'ایجاد حساب رایگان' : 'Create Free Account', '✦')}
         ${this.menuItem('plans', isFa ? 'مقایسه پلن‌ها' : 'Compare Plans', '⭐')}
+        ${this.menuItem('plan-admin', isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans Studio (Admin)', '⚙️')}
+        ${this.menuItem('data', isFa ? 'پشتیبان‌گیری جامع و بازیابی' : 'Full Backup & Restore', '🛡️')}
       </div>`;
   }
 
@@ -472,10 +726,15 @@ export class AuthManager {
   }
 
   handleMenuAction(act) {
+    if (act !== 'profile' && act !== 'data') {
+      document.querySelector('#modal-user-profile')?.classList.remove('open');
+    }
     switch (act) {
       case 'profile': this.app?.userProfileModal?.open?.(); break;
+      case 'data': this.app?.userProfileModal?.open?.('data'); break;
       case 'account': this.openAccountSettingsModal(); break;
       case 'plans': this.openPlansModal(); break;
+      case 'plan-admin': this.openPlanAdminStudio(); break;
       case 'devices': this.openDevicesModal(); break;
       case 'sync': this.toggleSync(); break;
       case 'logout': this.logout(); break;
@@ -487,6 +746,7 @@ export class AuthManager {
 
   toggleSync() {
     this.syncEnabled = !this.syncEnabled;
+    try { localStorage.setItem('tradingchart_sync_enabled', this.syncEnabled ? '1' : '0'); } catch (e) {}
     const isFa = getLanguage() === 'fa';
     this.app?.showToast?.(
       this.syncEnabled ? (isFa ? 'همگام‌سازی ابری فعال شد' : 'Cloud sync enabled') : (isFa ? 'همگام‌سازی ابری خاموش شد' : 'Cloud sync disabled'),
@@ -546,10 +806,10 @@ export class AuthManager {
       <div class="modal-box" style="max-width:400px; width:92vw; background:var(--bg-card,#151c2d); border:1px solid var(--border-subtle); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.85); overflow:hidden; ${isFa ? 'direction:rtl; font-family:var(--font-vazirmatn),sans-serif;' : ''}">
         <div style="padding:14px 18px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
           <span style="font-weight:800; font-size:14px; color:#fff;">${title}</span>
-          <button data-close style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-dim,#8b93a7); cursor:pointer; width:26px; height:26px; border-radius:6px;">✕</button>
+          <button data-close style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-dim,#8b93a7); cursor:pointer; width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:14px;">✕</button>
         </div>
         ${tabs}
-        <div id="tc-auth-body" style="padding:16px 18px 18px;">${body}</div>
+        <div id="tc-auth-body" style="padding:16px 18px 18px;"><div id="tc-auth-fields">${body}</div></div>
       </div>`;
   }
 
@@ -573,8 +833,10 @@ export class AuthManager {
       const map = {
         invalid_email: isFa ? 'ایمیل معتبر نیست.' : 'Invalid email address.',
         email_taken: isFa ? 'این ایمیل قبلاً ثبت شده است.' : 'This email is already registered.',
-        invalid_username: isFa ? 'نام کاربری باید ۳ تا ۲۴ کاراکتر انگلیسی، رقم یا زیرخط باشد.' : 'Username must be 3–24 letters, digits or underscores.',
+        invalid_username: isFa ? 'نام کاربری باید ۳ تا ۲۴ کاراکتر انگلیسی، رقم، زیرخط یا خط تیره باشد.' : 'Username must be 3–24 letters, digits, underscores or hyphens.',
         username_taken: isFa ? 'این نام کاربری قبلاً گرفته شده است.' : 'This username is taken.',
+        username_blocked: isFa ? 'این نام کاربری مجاز نیست (واژه محفوظ).' : 'This username is not allowed (reserved word).',
+        invalid_totp: isFa ? 'کد تأیید دو مرحله‌ای معتبر نیست.' : 'Invalid two-factor code.',
         password_weak: isFa ? 'گذرواژه باید حداقل ۸ کاراکتر و شامل حرف و رقم باشد.' : 'Password needs 8+ chars incl. letters & digits.',
         password_length: isFa ? 'گذرواژه باید حداقل ۸ کاراکتر باشد.' : 'Password must be at least 8 characters.',
         invalid_credentials: isFa ? 'ایمیل/نام کاربری یا گذرواژه نادرست است.' : 'Incorrect email/username or password.',
@@ -583,6 +845,45 @@ export class AuthManager {
       };
       if (Array.isArray(errors)) return errors.map(e => map[e.code] || e.code).join(' ');
       return map[errors] || (isFa ? 'خطای نامشخص رخ داد.' : 'An unexpected error occurred.');
+    };
+
+    // 2FA second-step UI: swap the login form for a TOTP code prompt, keeping
+    // the identity/password the user already typed so retry needs only the code.
+    const showTotpStep = (vals) => {
+      if (errBox) errBox.style.display = 'none';
+      const fieldsWrap = overlay.querySelector('#tc-auth-fields');
+      if (!fieldsWrap) return;
+      const prevHtml = fieldsWrap.innerHTML;
+      fieldsWrap.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="font-size:12px; color:var(--text-dim,#8b93a7); line-height:1.7;">
+            ${isFa ? 'این حساب با احراز هویت دو مرحله‌ای محافظت می‌شود. کد ۶ رقمی برنامه Authenticator خود را وارد کنید.' : 'This account is protected with two-factor authentication. Enter the 6-digit code from your authenticator app.'}
+          </div>
+          <input id="tc-totp-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="${isFa ? 'کد ۶ رقمی' : '6-digit code'}"
+            style="padding:11px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:8px; color:#fff; direction:ltr; text-align:center; letter-spacing:6px; font-size:18px; outline:none;" />
+          <div id="tc-auth-error" style="display:none; color:#f87171; font-size:11px;"></div>
+          <button id="tc-totp-submit" class="btn-primary" style="padding:10px; font-size:13px; font-weight:800; border-radius:8px; cursor:pointer;">${isFa ? 'تأیید و ورود' : 'Verify & sign in'}</button>
+          <button id="tc-totp-back" style="background:none; border:none; color:var(--text-dim,#8b93a7); font-size:11px; cursor:pointer;">${isFa ? '← بازگشت' : '← Back'}</button>
+        </div>`;
+      const codeInput = fieldsWrap.querySelector('#tc-totp-code');
+      setTimeout(() => codeInput?.focus(), 50);
+      const submitTotp = async () => {
+        const btn = fieldsWrap.querySelector('#tc-totp-submit');
+        btn.disabled = true;
+        const r = await this.login({ identity: vals.identity, password: vals.password, totpCode: codeInput.value.trim() });
+        btn.disabled = false;
+        if (r.ok && !r.data.totpRequired) {
+          overlay.remove();
+          this.app?.showToast?.(isFa ? 'خوش آمدید!' : 'Welcome back!', 'success');
+          this.app?.onAuthChanged?.('login');
+        } else {
+          codeInput.style.borderColor = '#f87171';
+          showErr(isFa ? 'کد واردشده معتبر نیست؛ دوباره تلاش کنید.' : 'Invalid code — try again.');
+        }
+      };
+      fieldsWrap.querySelector('#tc-totp-submit')?.addEventListener('click', submitTotp);
+      codeInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitTotp(); } });
+      fieldsWrap.querySelector('#tc-totp-back')?.addEventListener('click', () => { fieldsWrap.innerHTML = prevHtml; this.bindAuthModal(overlay, mode, isFa); });
     };
 
     overlay.querySelector('#tc-auth-forgot')?.addEventListener('click', () => {
@@ -607,6 +908,12 @@ export class AuthManager {
           r = await this.register(vals);
         } else {
           r = await this.login(vals);
+        }
+        // 2FA second step: server validated the password and now wants a TOTP code.
+        if (mode === 'login' && r.ok && r.data.totpRequired) {
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = origLabel;
+          showTotpStep(vals);
+          return;
         }
         if (r.ok) {
           overlay.remove();
@@ -763,6 +1070,7 @@ export class AuthManager {
     overlay.className = 'modal-overlay open';
     overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:99998; display:flex; align-items:center; justify-content:center;';
     const tabs = [
+      ['profile', isFa ? 'پروفایل عمومی' : 'Public profile'],
       ['account', isFa ? 'حساب' : 'Account'],
       ['security', isFa ? 'امنیت' : 'Security'],
       ['sessions', isFa ? 'دستگاه‌ها' : 'Sessions'],
@@ -789,12 +1097,168 @@ export class AuthManager {
     this.renderAccountTab(overlay, tab, isFa);
   }
 
+  // ── Public profile tab (TradingView "Settings and billing → Public profile" parity) ──
+  // Fields: avatar preset, display name, username (max 2 lifetime changes),
+  // bio/about, location, signature, plan-gated social links, member-since date.
+  renderProfileTab(body, u, isFa) {
+    const sec = (title) => `<div style="font-size:11px; font-weight:800; color:var(--text-dim,#8b93a7); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">${title}</div>`;
+    const plan = u.plan || 'basic';
+    const allowedSocial = { basic: ['x', 'youtube'], essential: ['x', 'youtube', 'facebook', 'instagram'], plus: ['x', 'youtube', 'facebook', 'instagram'], premium: ['x', 'youtube', 'facebook', 'instagram', 'website'], ultimate: ['x', 'youtube', 'facebook', 'instagram', 'website'] }[plan] || ['x', 'youtube'];
+    const social = u.socialLinks || {};
+    const socialMeta = [
+      ['x', 'X', isFa ? 'نام کاربری X (بدون @)' : 'X handle (no @)'],
+      ['youtube', 'YouTube', 'https://youtube.com/@channel'],
+      ['facebook', 'Facebook', 'https://facebook.com/page'],
+      ['instagram', 'Instagram', 'https://instagram.com/user'],
+      ['website', isFa ? 'وب‌سایت' : 'Website', 'https://example.com']
+    ];
+    const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString(isFa ? 'fa-IR' : 'en-US', { year: 'numeric', month: 'long' }) : '—';
+    const changesLeft = u.usernameChangesLeft ?? 2;
+
+    const avatarGrid = AVATAR_PRESETS.map(av => {
+      const sel = (u.avatarPreset || 'mecha') === av.id;
+      return `<button type="button" class="pf-avatar-btn" data-avatar="${av.id}" title="${isFa ? av.nameFa : av.nameEn}"
+        style="width:44px; height:44px; border-radius:10px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+        background:${sel ? 'rgba(0,242,176,0.14)' : 'var(--bg-surface,#0c1017)'}; border:1px solid ${sel ? 'var(--accent-cyan,#00F2B0)' : 'var(--border-subtle)'};">${av.icon}</button>`;
+    }).join('');
+
+    const socialRows = socialMeta.map(([net, label, ph]) => {
+      const locked = !allowedSocial.includes(net);
+      return `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span data-no-i18n style="width:86px; flex-shrink:0; font-size:11px; font-weight:700; color:${locked ? 'var(--text-dim,#8b93a7)' : 'inherit'};">${label}${locked ? ' 🔒' : ''}</span>
+          <input name="pf-social-${net}" value="${locked ? '' : escapeHtml(social[net] || '')}" placeholder="${locked ? (isFa ? 'نیازمند ارتقای پلن' : 'Upgrade plan') : ph}"
+            ${locked ? 'disabled' : ''} dir="ltr"
+            style="flex:1; min-width:0; padding:8px 10px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:${locked ? 'var(--text-dim,#8b93a7)' : '#fff'}; outline:none; box-sizing:border-box; text-align:left; opacity:${locked ? 0.55 : 1};" />
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      ${sec(isFa ? 'هویت عمومی' : 'Public identity')}
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        ${avatarGrid}
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${this.fieldHtml('pf-displayName', isFa ? 'نام نمایشی' : 'Display name', 'text', u.displayName || '', '')}
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'نام کاربری' : 'Username'}</label>
+          <input name="pf-username" dir="ltr" value="${escapeHtml(u.username)}"
+            style="padding:9px 11px; font-size:13px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; width:100%; box-sizing:border-box; text-align:left;" />
+          <div style="font-size:10px; color:${changesLeft > 0 ? 'var(--text-dim,#8b93a7)' : '#f59e0b'};">
+            ${isFa
+              ? (changesLeft > 0 ? `${toPersianDigits(String(changesLeft))} تغییر نام کاربری باقی مانده (حداکثر ۲ بار).` : 'سهمیه تغییر نام کاربری شما تمام شده است.')
+              : (changesLeft > 0 ? `${changesLeft} username change${changesLeft === 1 ? '' : 's'} left (max 2).` : 'Username change limit reached.')}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'درباره من' : 'About me'}</label>
+          <textarea name="pf-bio" rows="2" maxlength="280" placeholder="${isFa ? 'حداکثر ۲۸۰ نویسه' : 'Max 280 chars'}"
+            style="padding:9px 11px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; width:100%; box-sizing:border-box; resize:vertical; font-family:inherit;">${escapeHtml(u.bio || '')}</textarea>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:130px; display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'موقعیت مکانی' : 'Location'}</label>
+            <input name="pf-location" value="${escapeHtml(u.location || '')}" maxlength="80"
+              style="padding:8px 10px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; box-sizing:border-box; width:100%;" />
+          </div>
+          <div style="flex:1; min-width:130px; display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'امضا' : 'Signature'}</label>
+            <input name="pf-signature" value="${escapeHtml(u.signature || '')}" maxlength="140"
+              style="padding:8px 10px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; box-sizing:border-box; width:100%;" />
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:130px; display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'منطقه زمانی' : 'Timezone'}</label>
+            <select name="pf-timezone" style="padding:8px 10px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; box-sizing:border-box; width:100%;">
+              ${[
+                { id: 'Asia/Tehran', label: isFa ? 'تهران (UTC+3:30)' : 'Tehran (UTC+3:30)' },
+                { id: 'Etc/UTC', label: 'UTC (UTC+0:00)' },
+                { id: 'America/New_York', label: isFa ? 'نیویورک (EST)' : 'New York (EST)' },
+                { id: 'Europe/London', label: isFa ? 'لندن (GMT)' : 'London (GMT)' },
+                { id: 'Asia/Dubai', label: isFa ? 'دبی (UTC+4)' : 'Dubai (UTC+4)' },
+                { id: 'Asia/Tokyo', label: isFa ? 'توکیو (JST)' : 'Tokyo (JST)' }
+              ].map(tz => `<option value="${tz.id}" ${(u.timezone || 'Asia/Tehran') === tz.id ? 'selected' : ''}>${tz.label}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex:1; min-width:130px; display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-dim,#8b93a7);">${isFa ? 'ارز پایه' : 'Currency'}</label>
+            <select name="pf-currency" style="padding:8px 10px; font-size:12px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; outline:none; box-sizing:border-box; width:100%;">
+              ${['USD', 'EUR', 'GBP', 'USDT', 'BTC'].map(c => `<option value="${c}" ${(u.currency || 'USD') === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+      ${sec(isFa ? 'پیوندهای شبکه‌های اجتماعی' : 'Social links')}
+      <div style="display:flex; flex-direction:column; gap:6px;">${socialRows}</div>
+      <div style="font-size:10px; color:var(--text-dim,#8b93a7); line-height:1.6;">
+        ${isFa ? `عضویت از ${joined} · شبکه‌های دردسترس به پلن شما بستگی دارد.` : `Member since ${joined} · Available networks depend on your plan.`}
+      </div>
+      <div id="pf-msg" style="display:none; font-size:11px; line-height:1.5;"></div>
+      <button id="pf-save" class="btn-primary" style="padding:9px; font-size:12px; font-weight:800; border-radius:8px; cursor:pointer;">${isFa ? 'ذخیره پروفایل' : 'Save profile'}</button>`;
+
+    let pickedAvatar = u.avatarPreset || 'mecha';
+    body.querySelectorAll('.pf-avatar-btn').forEach(btn => btn.addEventListener('click', () => {
+      pickedAvatar = btn.dataset.avatar;
+      body.querySelectorAll('.pf-avatar-btn').forEach(b => {
+        const sel = b.dataset.avatar === pickedAvatar;
+        b.style.background = sel ? 'rgba(0,242,176,0.14)' : 'var(--bg-surface,#0c1017)';
+        b.style.border = `1px solid ${sel ? 'var(--accent-cyan,#00F2B0)' : 'var(--border-subtle)'}`;
+      });
+    }));
+
+    body.querySelector('#pf-save')?.addEventListener('click', async () => {
+      const msg = body.querySelector('#pf-msg');
+      msg.style.display = 'block';
+      const patch = {
+        displayName: body.querySelector('input[name="pf-displayName"]').value,
+        username: body.querySelector('input[name="pf-username"]').value,
+        bio: body.querySelector('textarea[name="pf-bio"]').value,
+        location: body.querySelector('input[name="pf-location"]').value,
+        signature: body.querySelector('input[name="pf-signature"]').value,
+        timezone: body.querySelector('select[name="pf-timezone"]')?.value || u.timezone || 'Asia/Tehran',
+        currency: body.querySelector('select[name="pf-currency"]')?.value || u.currency || 'USD',
+        avatarPreset: pickedAvatar,
+        socialLinks: Object.fromEntries(socialMeta
+          .filter(([net]) => allowedSocial.includes(net))
+          .map(([net]) => [net, body.querySelector(`input[name="pf-social-${net}"]`)?.value || '']))
+      };
+      const r = await this.updateProfile(patch);
+      if (r.ok) {
+        msg.style.color = 'var(--accent-cyan,#00F2B0)';
+        msg.textContent = isFa ? 'پروفایل ذخیره شد.' : 'Profile saved.';
+        this.app?.showToast?.(isFa ? 'پروفایل عمومی به‌روزرسانی شد' : 'Public profile updated', 'success');
+        this.app?.userProfileModal && (this.app.userProfileModal.profile.avatar = (AVATAR_PRESETS.find(a => a.id === pickedAvatar) || {}).icon || '🦾');
+        // refresh to update usernameChangesLeft hint
+        const ov = body.closest('.modal-overlay');
+        if (ov) this.renderProfileTab(body, this.user, isFa);
+      } else {
+        const code = r.data.errors?.[0]?.code || r.data.error;
+        const msgs = {
+          username_taken: isFa ? 'این نام کاربری قبلاً گرفته شده است.' : 'This username is taken.',
+          username_blocked: isFa ? 'این نام کاربری مجاز نیست (واژه محفوظ).' : 'This username is not allowed (reserved word).',
+          username_limit: isFa ? 'سهمیه تغییر نام کاربری (۲ بار) تمام شده است.' : 'Username change limit (2) reached.',
+          invalid_username: isFa ? 'نام کاربری باید ۳ تا ۲۴ کاراکتر انگلیسی، رقم، زیرخط یا خط تیره باشد.' : 'Username must be 3–24 letters, digits, underscore or hyphen.',
+          plan_required: isFa ? 'این شبکه اجتماعی نیازمند ارتقای پلن است.' : 'This social network requires a plan upgrade.',
+          invalid_link: isFa ? 'قالب پیوند معتبر نیست.' : 'Invalid link format.'
+        };
+        msg.style.color = '#f87171';
+        msg.textContent = msgs[code] || (isFa ? 'ذخیره ناموفق بود.' : 'Save failed.');
+      }
+    });
+  }
+
   async renderAccountTab(overlay, tab, isFa) {
     const body = overlay.querySelector('#tc-acc-body');
     if (!body) return;
     const u = this.user;
     const sec = (title) => `<div style="font-size:11px; font-weight:800; color:var(--text-dim,#8b93a7); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">${title}</div>`;
     const row = (k, v) => `<div style="display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:5px 0; border-bottom:1px dashed var(--border-subtle);"><span style="color:var(--text-dim,#8b93a7);">${k}</span><span style="font-weight:600;">${v}</span></div>`;
+
+    if (tab === 'profile') {
+      this.renderProfileTab(body, u, isFa);
+      return;
+    }
 
     if (tab === 'account') {
       // Render the static identity + plan cards immediately, then fill usage
@@ -845,7 +1309,38 @@ export class AuthManager {
     }
 
     if (tab === 'security') {
+      const twofaSection = u.totpEnabled ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+          <div>
+            <div style="font-size:12px; font-weight:700;">${isFa ? 'احراز هویت دو مرحله‌ای (برنامه Authenticator)' : 'Two-factor authentication (Authenticator app)'}</div>
+            <div style="font-size:10px; color:var(--accent-cyan,#00F2B0); margin-top:2px;">${isFa ? 'فعال است — ورود نیازمند کد ۶ رقمی است.' : 'Enabled — sign-in requires a 6-digit code.'}</div>
+          </div>
+          <button id="acc-2fa-open-disable" style="background:rgba(248,113,113,0.12); color:#f87171; border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0;">${isFa ? 'غیرفعال‌سازی' : 'Disable'}</button>
+        </div>
+        <div id="acc-2fa-disable-box" style="display:none; flex-direction:column; gap:8px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+          ${this.fieldHtml('acc-2fa-pass', isFa ? 'گذرواژه فعلی' : 'Current password', 'password', '', '••••••••')}
+          ${this.fieldHtml('acc-2fa-code', isFa ? 'کد ۶ رقمی Authenticator' : '6-digit authenticator code', 'text', '', '123456')}
+          <div id="acc-2fa-msg" style="display:none; font-size:11px;"></div>
+          <button id="acc-2fa-disable-btn" style="background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.35); border-radius:8px; padding:9px; font-size:12px; font-weight:800; cursor:pointer;">${isFa ? 'تأیید غیرفعال‌سازی' : 'Confirm disable'}</button>
+        </div>` : `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+          <div>
+            <div style="font-size:12px; font-weight:700;">${isFa ? 'احراز هویت دو مرحله‌ای (برنامه Authenticator)' : 'Two-factor authentication (Authenticator app)'}</div>
+            <div style="font-size:10px; color:var(--text-dim,#8b93a7); margin-top:2px;">${isFa ? 'با Google Authenticator یا هر برنامه TOTP فعال می‌شود.' : 'Works with Google Authenticator or any TOTP app.'}</div>
+          </div>
+          <button id="acc-2fa-open-enable" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0;">${isFa ? 'فعال‌سازی' : 'Enable'}</button>
+        </div>
+        <div id="acc-2fa-setup-box" style="display:none; flex-direction:column; gap:8px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+          <div style="font-size:11px; color:var(--text-dim,#8b93a7); line-height:1.6;">${isFa ? '۱. این کلید را در برنامه Authenticator وارد کنید (یا QR را در TradingView-اسکن‌گر مشابه اسکن کنید):' : '1. Add this key to your authenticator app:'}</div>
+          <div id="acc-2fa-secret" dir="ltr" style="font-family:monospace; font-size:14px; letter-spacing:2px; text-align:center; background:rgba(0,0,0,0.3); border-radius:6px; padding:8px; user-select:all;">…</div>
+          <div style="font-size:11px; color:var(--text-dim,#8b93a7); line-height:1.6;">${isFa ? '۲. کد ۶ رقمی نمایش‌داده‌شده را اینجا وارد کنید:' : '2. Enter the 6-digit code it shows:'}</div>
+          ${this.fieldHtml('acc-2fa-code', isFa ? 'کد ۶ رقمی' : '6-digit code', 'text', '', '123456')}
+          <div id="acc-2fa-msg" style="display:none; font-size:11px;"></div>
+          <button id="acc-2fa-enable-btn" class="btn-primary" style="padding:9px; font-size:12px; font-weight:800; border-radius:8px; cursor:pointer;">${isFa ? 'فعال‌سازی ۲FA' : 'Enable 2FA'}</button>
+        </div>`;
       body.innerHTML = `
+        ${sec(isFa ? 'احراز هویت دو مرحله‌ای' : 'Two-factor authentication')}
+        ${twofaSection}
         ${sec(isFa ? 'تغییر گذرواژه' : 'Change password')}
         <div style="display:flex; flex-direction:column; gap:8px;">
           ${this.fieldHtml('acc-current', isFa ? 'گذرواژه فعلی' : 'Current password', 'password', '', '••••••••')}
@@ -855,6 +1350,61 @@ export class AuthManager {
           <button id="acc-pass-save" class="btn-primary" style="padding:9px; font-size:12px; font-weight:800; border-radius:8px; cursor:pointer;">${isFa ? 'به‌روزرسانی گذرواژه' : 'Update password'}</button>
           <div style="font-size:10px; color:var(--text-dim,#8b93a7); line-height:1.6;">${isFa ? 'با تغییر گذرواژه، نشست‌های سایر دستگاه‌ها خاتمه می‌یابد و دستگاه فعلی باقی می‌ماند.' : 'Changing your password signs out all other devices; this device stays signed in.'}</div>
         </div>`;
+      // ── 2FA handlers ──────────────────────────────────────────────────
+      const show2faMsg = (text, ok) => {
+        const m = body.querySelector('#acc-2fa-msg');
+        if (!m) return;
+        m.style.display = 'block';
+        m.style.color = ok ? 'var(--accent-cyan,#00F2B0)' : '#f87171';
+        m.textContent = text;
+      };
+      body.querySelector('#acc-2fa-open-enable')?.addEventListener('click', async () => {
+        const box = body.querySelector('#acc-2fa-setup-box');
+        if (!box) return;
+        box.style.display = 'flex';
+        const r = await this.twofaSetup();
+        if (r.ok) {
+          body.querySelector('#acc-2fa-secret').textContent = r.data.secret;
+        } else {
+          show2faMsg(isFa ? 'دریافت کلید ناموفق بود؛ دوباره تلاش کنید.' : 'Failed to get a setup key — try again.', false);
+        }
+      });
+      body.querySelector('#acc-2fa-enable-btn')?.addEventListener('click', async () => {
+        const code = body.querySelector('input[name="acc-2fa-code"]').value.trim();
+        const r = await this.twofaEnable(code);
+        if (r.ok) {
+          this.app?.showToast?.(isFa ? 'احراز دو مرحله‌ای فعال شد.' : 'Two-factor authentication enabled.', 'success');
+          this.openAccountSettingsModal('security');
+        } else {
+          show2faMsg(
+            r.data.error === 'invalid_code'
+              ? (isFa ? 'کد واردشده معتبر نیست؛ دوباره تلاش کنید.' : 'Invalid code — try again.')
+              : (isFa ? 'فعال‌سازی ناموفق بود.' : 'Enable failed.'),
+            false);
+        }
+      });
+      body.querySelector('#acc-2fa-open-disable')?.addEventListener('click', () => {
+        const box = body.querySelector('#acc-2fa-disable-box');
+        if (box) box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+      });
+      body.querySelector('#acc-2fa-disable-btn')?.addEventListener('click', async () => {
+        const pass = body.querySelector('input[name="acc-2fa-pass"]').value;
+        const code = body.querySelector('input[name="acc-2fa-code"]').value.trim();
+        const r = await this.twofaDisable(pass, code);
+        if (r.ok) {
+          this.app?.showToast?.(isFa ? 'احراز دو مرحله‌ای غیرفعال شد.' : 'Two-factor authentication disabled.', 'success');
+          this.openAccountSettingsModal('security');
+        } else {
+          show2faMsg(
+            r.data.error === 'invalid_credentials'
+              ? (isFa ? 'گذرواژه نادرست است.' : 'Incorrect password.')
+              : r.data.error === 'invalid_code'
+                ? (isFa ? 'کد واردشده معتبر نیست.' : 'Invalid code.')
+                : (isFa ? 'غیرفعال‌سازی ناموفق بود.' : 'Disable failed.'),
+            false);
+        }
+      });
+
       body.querySelector('#acc-pass-save')?.addEventListener('click', async () => {
         const msg = body.querySelector('#acc-sec-msg');
         const cur = body.querySelector('input[name="acc-current"]').value;
@@ -971,7 +1521,12 @@ export class AuthManager {
     await this.refreshPlans();
     document.querySelector('#tc-plans-modal')?.remove();
     const isFa = getLanguage() === 'fa';
-    const planNames = { basic: isFa ? 'پایه' : 'Basic', essential: isFa ? 'اسنشیال' : 'Essential', plus: isFa ? 'پلاس' : 'Plus', premium: isFa ? 'پریمیوم' : 'Premium', ultimate: isFa ? 'آلتیمیت' : 'Ultimate' };
+    const planNameFallback = { basic: isFa ? 'پایه' : 'Basic', essential: isFa ? 'اسنشیال' : 'Essential', plus: isFa ? 'پلاس' : 'Plus', premium: isFa ? 'پریمیوم' : 'Premium', ultimate: isFa ? 'آلتیمیت' : 'Ultimate' };
+    const getPlanName = (p) => {
+      if (isFa) return p.nameFa || planNameFallback[p.id] || p.id;
+      return p.nameEn || planNameFallback[p.id] || (p.id.charAt(0).toUpperCase() + p.id.slice(1));
+    };
+    const planNames = Object.fromEntries(PLAN_ORDER.map(id => [id, getPlanName(this.plansMeta[id] || PLANS[id] || { id })]));
     const rows = [
       ['chartsPerTab', isFa ? 'چارت در هر تب' : 'Charts per tab'],
       ['savedLayouts', isFa ? 'چیدمان‌های ذخیره‌شده' : 'Saved layouts'],
@@ -989,21 +1544,28 @@ export class AuthManager {
       ['deepBacktest', isFa ? 'بک‌تست عمیق' : 'Deep backtesting'],
       ['csvTradesExport', isFa ? 'خروجی CSV معاملات' : 'Trades CSV export'],
       ['xlsxReport', isFa ? 'گزارش XLSX' : 'XLSX report'],
-      ['webhookAlerts', isFa ? 'هشدار وب‌هوک' : 'Webhook alerts']
+      ['webhookAlerts', isFa ? 'هشدار وب‌هوک' : 'Webhook alerts'],
+      ['propFirmSim', isFa ? 'شبیه‌ساز چالش پراپ‌فرم' : 'Prop-firm simulator'],
+      ['tradeJournal', isFa ? 'ژورنال معاملاتی هوشمند' : 'Smart trade journal'],
+      ['depthOfMarket', isFa ? 'عمق بازار DOM لول ۲' : 'Depth of market (DOM)'],
+      ['pineStudio', isFa ? 'استودیو پاین‌اسکریپت' : 'Pine script studio'],
+      ['economicCalendar', isFa ? 'تقویم اقتصادی کلان' : 'Economic calendar']
     ];
-    const fmt = (v) => v === UNLIMITED ? '∞' : (typeof v === 'boolean' ? (v ? '✓' : '—') : toPersianDigits(String(v)));
-    const plans = PLAN_ORDER.map(id => this.plansMeta[id] || PLANS[id]);
+    const fmt = (v) => v === UNLIMITED ? '∞' : (typeof v === 'boolean' ? (v ? '✓' : '—') : (isFa ? toPersianDigits(String(v)) : String(v)));
+    const plans = PLAN_ORDER.map(id => this.plansMeta[id] || PLANS[id]).filter(Boolean);
     const current = this.plan();
     const grid = plans.map(p => {
       const isCurrent = p.id === current;
+      const pColor = p.color || 'var(--accent-cyan,#00F2B0)';
+      const pBadge = isFa ? (p.badgeFa || p.badge) : p.badge;
       return `
-        <div style="border:1px solid ${isCurrent ? 'var(--accent-cyan,#00F2B0)' : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; min-width:0;">
+        <div style="border:1px solid ${isCurrent ? pColor : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; width:155px; min-width:155px; flex-shrink:0; box-sizing:border-box;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-            <strong style="font-size:13px;">${planNames[p.id]}</strong>
-            ${isCurrent ? `<span style="font-size:9px; background:var(--accent-cyan,#00F2B0); color:#04121e; padding:2px 7px; border-radius:12px; font-weight:800;">${isFa ? 'پلن فعلی' : 'CURRENT'}</span>` : ''}
+            <strong style="font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${getPlanName(p)}</strong>
+            ${isCurrent ? `<span style="font-size:9px; background:${pColor}; color:#04121e; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${isFa ? 'پلن فعلی' : 'CURRENT'}</span>` : (pBadge ? `<span style="font-size:9px; background:${pColor}22; color:${pColor}; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${escapeHtml(pBadge)}</span>` : '')}
           </div>
-          <div style="font-size:16px; font-weight:800; color:var(--accent-cyan,#00F2B0);">${p.priceUSD === 0 ? (isFa ? 'رایگان' : 'Free') : '$' + p.priceUSD}<span style="font-size:10px; color:var(--text-dim); font-weight:400;">${p.priceUSD ? (isFa ? '/ماه' : '/mo') : ''}</span></div>
-          <button data-plan="${p.id}" ${isCurrent ? 'disabled' : ''} class="tc-plan-btn" style="padding:7px; border-radius:7px; font-size:11px; font-weight:800; cursor:${isCurrent ? 'default' : 'pointer'}; border:1px solid var(--accent-cyan,#00F2B0); background:${isCurrent ? 'transparent' : 'var(--accent-cyan,#00F2B0)'}; color:${isCurrent ? 'var(--accent-cyan,#00F2B0)' : '#04121e'}; opacity:${isCurrent ? '0.5' : '1'};">
+          <div style="font-size:16px; font-weight:800; color:${pColor};">${p.priceUSD === 0 ? (isFa ? 'رایگان' : 'Free') : '$' + (isFa ? toPersianDigits(String(p.priceUSD)) : p.priceUSD)}<span style="font-size:10px; color:var(--text-dim); font-weight:400;">${p.priceUSD ? (isFa ? '/ماه' : '/mo') : ''}</span></div>
+          <button data-plan="${p.id}" ${isCurrent ? 'disabled' : ''} class="tc-plan-btn" style="padding:7px; border-radius:7px; font-size:11px; font-weight:800; cursor:${isCurrent ? 'default' : 'pointer'}; border:1px solid ${pColor}; background:${isCurrent ? 'transparent' : pColor}; color:${isCurrent ? pColor : '#04121e'}; opacity:${isCurrent ? '0.5' : '1'};">
             ${isCurrent ? (isFa ? 'فعال' : 'Active') : (this.planRank(p.id) < this.planRank(current) ? (isFa ? 'سوئیچ' : 'Switch') : (isFa ? 'ارتقا' : 'Upgrade'))}
           </button>
         </div>`;
@@ -1014,7 +1576,7 @@ export class AuthManager {
         <table style="width:100%; border-collapse:collapse; font-size:11px; min-width:560px;">
           <thead><tr>
             <th style="text-align:${isFa ? 'right' : 'left'}; padding:8px; color:var(--text-dim); font-weight:600;">${isFa ? 'ویژگی' : 'Feature'}</th>
-            ${plans.map(p => `<th style="padding:8px; color:#fff; font-weight:700;">${planNames[p.id]}</th>`).join('')}
+            ${plans.map(p => `<th style="padding:8px; color:#fff; font-weight:700;">${getPlanName(p)}</th>`).join('')}
           </tr></thead>
           <tbody>
             ${rows.map(([k, label]) => `
@@ -1034,10 +1596,15 @@ export class AuthManager {
       <div class="modal-box" style="max-width:860px; width:96vw; max-height:88vh; overflow-y:auto; background:var(--bg-card,#151c2d); border:1px solid var(--border-subtle); border-radius:14px; ${isFa ? 'direction:rtl;' : ''}">
         <div style="padding:14px 18px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;">
           <span style="font-weight:800; font-size:14px; color:#fff;">${isFa ? 'پلن‌های تریدینگ‌چارت' : 'TradingChart Plans'}</span>
-          <button data-close style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-dim); cursor:pointer; width:26px; height:26px; border-radius:6px;">✕</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="tc-plans-open-admin" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:1px solid rgba(0,242,176,0.3); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+              <span>⚙️</span><span>${isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans Studio (Admin)'}</span>
+            </button>
+            <button data-close style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-dim); cursor:pointer; width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:14px;">✕</button>
+          </div>
         </div>
         <div style="padding:16px 18px; display:flex; flex-direction:column; gap:14px;">
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">${grid}</div>
+          <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; -webkit-overflow-scrolling:touch;">${grid}</div>
           ${this.usage ? `<div style="font-size:11px; color:var(--text-dim);">${isFa ? `مصرف فعلی: ${toPersianDigits(String(this.usage.layouts))} چیدمان · ${toPersianDigits(String(this.usage.watchlists))} واچ‌لیست · ${toPersianDigits(String(Math.round(this.usage.stateBytes / 1024)))} کیلوبایت فضای ابری` : `Current usage: ${this.usage.layouts} layouts · ${this.usage.watchlists} watchlists · ${Math.round(this.usage.stateBytes / 1024)} KB cloud`}</div>` : ''}
           ${table}
           <div style="font-size:10px; color:var(--text-dim); line-height:1.6;">${isFa ? 'صورت‌حساب‌دهی در این نسخه شبیه‌سازی‌شده است و با کلیک بلافاصله اعمال می‌شود. سقف هر پلن هم در سرور و هم در رابط کاربری اعمال می‌شود.' : 'Billing is simulated in this build and applies instantly on click. Each plan’s limits are enforced both server-side and in the UI.'}</div>
@@ -1046,6 +1613,11 @@ export class AuthManager {
     document.body.appendChild(overlay);
     overlay.addEventListener('click', async (e) => {
       if (e.target === overlay || e.target.closest('[data-close]')) { overlay.remove(); return; }
+      if (e.target.closest('#tc-plans-open-admin')) {
+        overlay.remove();
+        this.openPlanAdminStudio();
+        return;
+      }
       const btn = e.target.closest('[data-plan]');
       if (btn && !btn.disabled) {
         const planId = btn.dataset.plan;

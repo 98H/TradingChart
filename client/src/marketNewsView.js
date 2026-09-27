@@ -63,17 +63,17 @@ export class MarketNewsView {
 
           <!-- Category Filter Pills -->
           <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
-            <button class="news-cat-btn active" data-cat="all" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff; cursor: pointer;">${isFa ? 'همه' : 'All'}</button>
-            <button class="news-cat-btn" data-cat="crypto" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'ارز دیجیتال' : 'Crypto'}</button>
-            <button class="news-cat-btn" data-cat="metals" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فلزات' : 'Metals'}</button>
-            <button class="news-cat-btn" data-cat="forex" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فارکس' : 'Forex'}</button>
-            <button class="news-cat-btn" data-cat="equities" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'سهام' : 'Equities'}</button>
-            <button class="news-cat-btn" data-cat="commodities" style="padding: 4px 10px; min-height: 28px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'کالاها' : 'Commodities'}</button>
+            <button class="news-cat-btn active" data-cat="all" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: #fff; cursor: pointer;">${isFa ? 'همه' : 'All'}</button>
+            <button class="news-cat-btn" data-cat="crypto" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'ارز دیجیتال' : 'Crypto'}</button>
+            <button class="news-cat-btn" data-cat="metals" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فلزات' : 'Metals'}</button>
+            <button class="news-cat-btn" data-cat="forex" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'فارکس' : 'Forex'}</button>
+            <button class="news-cat-btn" data-cat="equities" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'سهام' : 'Equities'}</button>
+            <button class="news-cat-btn" data-cat="commodities" style="padding: 6px 12px; min-height: 34px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-dim); cursor: pointer;">${isFa ? 'کالاها' : 'Commodities'}</button>
           </div>
 
           <!-- Quick Search Filter -->
           <div style="position: relative;">
-            <input type="text" id="news-search-input" dir="${isFa ? 'rtl' : 'ltr'}" placeholder="${isFa ? 'جستجو در اخبار و نمادها...' : 'Search headlines & symbols...'}" style="width: 100%; height: 28px; padding: 4px 8px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px;" />
+            <input type="text" id="news-search-input" dir="${isFa ? 'rtl' : 'ltr'}" placeholder="${isFa ? 'جستجو در اخبار و نمادها...' : 'Search headlines & symbols...'}" style="width: 100%; height: 36px; padding: 6px 12px; font-size: 13px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 6px;" />
           </div>
         </div>
 

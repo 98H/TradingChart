@@ -27,11 +27,16 @@ export class TechnicalScreenerView {
 
   startAutoRefresh() {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
+    // Plan-gated auto-refresh cadence (TradingView parity: screenerAutoRefreshSec).
+    // basic/essential: 60s · plus/premium/ultimate: 10s. Minimum 5s guard so a
+    // malformed entitlement can never spin the CPU.
+    const planSec = window.__TRADING_APP__?.auth?.entitlements?.screenerAutoRefreshSec;
+    const intervalMs = Math.max(5, (typeof planSec === 'number' && planSec > 0 ? planSec : 60)) * 1000;
     this.refreshTimer = setInterval(() => {
-      if (this.autoRefresh) {
+      if (this.autoRefresh && !document.hidden) {
         this.fetchData(true);
       }
-    }, 5000);
+    }, intervalMs);
   }
 
   async fetchData(silent = false) {
@@ -75,7 +80,7 @@ export class TechnicalScreenerView {
             </div>
 
             <!-- Rating Filter Dropdown -->
-            <select id="screener-rating-filter" style="height: 30px; font-size: 11px; font-weight: 600; padding: 2px 8px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-base); border-radius: 4px;">
+            <select id="screener-rating-filter" style="height: 34px; min-height: 34px; font-size: 12px; font-weight: 600; padding: 4px 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-base); border-radius: 6px;">
               <option value="all">${isFa ? 'همه رتبه‌بندی‌ها' : 'All Technical Ratings'}</option>
               <option value="strong_buy">${isFa ? 'خرید قوی (Strong Buy 🔥)' : 'Strong Buy 🔥'}</option>
               <option value="buy">${isFa ? 'خرید (Buy 🟢)' : 'Buy 🟢'}</option>
@@ -89,11 +94,11 @@ export class TechnicalScreenerView {
           <div style="display: flex; align-items: center; gap: 8px;">
             <!-- Search input -->
             <div style="position: relative; display: flex; align-items: center;">
-              <input type="text" id="screener-search" placeholder="${isFa ? 'جستجوی نماد...' : 'Search symbol...'}" style="height: 28px; width: 140px; font-size: 11px; padding: 4px 8px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px; text-transform: uppercase;" />
+              <input type="text" id="screener-search" placeholder="${isFa ? 'جستجوی نماد...' : 'Search symbol...'}" style="height: 34px; width: 140px; font-size: 12px; padding: 6px 10px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 6px; text-transform: uppercase;" />
             </div>
 
             <!-- Auto refresh toggle & refresh button -->
-            <button id="screener-refresh-btn" class="btn-secondary" title="${isFa ? 'بروزرسانی فوری' : 'Refresh now'}" style="height: 28px; padding: 0 8px; display: flex; align-items: center; gap: 4px; font-size: 11px;">
+            <button id="screener-refresh-btn" class="btn-secondary" title="${isFa ? 'بروزرسانی فوری' : 'Refresh now'}" style="height: 34px; min-height: 34px; padding: 0 10px; display: flex; align-items: center; gap: 6px; font-size: 12px; border-radius: 6px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
               <span>${isFa ? 'بروزرسانی' : 'Refresh'}</span>
             </button>
@@ -241,15 +246,29 @@ export class TechnicalScreenerView {
       if (item.rsi14 >= 70) rsiColor = 'var(--accent-gold, #f59e0b)';
       else if (item.rsi14 <= 30) rsiColor = 'var(--accent-green, #0ecb81)';
 
+      const catFaMap = {
+        crypto: 'کریپتو',
+        metals: 'فلزات',
+        commodities: 'کالاها',
+        forex: 'فارکس',
+        indices: 'شاخص‌ها',
+        stocks: 'سهام',
+        iran_gold: 'طلای تهران',
+        iran_tse: 'بورس تهران'
+      };
+      const catLabel = isFa ? (catFaMap[item.category] || item.category) : item.category.toUpperCase();
+      const displaySymbol = (isFa && item.tickerFa) ? item.tickerFa : item.symbol;
+      const displayName = (isFa && item.nameFa) ? item.nameFa : localizeInstrumentName(item.name);
+
       return `
         <tr class="screener-row" data-symbol="${item.symbol}" style="border-bottom: 1px solid rgba(255,255,255,0.03); cursor: pointer; transition: background 0.12s;">
           <!-- Symbol -->
           <td style="padding: 7px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-weight: 800; color: #fff; font-family: var(--font-mono); font-size: 12px;">${item.symbol}</span>
-              <span style="font-size: 9px; color: var(--text-dim); background: var(--bg-card); padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${item.category.toUpperCase()}</span>
+              <span style="font-weight: 800; color: #fff; font-family: var(--font-mono); font-size: 12px;">${displaySymbol}</span>
+              <span style="font-size: 9px; color: var(--text-dim); background: var(--bg-card); padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${catLabel}</span>
             </div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${localizeInstrumentName(item.name)}</div>
+            <div style="font-size: 10px; color: var(--text-dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
           </td>
 
           <!-- Price -->

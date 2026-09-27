@@ -19,6 +19,7 @@ export const AVATAR_PRESETS = [
 export class UserProfileModal {
   constructor(app) {
     this.app = app;
+    if (this.app) this.app.userProfileModal = this;
     this.activeTab = 'overview'; // 'overview' | 'preferences' | 'data'
     this.profile = this.loadProfile();
     this.syncTopbarAvatar();
@@ -27,50 +28,97 @@ export class UserProfileModal {
   loadProfile() {
     try {
       const raw = localStorage.getItem('tradingchart_user_profile');
+      const u = window.__TRADING_APP__?.auth?.user || this.app?.auth?.user;
+      const accountPreset = u?.avatarPreset;
+      const accountIcon = accountPreset ? (AVATAR_PRESETS.find(a => a.id === accountPreset)?.icon || null) : null;
       const defaults = {
-        name: 'حسین محمدی',
-        handle: 'nexus_lead',
-        avatar: '🦾',
-        bio: 'متخصص متدولوژی اسمارت مانی (ICT) و اردر فلو نهادی بر روی کریپتو و بازارهای کلان مالی.',
+        name: u?.displayName || u?.username || 'حسین محمدی',
+        handle: u?.username || 'nexus_lead',
+        avatar: accountIcon || '🦾',
+        bio: u?.bio || 'متخصص متدولوژی اسمارت مانی (ICT) و اردر فلو نهادی بر روی کریپتو و بازارهای کلان مالی.',
         defaultAsset: 'BTCUSDT',
         defaultTimeframe: '15m',
         defaultRiskPct: 1.0,
         defaultLeverage: 10,
         defaultStartingCapital: 100000,
-        timezone: 'Asia/Tehran',
-        currency: 'USD',
+        timezone: u?.timezone || 'Asia/Tehran',
+        currency: u?.currency || 'USD',
         soundEnabled: true
       };
-      return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+      const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+      if (u) {
+        if (u.displayName) merged.name = u.displayName;
+        if (u.username) merged.handle = u.username;
+        if (u.bio) merged.bio = u.bio;
+        if (accountIcon) merged.avatar = accountIcon;
+        if (u.timezone) merged.timezone = u.timezone;
+        if (u.currency) merged.currency = u.currency;
+      } else if (accountIcon) {
+        merged.avatar = accountIcon;
+      }
+      return merged;
     } catch (e) {
+      const u = window.__TRADING_APP__?.auth?.user || this.app?.auth?.user;
+      const accountPreset = u?.avatarPreset;
+      const accountIcon = accountPreset ? (AVATAR_PRESETS.find(a => a.id === accountPreset)?.icon || null) : null;
       return {
-        name: 'حسین محمدی',
-        handle: 'nexus_lead',
-        avatar: '🦾',
-        bio: 'مدیر پورتفوی نهادی و تحلیلگر ارشد بازارهای کلان',
+        name: u?.displayName || u?.username || 'حسین محمدی',
+        handle: u?.username || 'nexus_lead',
+        avatar: accountIcon || '🦾',
+        bio: u?.bio || 'مدیر پورتفوی نهادی و تحلیلگر ارشد بازارهای کلان',
         defaultAsset: 'BTCUSDT',
         defaultTimeframe: '15m',
         defaultRiskPct: 1.0,
         defaultLeverage: 10,
         defaultStartingCapital: 100000,
-        timezone: 'Asia/Tehran',
-        currency: 'USD',
+        timezone: u?.timezone || 'Asia/Tehran',
+        currency: u?.currency || 'USD',
         soundEnabled: true
       };
     }
   }
 
-  saveProfile() {
+  saveProfile(syncWithAuth = true) {
     try {
       localStorage.setItem('tradingchart_user_profile', JSON.stringify(this.profile));
       this.syncTopbarAvatar();
+      if (syncWithAuth && (this.app?.auth?.user || window.__TRADING_APP__?.auth?.user)) {
+        const auth = this.app?.auth || window.__TRADING_APP__?.auth;
+        const patch = {};
+        if (this.profile.name) patch.displayName = this.profile.name;
+        if (this.profile.bio !== undefined) patch.bio = this.profile.bio;
+        if (this.profile.timezone) patch.timezone = this.profile.timezone;
+        if (this.profile.currency) patch.currency = this.profile.currency;
+        if (this.profile.avatar) {
+          const preset = AVATAR_PRESETS.find(a => a.icon === this.profile.avatar);
+          if (preset) patch.avatarPreset = preset.id;
+        }
+        if (Object.keys(patch).length > 0 && auth?.updateProfile) {
+          auth.updateProfile(patch).catch(() => {});
+        }
+      }
     } catch (e) {}
   }
 
+  getAccountId() {
+    const u = this.app?.auth?.user || window.__TRADING_APP__?.auth?.user;
+    if (u?.id) {
+      const shortId = u.id.replace(/^u_/, '').slice(0, 6).toUpperCase();
+      const plan = (u.plan || 'basic').toUpperCase();
+      return `TC-${shortId}-${plan}`;
+    }
+    return 'TC-GUEST-DEMO';
+  }
+
   syncTopbarAvatar() {
+    const auth = this.app?.auth || window.__TRADING_APP__?.auth;
+    if (auth?.renderAccountBadge) {
+      auth.renderAccountBadge();
+      return;
+    }
     const avatarEl = document.querySelector('.avatar-circle');
     if (avatarEl) {
-      avatarEl.innerText = this.profile.avatar || 'IP';
+      avatarEl.innerText = this.profile.avatar || '🦾';
     }
     const badge = document.querySelector('.user-avatar-badge');
     if (badge) {
@@ -172,7 +220,7 @@ export class UserProfileModal {
               </div>
             </div>
           </div>
-          <button id="btn-close-user-profile" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; ${isFa ? 'order: -1;' : ''}">
+          <button id="btn-close-user-profile" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: var(--text-dim); cursor: pointer; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; ${isFa ? 'order: -1;' : ''}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -279,9 +327,9 @@ export class UserProfileModal {
       <!-- Gateway Telemetry -->
       <div style="background: var(--bg-surface); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="color: #cbd5e1; font-weight: 600;">${isFa ? 'شناسه حساب نهادی:' : 'Institutional Account ID:'}</span>
+          <span style="color: #cbd5e1; font-weight: 600;">${isFa ? 'شناسه حساب:' : 'Account ID:'}</span>
           <div style="display: flex; align-items: center; gap: 6px;">
-            <span class="num-ltr" style="font-weight: 700; color: #fff; font-family: var(--font-mono);">TC-8942-INST</span>
+            <span class="num-ltr" id="user-profile-acc-id" style="font-weight: 700; color: #fff; font-family: var(--font-mono);">${this.getAccountId()}</span>
             <button id="btn-copy-acc-id" style="background: transparent; border: none; color: #cbd5e1; cursor: pointer; padding: 2px;" title="Copy Account ID">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
@@ -376,6 +424,40 @@ export class UserProfileModal {
               ${[1, 2, 5, 10, 20, 50, 100].map(lev => `
                 <option value="${lev}" ${Number(this.profile.defaultLeverage) === lev ? 'selected' : ''}>${lev}x</option>
               `).join('')}
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 10px; color: var(--text-dim);">${isFa ? 'سرمایه اولیه دمو ($)' : 'Starting Capital ($)'}</label>
+            <input type="number" id="pref-starting-cap" value="${this.profile.defaultStartingCapital || 100000}" step="5000" min="1000" max="10000000" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 5px 8px; font-size: 11px; color: #fff;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 10px; color: var(--text-dim);">${isFa ? 'منطقه زمانی' : 'Timezone'}</label>
+            <select id="pref-timezone" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 5px; font-size: 11px; color: #fff;">
+              ${[
+                { id: 'Asia/Tehran', label: isFa ? 'تهران (UTC+3:30)' : 'Tehran (UTC+3:30)' },
+                { id: 'Etc/UTC', label: 'UTC (UTC+0:00)' },
+                { id: 'America/New_York', label: isFa ? 'نیویورک (EST)' : 'New York (EST)' },
+                { id: 'Europe/London', label: isFa ? 'لندن (GMT)' : 'London (GMT)' },
+                { id: 'Asia/Dubai', label: isFa ? 'دبی (UTC+4)' : 'Dubai (UTC+4)' },
+                { id: 'Asia/Tokyo', label: isFa ? 'توکیو (JST)' : 'Tokyo (JST)' }
+              ].map(tz => `
+                <option value="${tz.id}" ${this.profile.timezone === tz.id ? 'selected' : ''}>${tz.label}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 10px; color: var(--text-dim);">${isFa ? 'ارز پایه' : 'Base Currency'}</label>
+            <select id="pref-currency" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 5px; font-size: 11px; color: #fff;">
+              ${['USD', 'EUR', 'GBP', 'USDT', 'BTC'].map(c => `
+                <option value="${c}" ${this.profile.currency === c ? 'selected' : ''}>${c}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 10px; color: var(--text-dim);">${isFa ? 'افکت‌های صوتی' : 'Sound Effects'}</label>
+            <select id="pref-sound-enabled" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 5px; font-size: 11px; color: #fff;">
+              <option value="1" ${this.profile.soundEnabled !== false ? 'selected' : ''}>${isFa ? 'فعال' : 'Enabled'}</option>
+              <option value="0" ${this.profile.soundEnabled === false ? 'selected' : ''}>${isFa ? 'غیرفعال' : 'Disabled'}</option>
             </select>
           </div>
         </div>
@@ -476,13 +558,14 @@ export class UserProfileModal {
 
     // Copy Account ID
     modal.querySelector('#btn-copy-acc-id')?.addEventListener('click', () => {
+      const accId = this.getAccountId();
       try {
         if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText('TC-8942-INST').catch(() => {});
+          navigator.clipboard.writeText(accId).catch(() => {});
         }
       } catch (e) {}
       this.app?.showExecutionToast?.('COPY', 1, 'Account ID');
-      this.app?.showToast?.(isFa ? 'شناسه حساب کپی شد' : 'Account ID copied', 'success');
+      this.app?.showToast?.(isFa ? `شناسه حساب (${accId}) کپی شد` : `Account ID (${accId}) copied`, 'success');
     });
 
     // Avatar pick
@@ -491,7 +574,7 @@ export class UserProfileModal {
         const icon = btn.getAttribute('data-icon');
         if (icon) {
           this.profile.avatar = icon;
-          this.saveProfile();
+          this.saveProfile(true);
           this.open('preferences');
         }
       });
@@ -502,7 +585,7 @@ export class UserProfileModal {
       const val = modal.querySelector('#profile-display-name')?.value.trim();
       if (!val) return;
       this.profile.name = val;
-      this.saveProfile();
+      this.saveProfile(true);
       this.app?.showToast?.(isFa ? 'نام نمایشی ذخیره شد' : 'Display name saved', 'success');
       this.open('overview');
     });
@@ -515,16 +598,34 @@ export class UserProfileModal {
       const defaultTimeframe = modal.querySelector('#pref-default-tf')?.value;
       const defaultRiskPct = parseFloat(modal.querySelector('#pref-risk-pct')?.value) || 1.0;
       const defaultLeverage = parseInt(modal.querySelector('#pref-leverage')?.value, 10) || 10;
+      const startingCapital = parseFloat(modal.querySelector('#pref-starting-cap')?.value) || 100000;
+      const timezone = modal.querySelector('#pref-timezone')?.value || 'Asia/Tehran';
+      const currency = modal.querySelector('#pref-currency')?.value || 'USD';
+      const soundEnabled = modal.querySelector('#pref-sound-enabled')?.value !== '0';
 
       if (name) this.profile.name = name;
       if (handle) this.profile.handle = handle.replace(/^@/, '');
-      if (bio) this.profile.bio = bio;
+      if (bio !== undefined) this.profile.bio = bio;
       if (defaultAsset) this.profile.defaultAsset = defaultAsset;
       if (defaultTimeframe) this.profile.defaultTimeframe = defaultTimeframe;
       this.profile.defaultRiskPct = defaultRiskPct;
       this.profile.defaultLeverage = defaultLeverage;
+      this.profile.defaultStartingCapital = startingCapital;
+      this.profile.timezone = timezone;
+      this.profile.currency = currency;
+      this.profile.soundEnabled = soundEnabled;
 
-      this.saveProfile();
+      if (this.app?.soundEngine) {
+        this.app.soundEngine.muted = !soundEnabled;
+        try { localStorage.setItem('tradingchart_sound_muted', JSON.stringify(!soundEnabled)); } catch (e) {}
+      }
+      if (this.app?.settingsModal) {
+        this.app.settingsModal.settings.timezone = timezone;
+        this.app.settingsModal.settings.soundEffects = soundEnabled;
+        try { localStorage.setItem('tradingchart_user_settings', JSON.stringify(this.app.settingsModal.settings)); } catch (e) {}
+      }
+
+      this.saveProfile(true);
       this.app.showToast(isFa ? 'تنظیمات کاربری با موفقیت ذخیره شد' : 'User preferences saved successfully', 'success');
       this.open('preferences');
     });
@@ -603,18 +704,39 @@ export class UserProfileModal {
 
     // Full Unified Backup Export
     modal.querySelector('#btn-export-full-backup')?.addEventListener('click', () => {
+      const safeParse = (k, fb) => {
+        try {
+          const v = localStorage.getItem(k);
+          return v ? JSON.parse(v) : fb;
+        } catch (e) {
+          return fb;
+        }
+      };
+
       const backup = {
         __tradingchart_full_backup: true,
-        version: '2.0.0',
+        version: '2.1.0',
         exportedAt: new Date().toISOString(),
         profile: this.profile,
-        layouts: JSON.parse(localStorage.getItem('tradingchart_user_layouts') || '[]'),
-        currentLayout: JSON.parse(localStorage.getItem('tradingchart_current_layout') || '{}'),
-        templates: JSON.parse(localStorage.getItem('tradingchart_user_templates') || '[]'),
+        settings: safeParse('tradingchart_user_settings', {}),
+        layouts: safeParse('tradingchart_user_layouts', []),
+        currentLayout: safeParse('tradingchart_current_layout', {}),
+        templates: safeParse('tradingchart_user_templates', []),
+        customWatchlist: safeParse('tradingchart_custom_watchlist', []),
+        userWatchlists: safeParse('tradingchart_user_watchlists', {}),
+        watchlistFlags: safeParse('tradingchart_watchlist_flags', {}),
+        alerts: safeParse('tradingchart_alerts', []),
+        paperAccounts: safeParse('tradingchart_paper_accounts', []),
+        paperActive: localStorage.getItem('tradingchart_paper_active') || 'default',
+        paperBalance: this.app?.paperTrading?.balance ?? safeParse('tradingchart_paper_balance', 100000),
+        paperPositions: this.app?.paperTrading?.positions ?? safeParse('tradingchart_paper_positions', []),
+        tradeJournal: safeParse('tradingchart_trade_journal', safeParse('trading_journal_executions', [])),
+        drawingFavorites: safeParse('tradingchart_drawing_favorites', []),
+        customTimeframes: safeParse('tradingchart_custom_timeframes', []),
+        pineCode: localStorage.getItem('tradingchart_pine_code') || '',
+        priceStyle: localStorage.getItem('tradingchart_price_style') || 'candles',
         theme: localStorage.getItem('tradingchart_theme') || 'dark',
-        lang: localStorage.getItem('tradingchart_lang') || 'fa',
-        paperBalance: this.app?.paperTrading?.balance || 100000,
-        paperPositions: this.app?.paperTrading?.positions || []
+        lang: localStorage.getItem('tradingchart_lang') || 'fa'
       };
       const json = JSON.stringify(backup, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
@@ -643,7 +765,13 @@ export class UserProfileModal {
           }
           if (data.profile && typeof data.profile === 'object' && !Array.isArray(data.profile)) {
             this.profile = { ...this.profile, ...data.profile };
-            this.saveProfile();
+            this.saveProfile(true);
+          }
+          if (data.settings && typeof data.settings === 'object') {
+            localStorage.setItem('tradingchart_user_settings', JSON.stringify(data.settings));
+            if (this.app?.settingsModal) {
+              this.app.settingsModal.settings = { ...this.app.settingsModal.settings, ...data.settings };
+            }
           }
           if (Array.isArray(data.layouts)) {
             localStorage.setItem('tradingchart_user_layouts', JSON.stringify(data.layouts));
@@ -663,14 +791,73 @@ export class UserProfileModal {
           if (Array.isArray(data.templates)) {
             localStorage.setItem('tradingchart_user_templates', JSON.stringify(data.templates));
           }
+          if (Array.isArray(data.customWatchlist)) {
+            localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(data.customWatchlist));
+          }
+          if (data.userWatchlists && typeof data.userWatchlists === 'object') {
+            localStorage.setItem('tradingchart_user_watchlists', JSON.stringify(data.userWatchlists));
+            if (this.app?.watchlistManager) {
+              this.app.watchlistManager.watchlists = data.userWatchlists;
+              this.app.watchlistManager.renderWatchlistSelect?.();
+            }
+          }
+          if (data.watchlistFlags && typeof data.watchlistFlags === 'object') {
+            localStorage.setItem('tradingchart_watchlist_flags', JSON.stringify(data.watchlistFlags));
+          }
+          if (Array.isArray(data.alerts)) {
+            localStorage.setItem('tradingchart_alerts', JSON.stringify(data.alerts));
+            if (this.app?.alerts) {
+              this.app.alerts.alerts = data.alerts;
+            }
+          }
+          if (Array.isArray(data.paperAccounts)) {
+            localStorage.setItem('tradingchart_paper_accounts', JSON.stringify(data.paperAccounts));
+          }
+          if (data.paperActive) {
+            localStorage.setItem('tradingchart_paper_active', data.paperActive);
+          }
+          if (typeof data.paperBalance === 'number' && !isNaN(data.paperBalance)) {
+            localStorage.setItem('tradingchart_paper_balance', JSON.stringify(data.paperBalance));
+            if (this.app?.paperTrading) {
+              this.app.paperTrading.balance = data.paperBalance;
+            }
+          }
+          if (Array.isArray(data.paperPositions)) {
+            localStorage.setItem('tradingchart_paper_positions', JSON.stringify(data.paperPositions));
+            if (this.app?.paperTrading) {
+              this.app.paperTrading.positions = data.paperPositions;
+              this.app.paperTrading.updatePositionsView();
+            }
+          }
+          if (Array.isArray(data.tradeJournal)) {
+            localStorage.setItem('tradingchart_trade_journal', JSON.stringify(data.tradeJournal));
+            localStorage.setItem('trading_journal_executions', JSON.stringify(data.tradeJournal));
+            if (this.app?.tradeJournal) {
+              this.app.tradeJournal.executions = data.tradeJournal;
+              this.app.tradeJournal.render?.();
+            }
+          }
+          if (Array.isArray(data.drawingFavorites)) {
+            localStorage.setItem('tradingchart_drawing_favorites', JSON.stringify(data.drawingFavorites));
+          }
+          if (Array.isArray(data.customTimeframes)) {
+            localStorage.setItem('tradingchart_custom_timeframes', JSON.stringify(data.customTimeframes));
+          }
+          if (data.pineCode !== undefined) {
+            localStorage.setItem('tradingchart_pine_code', data.pineCode);
+          }
+          if (data.priceStyle) {
+            localStorage.setItem('tradingchart_price_style', data.priceStyle);
+          }
           if (data.theme) {
             localStorage.setItem('tradingchart_theme', data.theme);
             this.app?.applyStoredTheme?.();
           }
-          if (typeof data.paperBalance === 'number' && !isNaN(data.paperBalance) && this.app?.paperTrading) {
-            this.app.paperTrading.balance = data.paperBalance;
-            this.app.paperTrading.positions = Array.isArray(data.paperPositions) ? data.paperPositions : [];
-            this.app.paperTrading.updatePositionsView();
+          if (data.lang && data.lang !== getLanguage()) {
+            this.app?.switchLanguage?.(data.lang);
+          }
+          if (this.app?.auth?.user) {
+            this.app.auth.pushLocalState();
           }
           this.app?.showToast(isFa ? 'ورک‌استیشن با موفقیت از پشتیبان بازیابی شد' : 'Workstation restored from backup', 'success');
           this.open('data');

@@ -42,6 +42,11 @@
 
         <!-- TradingView Multi-Chart Layout Suite & Replay -->
         <div class="top-nav-layout-suite">
+          <button id="btn-topbar-market-source" class="nav-source-btn" title="Market Data Pipeline & Waterfall Route" aria-label="Market Data Source" style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; background: rgba(0, 242, 176, 0.08); border: 1px solid rgba(0, 242, 176, 0.2); cursor: pointer; color: #fff; font-size: 11px;">
+            <span class="source-pulse-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #00F2B0; display: inline-block; box-shadow: 0 0 6px #00F2B0;"></span>
+            <span id="topbar-source-label" style="font-weight: 700; color: #00F2B0;">BINANCE</span>
+            <span id="topbar-source-route" style="font-size: 9px; opacity: 0.8; font-weight: 700; background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px;">LIVE</span>
+          </button>
           <button id="btn-topbar-chart-style" class="nav-style-btn" title="Chart Style (Candles, Bars, Line, Area, Heikin Ashi)" aria-label="Chart Style">
             <span id="topbar-chart-style-icon" style="display: flex; align-items: center;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="2" x2="9" y2="6"/><rect x="6" y="6" width="6" height="12" rx="1" fill="currentColor" fill-opacity="0.3"/><line x1="9" y1="18" x2="9" y2="22"/></svg>
@@ -217,6 +222,12 @@
         <button class="rail-btn" data-panel="news" title="Market News & Catalysts">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
         </button>
+        <button class="rail-btn" data-panel="gold" title="Tehran Gold & Bubbles">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+        </button>
+        <button class="rail-btn" data-panel="tse" title="Iran Bourse & Tape">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        </button>
       </aside>
 
       <!-- 2. Full-Page Trade Journal Workspace View -->
@@ -261,6 +272,14 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
             <span id="tab-label-news">Market News</span>
           </button>
+          <button class="panel-tab" data-view="gold">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+            <span id="tab-label-gold">Gold & Bubbles</span>
+          </button>
+          <button class="panel-tab" data-view="tse">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <span id="tab-label-tse">TSE Tape</span>
+          </button>
         </div>
 
         <div style="display: flex; align-items: center; gap: 4px;">
@@ -282,6 +301,8 @@
         <div id="view-calendar" class="panel-view"></div>
         <div id="view-screener" class="panel-view"></div>
         <div id="view-news" class="panel-view"></div>
+        <div id="view-gold" class="panel-view"></div>
+        <div id="view-tse" class="panel-view"></div>
       </div>
     </footer>
   </div>
@@ -508,6 +529,36 @@
             <div class="panel-item-desc">Download historical candles in CSV or JSON format</div>
           </div>
         </button>
+
+        <button class="panel-menu-item" data-panel="gold">
+          <div class="panel-item-icon" style="color: #fbbf24;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Tehran Gold & Bubbles</div>
+            <div class="panel-item-desc">Melted 17k, 18k Gram, live coin bubbles & intrinsic value</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="tse">
+          <div class="panel-item-icon" style="color: #34d399;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Iran Bourse & Tape (TSETMC)</div>
+            <div class="panel-item-desc">Retail vs institutional tape, buyer power & smart money</div>
+          </div>
+        </button>
+
+        <button class="panel-menu-item" data-panel="sources">
+          <div class="panel-item-icon" style="color: var(--accent-cyan);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          </div>
+          <div class="panel-item-info">
+            <div class="panel-item-title">Market Data Pipeline</div>
+            <div class="panel-item-desc">Multi-tier waterfall latency, TV, MT5, Binance & TSE</div>
+          </div>
+        </button>
       </div>
     </div>
   </div>
@@ -533,9 +584,19 @@
 
       <div style="padding: 12px 20px 8px 20px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: center;">
         <div style="flex: 1; position: relative; display: flex; align-items: center;">
-          <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)..." style="width: 100%; height: 36px; padding: 6px 32px 6px 12px; font-size: 13px;" />
+          <input type="text" id="symbol-search-input" placeholder="Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL, طلا, فولاد)..." style="width: 100%; height: 36px; padding: 6px 32px 6px 12px; font-size: 13px;" />
           <button id="symbol-clear-search" style="position: absolute; right: 8px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; display: none; font-size: 14px;">✕</button>
         </div>
+        <select id="symbol-exchange-filter" style="height: 36px; padding: 0 8px; font-size: 11px; font-weight: 600; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px; cursor: pointer; flex-shrink: 0;">
+          <option value="all">All Exchanges</option>
+          <option value="binance">Binance (Crypto)</option>
+          <option value="tehran bazaar">Tehran Bazaar (طلا)</option>
+          <option value="tsetmc">TSETMC (بورس)</option>
+          <option value="nobitex">Nobitex (تتر)</option>
+          <option value="oanda">OANDA (Forex)</option>
+          <option value="fx_idc">FX_IDC / MT5</option>
+          <option value="nasdaq">NASDAQ</option>
+        </select>
       </div>
 
       <div style="display: flex; gap: 4px; padding: 6px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); overflow-x: auto;">
@@ -546,6 +607,8 @@
         <button class="sym-cat-btn" data-cat="forex">Forex</button>
         <button class="sym-cat-btn" data-cat="indices">Indices</button>
         <button class="sym-cat-btn" data-cat="stocks">Stocks</button>
+        <button class="sym-cat-btn" data-cat="iran_gold">Gold & FX</button>
+        <button class="sym-cat-btn" data-cat="iran_tse">Iran TSE</button>
       </div>
 
       <div class="modal-content" id="symbol-results-list" style="flex: 1; max-height: 400px; padding: 10px 20px; overflow-y: auto;">
@@ -554,7 +617,25 @@
 
       <div style="padding: 8px 20px; font-size: 11px; color: var(--text-dim); background: var(--bg-darkest); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
         <span><kbd>↑</kbd> <kbd>↓</kbd> Navigate &nbsp;·&nbsp; <kbd>↵</kbd> Select &nbsp;·&nbsp; <kbd>ESC</kbd> Close</span>
-        <span id="sym-count-badge" style="color: var(--accent-cyan); font-weight: 600;">30+ Instruments</span>
+        <span id="sym-count-badge" style="color: var(--accent-cyan); font-weight: 600;">50+ Instruments</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Data Pipeline & Waterfall Route Inspector Modal -->
+  <div id="modal-market-sources" class="modal-overlay">
+    <div class="modal-box" style="width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          <span id="sources-modal-title">Market Data Pipeline & Waterfall Inspector</span>
+        </h3>
+        <button class="modal-close-btn" id="modal-close-sources">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-content" id="market-sources-content" style="flex: 1; padding: 16px 20px; overflow-y: auto;">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>

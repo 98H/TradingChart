@@ -13,7 +13,7 @@ export const PRESET_WATCHLISTS = {
   crypto: {
     id: 'crypto',
     name: 'Crypto Top Assets',
-    symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'SUIUSDT', 'NEARUSDT']
+    symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'TONUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'SUIUSDT', 'NEARUSDT']
   },
   metals: {
     id: 'metals',
@@ -23,12 +23,22 @@ export const PRESET_WATCHLISTS = {
   forex: {
     id: 'forex',
     name: 'Forex Majors',
-    symbols: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF']
+    symbols: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP', 'GBPJPY']
   },
   equities: {
     id: 'equities',
     name: 'Indices & US Tech',
-    symbols: ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT']
+    symbols: ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META']
+  },
+  iran_gold: {
+    id: 'iran_gold',
+    name: 'Tehran Gold & Currencies',
+    symbols: ['GOLD_ABSHODEH', 'GOLD_18K', 'COIN_EMAMI', 'COIN_BAHAR', 'COIN_NIM', 'COIN_ROB', 'USD_TEHRAN', 'USDT_TOMAN', 'AED_DIRHAM']
+  },
+  iran_tse: {
+    id: 'iran_tse',
+    name: 'Iran Bourse & ETFs',
+    symbols: ['FOOLAD', 'FAMELI', 'KHODRO', 'SAIPA', 'SHASTA', 'AHRAM', 'AGAS', 'TALA', 'AYAR', 'TAVAN', 'PALAYESH']
   }
 };
 
@@ -52,12 +62,24 @@ export class WatchlistManager {
   }
 
   // ── Multi-watchlist layer (TradingView parity) ─────────────────────────
+  /** External state (cloud sync) replaced localStorage — refresh in-memory view. */
+  reloadFromStorage() {
+    try {
+      this.customSymbols = JSON.parse(localStorage.getItem('tradingchart_custom_watchlist') || '[]');
+      this.flags = JSON.parse(localStorage.getItem('tradingchart_watchlist_flags') || '{}');
+      this.loadUserLists();
+      this.render?.();
+    } catch (e) { /* keep current */ }
+  }
+
   loadUserLists() {
     try {
       const raw = JSON.parse(localStorage.getItem('tradingchart_user_watchlists') || 'null');
+      const deleted = JSON.parse(localStorage.getItem('tradingchart_watchlist_deleted') || '{}');
       if (raw && Array.isArray(raw.lists) && raw.lists.length > 0) {
-        this.userLists = raw.lists;
-        this.activeListId = raw.activeId || raw.lists[0].id;
+        this.userLists = raw.lists.filter(l => l && l.id && !deleted[l.id]);
+        if (this.userLists.length === 0) throw new Error('empty after deleted filter');
+        this.activeListId = (raw.activeId && !deleted[raw.activeId]) ? raw.activeId : this.userLists[0].id;
       } else {
         // Migrate the legacy single custom list into a named "Main" list.
         this.userLists = [{
@@ -75,6 +97,22 @@ export class WatchlistManager {
 
   saveUserLists() {
     try {
+      // Union-merge with storage first, respecting deletion tombstones so a
+      // deleted watchlist is never resurrected on local save.
+      const stored = JSON.parse(localStorage.getItem('tradingchart_user_watchlists') || 'null');
+      const deleted = JSON.parse(localStorage.getItem('tradingchart_watchlist_deleted') || '{}');
+      if (stored && Array.isArray(stored.lists)) {
+        const byId = new Map((this.userLists || []).filter(l => l && l.id && !deleted[l.id]).map(l => [l.id, l]));
+        for (const ext of stored.lists) {
+          if (!ext || !ext.id || deleted[ext.id]) continue;
+          if (!byId.has(ext.id)) { byId.set(ext.id, ext); continue; }
+          // same list: union symbols (additive — removals flow via removeSymbol)
+          const cur = byId.get(ext.id);
+          const symSet = new Set([...(ext.symbols || []), ...(cur.symbols || [])]);
+          cur.symbols = [...symSet];
+        }
+        this.userLists = [...byId.values()];
+      }
       // keep the active list in sync with the live customSymbols mirror
       const active = this.userLists.find(l => l.id === this.activeListId);
       if (active) active.symbols = [...this.customSymbols];
@@ -126,6 +164,11 @@ export class WatchlistManager {
     if (idx < 0) return false;
     const wasActive = listId === this.activeListId;
     this.userLists.splice(idx, 1);
+    try {
+      const ts = JSON.parse(localStorage.getItem('tradingchart_watchlist_deleted') || '{}');
+      ts[listId] = Date.now();
+      localStorage.setItem('tradingchart_watchlist_deleted', JSON.stringify(ts));
+    } catch (e) {}
     if (wasActive) {
       this.activeListId = this.userLists[0].id;
       this.customSymbols = [...(this.userLists[0].symbols || [])];
@@ -281,6 +324,8 @@ export class WatchlistManager {
               <option value="metals">${isFa ? 'فلزات و کالاها' : 'Metals & Commodities'}</option>
               <option value="forex">${isFa ? 'جفت‌ارزهای ماژور' : 'Forex Majors'}</option>
               <option value="equities">${isFa ? 'شاخص‌ها و سهام فناوری' : 'Indices & US Tech'}</option>
+              <option value="iran_gold">${isFa ? 'طلای تهران و ارزها' : 'Tehran Gold & FX'}</option>
+              <option value="iran_tse">${isFa ? 'بورس و فرابورس ایران' : 'Iran Bourse & ETFs'}</option>
               ${this.userLists.map(l => `<option value="list:${l.id}" ${this.currentCategory === 'list:' + l.id ? 'selected' : ''}>★ ${escapeHtml(l.name)}</option>`).join('')}
             </select>
             <button id="wl-new-list-btn" title="${isFa ? 'واچ‌لیست جدید' : 'New watchlist'}" style="width:24px; height:24px; border-radius:4px; background:var(--bg-card); border:1px solid var(--border-subtle); color:var(--accent-cyan); font-weight:800; cursor:pointer; flex-shrink:0;">+</button>

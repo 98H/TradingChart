@@ -9,11 +9,18 @@ const path = require('path');
 const SCREENSHOT_DIR = '/root/TradingChart/screenshots/ultimate_tv_qa';
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
+const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : '/usr/bin/chromium-browser');
+
 async function runUltimateDogfood() {
   console.log('=== Starting TradingChart Ultimate TradingView Parity Dogfooding QA ===\n');
 
+  const headlessBase = fs.existsSync('/root/snap/chromium/common') ? '/root/snap/chromium/common/chromium-headless' : '/tmp';
+  fs.mkdirSync(headlessBase, { recursive: true });
+  const profileDir = path.join(headlessBase, `qa_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`);
+
   const browser = await puppeteer.launch({
-    executablePath: '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome',
+    executablePath: CHROME,
+    userDataDir: profileDir,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',

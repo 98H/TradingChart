@@ -24,6 +24,9 @@ export class TradeJournalModal {
   }
 
   open() {
+    if (this.app?.auth && !this.app.auth.enforce('tradeJournal', 0, 'Trade Journal', 'ژورنال معاملاتی')) {
+      return;
+    }
     const modal = this.getModalEl();
     this.selectedSide = 'buy';
     this.render();
@@ -245,6 +248,7 @@ export class TradeJournalModal {
 
       if (this.app?.tradeJournal?.sampleExecutions) {
         this.app.tradeJournal.sampleExecutions.unshift(newExec2, newExec1);
+        this.app.tradeJournal.saveExecutions?.();
         this.app.tradeJournal.render();
       }
       if (this.app?.fullPageJournal?.sampleExecutions) {

@@ -99,11 +99,14 @@ async function login(page) {
     const pt = window.__TRADING_APP__.paperTrading;
     pt.createAccount('Prop Challenge');
   });
-  // 6. force a sync push and wait for it
-  const pushA = await A.page.evaluate(() => window.__TRADING_APP__.auth.pushCloudState({ force: true }).then(() => ({
-    err: window.__TRADING_APP__.auth.lastSyncError,
-    at: window.__TRADING_APP__.auth.cloudUpdatedAt
-  })));
+  // 6. force a sync push and wait for it (retry absorbs the 409 rebase cycle)
+  const pushA = await A.page.evaluate(async () => {
+    const am = window.__TRADING_APP__.auth;
+    await am.pushCloudState({ force: true });
+    await new Promise(r => setTimeout(r, 600));
+    if (am.lastSyncError === 'conflict') await am.pushCloudState({ force: true });
+    return { err: am.lastSyncError, at: am.cloudUpdatedAt };
+  });
   console.log('pushA:', JSON.stringify(pushA));
 
   // reload device A to prove persistence survives reload
@@ -160,12 +163,22 @@ async function login(page) {
   record('B1_cross_device_pull', d2);
 
   // ── Device B mutates → Device C (desktop re-login) receives B's changes ──
+  // (manager's in-memory list predates the login pull — union with storage
+  // first so the pulled symbols are not lost)
   await B.page.evaluate(() => {
     const wl = window.__TRADING_APP__.watchlist;
+    const stored = JSON.parse(localStorage.getItem('tradingchart_custom_watchlist') || '[]');
+    for (const s of stored) if (!wl.customSymbols.includes(s)) wl.customSymbols.push(s);
     if (!wl.customSymbols.includes('LINKUSDT')) wl.customSymbols.push('LINKUSDT');
     localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(wl.customSymbols));
   });
-  const pushB = await B.page.evaluate(() => window.__TRADING_APP__.auth.pushCloudState({ force: true }).then(() => window.__TRADING_APP__.auth.lastSyncError));
+  const pushB = await B.page.evaluate(async () => {
+    const am = window.__TRADING_APP__.auth;
+    await am.pushCloudState({ force: true });
+    await new Promise(r => setTimeout(r, 600));
+    if (am.lastSyncError === 'conflict') await am.pushCloudState({ force: true });
+    return am.lastSyncError;
+  });
   console.log('pushB err:', pushB);
   await B.browser.close();
 

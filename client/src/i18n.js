@@ -5,7 +5,7 @@ export const translations = {
   en: {
     // Header & Workspace
     navQuant: 'Quant',
-    navJournal: 'Journal Workspace',
+    navJournal: 'Journal',
     navPanels: 'Panels',
     liveLatency: 'Live 12ms',
     toggleSideDock: 'Toggle Side Dock / Panels',
@@ -21,6 +21,9 @@ export const translations = {
     tabCalendar: 'Economic Calendar',
     tabScreener: 'Technical Screener',
     tabNews: 'Market News',
+    tabGold: 'Tehran Gold & Bubbles',
+    tabTse: 'Iran Bourse & Tape',
+    tabSources: 'Data Pipeline',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'Workspace Panels & Tools',
@@ -58,6 +61,12 @@ export const translations = {
     barReplayDesc: 'Historical rewind, step execution & strategy testing',
     dataExportTitle: 'Export Data',
     dataExportDesc: 'Download historical candles in CSV or JSON format',
+    goldTitle: 'Tehran Gold & Bubbles',
+    goldDesc: 'Melted 17k, 18k Gram, live coin bubbles & intrinsic value',
+    tseTitle: 'Iran Bourse & Tape (TSETMC)',
+    tseDesc: 'Retail vs institutional tape, buyer power & smart money',
+    sourcesTitle: 'Market Data Pipeline',
+    sourcesDesc: 'Multi-tier waterfall latency, TV, MT5, Binance & TSE',
     newsTitle: 'Market News & Catalysts',
     newsDesc: 'Breaking headlines, sentiment & macro catalysts',
     objectsTitle: 'Object Tree & Layers',
@@ -125,7 +134,7 @@ export const translations = {
   fa: {
     // Header & Workspace
     navQuant: 'کوانت',
-    navJournal: 'دفترچه جامع معاملات',
+    navJournal: 'ژورنال',
     navPanels: '+ پنل‌ها',
     liveLatency: 'زنده ۱۲ میلی‌ثانیه',
     toggleSideDock: 'باز و بسته کردن پنل‌های کناری',
@@ -141,6 +150,9 @@ export const translations = {
     tabCalendar: 'تقویم اقتصادی',
     tabScreener: 'دیده‌بان تکنیکال',
     tabNews: 'اخبار بازار',
+    tabGold: 'حباب طلای تهران',
+    tabTse: 'تابلوخوانی بورس',
+    tabSources: 'خط لوله قیمت',
 
     // Panels Menu Drawer
     panelsMenuTitle: 'پنل‌ها و ابزارهای تحلیلی فضای کاری',
@@ -178,6 +190,12 @@ export const translations = {
     barReplayDesc: 'برگشت به گذشته، تست سناریو و اجرای گام‌به‌گام',
     dataExportTitle: 'خروجی داده‌ها (Export)',
     dataExportDesc: 'دریافت داده‌های OHLCV در قالب CSV و JSON',
+    goldTitle: 'مظنه و حباب طلای تهران',
+    goldDesc: 'مظنه ۱۷ عیار، گرم ۱۸ عیار، حباب زنده مسکوکات و ارزش ذاتی',
+    tseTitle: 'تابلوخوانی بورس ایران (TSETMC)',
+    tseDesc: 'ریزساختار حقیقی/حقوقی، نسبت قدرت خریدار و پول هوشمند',
+    sourcesTitle: 'پایپ‌لاین منابع قیمتی و لتنسی',
+    sourcesDesc: 'واترفال چندلایه تریدینگ‌ویو، متاتریدر ۵، بایننس و بورس',
     newsTitle: 'اخبار و کاتالیزورهای بازار (News)',
     newsDesc: 'سرخط اخبار فوری، شاخص سنتیمنت و متغیرهای کلان',
     objectsTitle: 'درخت لایه‌ها و ابزارها (Objects)',
@@ -847,6 +865,10 @@ export function applyTranslationsToDOM() {
   if (tabJour) tabJour.innerText = dict.tabJournal;
   const tabTrack = document.querySelector('#tab-label-trackers');
   if (tabTrack) tabTrack.innerHTML = currentLang === 'fa' ? '<span>پایش بازار</span> <span dir="ltr" style="display:inline-block;">(SEC)</span>' : 'Trackers';
+  const tabGold = document.querySelector('#tab-label-gold');
+  if (tabGold) tabGold.innerText = dict.tabGold;
+  const tabTse = document.querySelector('#tab-label-tse');
+  if (tabTse) tabTse.innerText = dict.tabTse;
 
   // 3. Panels Menu Modal Titles & Descs
   const panelsMenuTitle = document.querySelector('#panels-menu-title');
@@ -873,6 +895,9 @@ export function applyTranslationsToDOM() {
     { panel: 'chartStyle', title: dict.chartStyleTitle, desc: dict.chartStyleDesc },
     { panel: 'barReplay', title: dict.barReplayTitle, desc: dict.barReplayDesc },
     { panel: 'dataExport', title: dict.dataExportTitle, desc: dict.dataExportDesc },
+    { panel: 'gold', title: dict.goldTitle, desc: dict.goldDesc },
+    { panel: 'tse', title: dict.tseTitle, desc: dict.tseDesc },
+    { panel: 'sources', title: dict.sourcesTitle, desc: dict.sourcesDesc },
     { panel: 'layouts', title: dict.layoutsTitle, desc: dict.layoutsDesc }
   ];
 

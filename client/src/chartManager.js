@@ -80,7 +80,25 @@ export class ChartManager {
         persist: true
       });
 
-      // 3. Listen to workspace events
+      // 3. Listen to workspace events & sanitize script inputs on charts
+      const patchChartIndicator = (chart) => {
+        if (!chart || chart._indPatched) return;
+        chart._indPatched = true;
+        if (typeof chart.addIndicator === 'function') {
+          const orig = chart.addIndicator.bind(chart);
+          chart.addIndicator = (source, options) => {
+            const sanitized = typeof source === 'string' ? source.replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)') : source;
+            return orig(sanitized, options);
+          };
+        }
+      };
+
+      if (this.workspace.active?.chart) patchChartIndicator(this.workspace.active.chart);
+      this.workspace.events?.on('cell:created', ({ id }) => {
+        const c = this.workspace.cellsById?.get(id);
+        if (c?.chart) patchChartIndicator(c.chart);
+      });
+
       this.workspace.events?.on('market:changed', (e) => {
         if (e && e.symbol) {
           const clean = e.symbol.replace(/^.*:/, '').toUpperCase();
@@ -89,9 +107,16 @@ export class ChartManager {
         }
       });
 
-      // 4. Pre-load official LuxAlgo Signals & Overlays on initial chart (clean non-clipping signals)
+      // 4. Pre-load official LuxAlgo Signals & Overlays on initial chart (only if brand new session)
       setTimeout(() => {
-        this.addPineIndicator(`//@version=5
+        try {
+          const rawCurrent = localStorage.getItem('tradingchart_current_layout');
+          const parsed = rawCurrent ? JSON.parse(rawCurrent) : null;
+          const hasSavedState = !!(parsed?.state?.cells?.length || parsed?.state?.charts?.length);
+          const handles = this.workspace?.active?.chart?.orchestrator?.handles;
+          const currentCount = handles ? (handles.size || Object.keys(handles).length) : 0;
+          if (!hasSavedState && currentCount <= 1) {
+            this.addPineIndicator(`//@version=5
 indicator("LuxAlgo - Signals & Overlays", overlay=true)
 len = 16
 [st, dir] = ta.supertrend(3.6, len)
@@ -111,6 +136,8 @@ if sellSig
 plotshape(buySig, "Buy Signal", shape.triangleup, location.belowbar, color.rgb(0, 242, 176), size=size.small)
 plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.rgb(255, 77, 91), size=size.small)
 `, "LuxAlgo - Signals & Overlays");
+          }
+        } catch (e) {}
       }, 1000);
 
       // 5. Setup Side Panel Dock Observer & Layout Auto-clearance
@@ -168,6 +195,7 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
       }
     }
     this.app?.layoutManager?.updateCellStrip?.();
+    this.app?.layoutManager?.schedulePersist?.();
   }
 
   setTimeframe(tf) {
@@ -198,6 +226,7 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
       }
     }
     this.app?.layoutManager?.updateCellStrip?.();
+    this.app?.layoutManager?.schedulePersist?.();
   }
 
   setPriceStyle(style) {
@@ -212,6 +241,7 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
         }
       }
     }
+    this.app?.layoutManager?.schedulePersist?.();
   }
 
   // Force the active chart cell to re-pull its series from the provider.
@@ -294,6 +324,7 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
       try {
         const sanitized = scriptSource.replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)');
         const handle = this.workspace.active.chart.addIndicator(sanitized, { language: 'pine', title });
+        this.app?.layoutManager?.schedulePersist?.();
         return { success: true, handleId: handle?.id };
       } catch (e) {
         console.error('[ChartManager] Add Pine Indicator failed:', e);
@@ -303,12 +334,51 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     return { success: false, error: 'No active chart cell' };
   }
 
+  removeIndicator(handleId) {
+    if (!handleId) return false;
+    const orch = this.workspace?.active?.chart?.orchestrator;
+    if (orch?.removeIndicator) {
+      try {
+        orch.removeIndicator(handleId);
+        this.app?.layoutManager?.schedulePersist?.();
+        return true;
+      } catch (e) {
+        console.warn('[ChartManager] removeIndicator failed:', e);
+      }
+    }
+    return false;
+  }
+
+  getIndicators() {
+    try {
+      const orch = this.workspace?.active?.chart?.orchestrator;
+      if (!orch?.handles) return [];
+      const handles = Array.from(orch.handles.values ? orch.handles.values() : Object.values(orch.handles));
+      return handles.map(h => ({
+        id: h.id,
+        title: h.title,
+        nativeType: h.nativeType || null,
+        source: h.source || null,
+        visible: h.visible !== false,
+        inputs: orch.inputValuesOf ? orch.inputValuesOf(h.id) : {},
+        props: orch.propValuesOf ? orch.propValuesOf(h.id) : {}
+      }));
+    } catch (e) {
+      return [];
+    }
+  }
+
   /**
    * Plan-gate support: number of indicators on the ACTIVE chart cell
-   * (native ledger + Pine manifest), read from the engine's live state.
+   * (native ledger + Pine manifest + orchestrator handles), read live from the engine.
    */
   countActiveIndicators() {
     try {
+      const orch = this.workspace?.active?.chart?.orchestrator;
+      if (orch?.handles) {
+        const handles = Array.from(orch.handles.values ? orch.handles.values() : Object.values(orch.handles));
+        return handles.length;
+      }
       const ws = this.workspace;
       const st = typeof ws?.getState === 'function' ? ws.getState() : null;
       if (!st) return 0;

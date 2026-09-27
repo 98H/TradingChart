@@ -2,7 +2,9 @@
 // Verification of Single Unified Comprehensive Indicators Library for TradingChart
 
 const puppeteer = require('puppeteer-core');
-const CHROME = '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome';
+const fs = require('fs');
+const path = require('path');
+const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : '/usr/bin/chromium-browser');
 const BASE = 'http://127.0.0.1:8088';
 
 async function verifyUnifiedIndicators() {
@@ -10,9 +12,14 @@ async function verifyUnifiedIndicators() {
   console.log('   TradingChart — Unified Comprehensive Indicators Verification   ');
   console.log('═══════════════════════════════════════════════════════════════════\n');
 
+  const headlessBase = fs.existsSync('/root/snap/chromium/common') ? '/root/snap/chromium/common/chromium-headless' : '/tmp';
+  fs.mkdirSync(headlessBase, { recursive: true });
+  const profileDir = path.join(headlessBase, `qa_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`);
+
   const browser = await puppeteer.launch({
     executablePath: CHROME,
     headless: true,
+    userDataDir: profileDir,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
