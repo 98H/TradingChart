@@ -1,6 +1,6 @@
 {
  "suite": "cycleC_desktop",
- "ts": "2026-09-21T23:42:07.239Z",
+ "ts": "2026-09-29T02:28:54.777Z",
  "results": [
   {
    "suite": "cycleC_desktop",
@@ -11,18 +11,18 @@
    "info": {
     "before": 38,
     "after": 40,
-    "hasInputs": 5,
+    "hasInputs": 8,
     "hasSaveBtn": true,
     "modalClosed": true,
     "savedIds": [
      {
-      "id": "exec-close-1790033970704",
+      "id": "exec-close-1790648769060",
       "side": "sell",
       "price": 110,
       "qty": 1
      },
      {
-      "id": "exec-open-1790033970704",
+      "id": "exec-open-1790648769060",
       "side": "buy",
       "price": 100,
       "qty": 1
@@ -50,13 +50,13 @@
      "sample": "All Events High Impact 🔥 🇺🇸 USD 🏛️ Central Banks 📈 Infl"
     },
     "screener": {
-     "len": 3948,
-     "rows": 35,
+     "len": 7823,
+     "rows": 68,
      "emptyState": false,
      "sample": "All Crypto Metals Commodities Forex Equities All Technical R"
     },
     "news": {
-     "len": 2327,
+     "len": 2328,
      "rows": 10,
      "emptyState": false,
      "sample": "Market News & Catalysts Live Feed All Crypto Metals Forex Eq"
@@ -76,10 +76,10 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "len": 5046,
+    "len": 5049,
     "bidRows": 12,
     "askRows": 12,
-    "sample": "BTCUSDT DOM L2 Size: − + Mark Price: $86,434 Spread: $0.03 (0%) Order "
+    "sample": "BTCUSDT DOM L2 Size: − + Mark Price: $82,968.87 Spread: $0.03 (0%) Ord"
    }
   },
   {
@@ -158,6 +158,8 @@
     "view:calendar": 0,
     "view:screener": 0,
     "view:news": 0,
+    "view:gold": 0,
+    "view:tse": 0,
     "modal:indicators": 0,
     "modal:compare": 0,
     "modal:export": 0,

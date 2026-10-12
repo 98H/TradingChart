@@ -1,6 +1,6 @@
 {
  "suite": "cycleA_desktop",
- "ts": "2026-09-21T23:26:37.175Z",
+ "ts": "2026-09-29T02:19:46.044Z",
  "results": [
   {
    "suite": "cycleA_desktop",
@@ -40,7 +40,7 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "items": 21,
+    "items": 24,
     "panels": [
      "layouts",
      "watchlist",
@@ -62,7 +62,10 @@
      "dataWindow",
      "chartStyle",
      "barReplay",
-     "dataExport"
+     "dataExport",
+     "gold",
+     "tse",
+     "sources"
     ]
    }
   },
@@ -73,7 +76,7 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "count": 31,
+    "count": 33,
     "sample": [
      "همه",
      "🔴",
@@ -147,14 +150,14 @@
      "exists": true,
      "vis": "block",
      "items": 12,
-     "txt": "🔔 ثبت هشدار روی $86,524.50 Alt+A ⚡ سفارش لیمیت خرید روی $86,524.50 ⚡ سفارش لیمی"
+     "txt": "🔔 ثبت هشدار روی $83,085.52 Alt+A ⚡ سفارش لیمیت خرید روی $83,085.52 ⚡ سفارش لیمی"
     },
     "replay": {
      "exists": true,
      "vis": "flex",
      "cls": "visible",
      "innerClip": false,
-     "w": 588
+     "w": 609
     }
    }
   },

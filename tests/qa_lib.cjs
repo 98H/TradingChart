@@ -95,8 +95,12 @@ async function launch(viewportName = 'desktop') {
   LIVE_BROWSERS.add(browser);
   browser.on('disconnected', () => {
     LIVE_BROWSERS.delete(browser);
-    ACTIVE_PROFILES.delete(profileDir);
-    try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (e) {}
+    // Chrome may still be flushing files when 'disconnected' fires; keep the
+    // path tracked until removal really succeeds so the exit hook retries it.
+    try {
+      fs.rmSync(profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      if (!fs.existsSync(profileDir)) ACTIVE_PROFILES.delete(profileDir);
+    } catch (e) {}
   });
   const page = await browser.newPage();
   await page.setViewport(vp);

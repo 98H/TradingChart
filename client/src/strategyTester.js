@@ -241,21 +241,21 @@ export class StrategyTester {
         <div style="display: flex; gap: 16px; padding: 12px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
           <div style="flex: 1; min-width: 320px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">${isFa ? 'منحنی بازدهی اکوئیتی ($)' : 'Equity Curve ($)'}</div>
-            <div style="direction: ltr !important;">
-              <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: 90px; overflow: visible;">
+            <div style="direction: ltr !important; position: relative; height: 90px;">
+              <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block;">
                 <defs>
                   <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.35"/>
-                    <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.0"/>
+                    <stop offset="0%" stop-color="${eqColor}" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="${eqColor}" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
-                <line x1="0" x2="${w}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3 3" stroke-width="1" />
+                <line x1="0" x2="${w}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3 3" stroke-width="1" vector-effect="non-scaling-stroke" />
                 <path d="${svgPath}" fill="url(#eqGrad)" />
-                <path d="${linePath}" fill="none" stroke="${eqColor}" stroke-width="2" />
-                <text x="2" y="10" fill="#94a3b8" font-size="9">${fmtK(maxEq)}</text>
-                <text x="2" y="${h - 1}" fill="#94a3b8" font-size="9">${fmtK(minEq)}</text>
-                <text x="${w - 2}" y="${Math.max(10, Number(baseY) - 3)}" fill="#94a3b8" font-size="9" text-anchor="end">${isFa ? 'سرمایهٔ اولیه' : 'start'} ${fmtK(r.initialCapital)}</text>
+                <path d="${linePath}" fill="none" stroke="${eqColor}" stroke-width="2" vector-effect="non-scaling-stroke" />
               </svg>
+              <span class="eq-lbl" style="top: 0; left: 4px;">${fmtK(maxEq)}</span>
+              <span class="eq-lbl" style="bottom: 0; left: 4px;">${fmtK(minEq)}</span>
+              <span class="eq-lbl" style="right: 4px; top: ${Math.min(76, Math.max(12, (Number(baseY) / h) * 90 - 14)).toFixed(0)}px;">${isFa ? 'سرمایهٔ اولیه' : 'start'} ${fmtK(r.initialCapital)}</span>
             </div>
           </div>
 

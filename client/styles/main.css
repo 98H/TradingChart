@@ -3175,3 +3175,6 @@ body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right
 
 /* Inline code tokens inside localized prose */
 #view-strategy code, .vela-panel-body code { font-family: var(--font-mono); font-size: 0.92em; padding: 0 4px; border-radius: 4px; background: rgba(255,255,255,0.06); direction: ltr; unicode-bidi: isolate; }
+
+/* Strategy equity curve labels: HTML over a stretched SVG (text never distorts) */
+.eq-lbl { position: absolute; font-size: 9px; line-height: 12px; color: #94a3b8; font-family: var(--font-mono); background: rgba(15,18,26,0.7); padding: 0 3px; border-radius: 2px; pointer-events: none; white-space: nowrap; direction: ltr; unicode-bidi: isolate; }

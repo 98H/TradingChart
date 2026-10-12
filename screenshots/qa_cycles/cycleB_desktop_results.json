@@ -1,6 +1,6 @@
 {
  "suite": "cycleB_desktop",
- "ts": "2026-09-21T23:30:32.221Z",
+ "ts": "2026-09-29T02:23:48.404Z",
  "results": [
   {
    "suite": "cycleB_desktop",
@@ -12,17 +12,17 @@
     "before": 0,
     "after": 1,
     "eq0": 100000,
-    "eq1": 99134.9245,
+    "eq1": 99168.7964,
     "pos": [
      {
-      "id": "pos-1790033288200",
+      "id": "pos-1790648490360",
       "symbol": "BTCUSDT",
       "side": "long",
       "qty": 0.1,
-      "entryPrice": 86507.55,
-      "markPrice": 86507.55,
+      "entryPrice": 83120.36,
+      "markPrice": 83120.36,
       "leverage": 10,
-      "margin": 865.0755000000001,
+      "margin": 831.2036,
       "unrealizedPnl": 0,
       "unrealizedPnlPct": 0
      }
@@ -127,9 +127,9 @@
    "info": {
     "count": 12,
     "labels": [
-     "🔔\nAdd Alert at $86,507.66\nAlt+A",
-     "⚡\nBuy Limit at $86,507.66",
-     "⚡\nSell Limit at $86,507.66",
+     "🔔\nAdd Alert at $82,923.80\nAlt+A",
+     "⚡\nBuy Limit at $82,923.80",
+     "⚡\nSell Limit at $82,923.80",
      "📐\nAdd Indicator...\n/",
      "⏱\nChange Timeframe...\n,",
      "➕\nCompare Symbol...\nAlt+C",
@@ -200,20 +200,20 @@
    "defects": [],
    "info": {
     "en1": {
-     "len": 871,
+     "len": 881,
      "persian": 0
     },
     "fa1": {
-     "len": 970,
-     "persian": 425
+     "len": 958,
+     "persian": 440
     },
     "en2": {
-     "len": 871,
+     "len": 881,
      "persian": 0
     },
     "fa2": {
-     "len": 970,
-     "persian": 425
+     "len": 958,
+     "persian": 440
     }
    }
   }
