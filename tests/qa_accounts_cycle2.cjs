@@ -56,7 +56,11 @@ async function login(page) {
     const out = { watchlistBlocked: false, alertBlocked: false, paperBlocked: false };
     const app = window.__TRADING_APP__;
     out.watchlistBlocked = app.watchlist.createList('Should Fail') === null;
-    out.alertBlocked = app.alertsManager.addAlert(99000) === null;
+    // Fill the Basic quota (3) with real alerts, then the 4th must be refused.
+    app.alertsManager.currentPrice = 78000;
+    const filled = [97000, 98000, 98500].map(px => app.alertsManager.addAlert(px)).filter(Boolean).length;
+    out.alertQuotaFilled = filled;
+    out.alertBlocked = filled === 3 && app.alertsManager.addAlert(99000) === null;
     out.paperBlocked = app.paperTrading.createAccount('Should Fail') === null;
     return out;
   });
@@ -127,7 +131,7 @@ async function login(page) {
   const d1 = [];
   if (!afterReload.mainSymbols.includes('DOGEUSDT')) d1.push({ kind: 'sync', text: 'symbol DOGEUSDT lost after reload' });
   if (!afterReload.watchlists.includes('Altcoins')) d1.push({ kind: 'sync', text: 'watchlist Altcoins lost after reload' });
-  if (afterReload.alerts < 4) d1.push({ kind: 'sync', text: `alerts not persisted (${afterReload.alerts})` });
+  if (afterReload.alerts < 4 /* 3 basic + 1 after upgrade */) d1.push({ kind: 'sync', text: `alerts not persisted (${afterReload.alerts})` });
   if (afterReload.theme !== 'light') d1.push({ kind: 'sync', text: 'theme not persisted' });
   if (!afterReload.paperAccounts.includes('Prop Challenge')) d1.push({ kind: 'sync', text: 'paper account lost' });
   record('A1_mutate_and_reload_persist', d1);
