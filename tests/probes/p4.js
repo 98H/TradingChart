@@ -1,0 +1,6 @@
+const { page } = ctx;
+return await page.evaluate(() => {
+  const R = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom), Math.round(b.left), Math.round(b.right)]; };
+  const m = document.querySelector('.vela-ws-grid')?.parentElement;
+  return { chartArea: R('#chart-area'), mount: R('#vela-workspace-mount'), cell: R('.vela-cell'), grid: R('.vela-ws-grid'), bb: R('.vela-widget-bottombar'), mb: R('.vela-mobilebar'), dock: R('#scale-controls-bar'), fav: R('#floating-drawing-toolbar'), qt: R('#chart-quick-trade'), qtp: R('#qt-collapsed-trigger'), gutter: getComputedStyle(document.querySelector('.vela-cell')).getPropertyValue('--vela-bottom-gutter'), gutterMount: document.querySelector('#vela-workspace-mount') && getComputedStyle(document.querySelector('#vela-workspace-mount')).getPropertyValue('--vela-bottom-gutter'), attribution: R('.vela-attribution'), sl: R('.vela-statusline'), alertTop: R('.canvas-alert-pinned-top'), alertBot: R('.canvas-alert-pinned-bottom'), priceAxisW: (() => { const c = document.querySelector('.vela-cell'); return c && getComputedStyle(c).getPropertyValue('--vela-right-axis-w'); })() };
+});

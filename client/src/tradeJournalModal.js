@@ -1,6 +1,7 @@
 // client/src/tradeJournalModal.js
 // Modal for recording and logging executed trades into the Trade Journal
-// Features 1-click direction switch, live P&L preview, SL/TP risk calculation, and multi-line notes.
+// Features 1-click direction switch, live P&L preview, SL/TP risk & R-multiple calculation,
+// strategy playbooks, psychology tags, voice dictation for notes, and multi-account attribution.
 
 import { getLanguage, t } from './i18n.js';
 
@@ -9,6 +10,8 @@ export class TradeJournalModal {
     this.app = app;
     this.selectedSide = 'buy';
     this.modalEl = null;
+    this.isListening = false;
+    this.recognition = null;
   }
 
   getModalEl() {
@@ -34,8 +37,17 @@ export class TradeJournalModal {
   }
 
   close() {
+    this.stopVoice();
     const modal = document.querySelector('#modal-log-trade');
     if (modal) modal.classList.remove('open');
+  }
+
+  stopVoice() {
+    this.isListening = false;
+    if (this.recognition) {
+      try { this.recognition.stop(); } catch (e) {}
+      this.recognition = null;
+    }
   }
 
   render() {
@@ -48,8 +60,13 @@ export class TradeJournalModal {
     const curPrice = this.app?.paperTrading?.currentPrice || 80000;
     const baseAsset = this.app?.getBaseAsset ? this.app.getBaseAsset(curSymbol) : (curSymbol.endsWith('USDT') ? curSymbol.replace('USDT', '') : 'BTC');
 
+    const accounts = this.app?.tradeJournal?.store?.getAccounts?.() || [
+      { id: 'tradingchart-paper-1', name: 'Paper Trading / حساب آزمایشی' },
+      { id: 'prop-ftmo-100k', name: 'FTMO $100K Challenge' }
+    ];
+
     modal.innerHTML = `
-      <div class="modal-box" style="max-width: 480px; width: 94vw; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans), sans-serif'};">
+      <div class="modal-box" style="max-width: 520px; width: 94vw; max-height: 90vh; background: #0c1017; border: 1px solid #1f293d; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); overflow: hidden; display: flex; flex-direction: column; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans), sans-serif'};">
         <!-- Header -->
         <div style="padding: 14px 18px; background: #080b11; border-bottom: 1px solid #1c263c; display: flex; justify-content: space-between; align-items: center; ${isFa ? 'flex-direction: row; direction: rtl;' : 'direction: ltr;'}">
           <div style="font-weight: 700; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 8px;">
@@ -62,7 +79,7 @@ export class TradeJournalModal {
         </div>
 
         <!-- Body -->
-        <div style="padding: 18px; display: flex; flex-direction: column; gap: 14px; ${isFa ? 'direction: rtl; text-align: right;' : 'direction: ltr; text-align: left;'}">
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right;' : 'direction: ltr; text-align: left;'}">
           
           <!-- Direction Segmented Pill Switch (1-click) -->
           <div>
@@ -79,23 +96,24 @@ export class TradeJournalModal {
             </div>
           </div>
 
-          <!-- Row 1: Symbol & Quantity with Base Unit -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <!-- Account & Symbol -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'حساب معاملاتی' : 'Account'}</label>
+              <select id="log-trade-account" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;">
+                ${accounts.filter(a => a.id !== 'all').map(a => `
+                  <option value="${a.id}">${(getLanguage() === 'fa' && a.nameFa) || a.name}</option>
+                `).join('')}
+              </select>
+            </div>
             <div>
               <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'نماد دارایی' : 'Symbol'}</label>
               <input type="text" id="log-trade-symbol" value="${curSymbol}" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 12px; font-weight: 700; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; direction: ltr !important;" />
             </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'حجم پوزیشن (لات / کوین)' : 'Quantity / Size'}</label>
-              <div style="display: flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0 8px;">
-                <input type="number" id="log-trade-qty" value="0.5" step="0.1" min="0.01" style="width: 100%; border: none; background: transparent; padding: 7px 0; font-size: 12px; font-weight: 700; color: #fff; outline: none;" class="num-ltr" />
-                <span id="log-unit-label" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan);">${baseAsset}</span>
-              </div>
-            </div>
           </div>
 
-          <!-- Row 2: Entry & Exit Price with generous spacing -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <!-- Entry & Exit Prices -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'قیمت ورود ($)' : 'Entry Price ($)'}</label>
               <input type="number" id="log-trade-entry" value="${curPrice.toFixed(2)}" step="any" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 12px; font-weight: 700; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;" class="num-ltr" />
@@ -106,35 +124,73 @@ export class TradeJournalModal {
             </div>
           </div>
 
-          <!-- Live Real-Time P&L Preview Box -->
+          <!-- Quantity & Stop-Loss (Risk Calculation) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'حجم پوزیشن' : 'Quantity / Size'}</label>
+              <div style="display: flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0 8px;">
+                <input type="number" id="log-trade-qty" value="0.5" step="0.1" min="0.01" style="width: 100%; border: none; background: transparent; padding: 7px 0; font-size: 12px; font-weight: 700; color: #fff; outline: none;" class="num-ltr" />
+                <span id="log-unit-label" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan);">${baseAsset}</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'حد ضرر / استاپ لاس ($)' : 'Stop Loss ($)'}</label>
+              <input type="number" id="log-trade-sl" value="${(curPrice * 0.99).toFixed(2)}" step="any" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 12px; font-weight: 700; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;" class="num-ltr" />
+            </div>
+          </div>
+
+          <!-- Live Real-Time P&L & R-Multiple Box -->
           <div id="live-pnl-preview-box" style="background: rgba(0, 242, 176, 0.06); border: 1px solid rgba(0, 242, 176, 0.25); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;">
-            <div style="font-size: 11px; font-weight: 600; color: var(--text-dim);">${isFa ? 'پیش‌نمایش سود/زیان معامله:' : 'Estimated Net P&L:'}</div>
+            <div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'پیش‌نمایش سود/زیان و ضریب ریسک:' : 'Estimated Net P&L & R-Multiple:'}</div>
+              <div id="log-r-preview" style="font-size: 11px; font-weight: 700; color: #38bdf8;">R: 1 : 2.50</div>
+            </div>
             <div id="log-pnl-preview" class="live-pnl-val num-ltr" style="font-size: 14px; font-weight: 800; color: var(--accent-green);">+$600.00 (+1.50%)</div>
           </div>
 
-          <!-- Row 3: Strategy Setup -->
-          <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'استراتژی یا ستاپ معاملاتی' : 'Strategy Setup'}</label>
-            <select id="log-trade-strat" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;">
-              <option value="SMC Order Block">${isFa ? 'اردربلاک اسمارت مانی (SMC OB)' : 'SMC Order Block'}</option>
-              <option value="FVG Retest">${isFa ? 'گپ ارزش منصفانه (FVG)' : 'Fair Value Gap (FVG)'}</option>
-              <option value="Breakout">${isFa ? 'شکست ساختار (BOS)' : 'Break of Structure (BOS)'}</option>
-              <option value="Trend Following">${isFa ? 'امتداد روند (Supertrend)' : 'Trend Following'}</option>
-            </select>
+          <!-- Strategy Playbook & Psychological Discipline -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'ستاپ استراتژی' : 'Playbook Setup'}</label>
+              <select id="log-trade-strat" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 11px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;">
+                <option value="smc-order-block">${isFa ? 'اردربلاک اسمارت مانی (SMC OB)' : 'SMC Order Block'}</option>
+                <option value="fvg-retest">${isFa ? 'گپ ارزش منصفانه (FVG)' : 'Fair Value Gap (FVG)'}</option>
+                <option value="break-and-retest">${isFa ? 'شکست و پولبک تثبیتی' : 'Breakout & Retest'}</option>
+                <option value="trend-pullback">${isFa ? 'پولبک در جهت روند' : 'Trend Pullback'}</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'خطای روانشناسی / تگ' : 'Psychology Tag'}</label>
+              <select id="log-trade-mistake" style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 11px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff;">
+                <option value="None">${isFa ? '✓ پایبندی کامل به پلن' : '✓ Followed Plan'}</option>
+                <option value="FOMO">${isFa ? '⚠️ طمع و ترس از دست دادن (FOMO)' : '⚠️ FOMO Entry'}</option>
+                <option value="Moved Stop">${isFa ? '⚠️ جابجایی حد ضرر' : '⚠️ Moved Stop Loss'}</option>
+                <option value="Exited Early">${isFa ? '⚠️ خروج زودهنگام از ترس' : '⚠️ Exited Early'}</option>
+                <option value="Overleveraged">${isFa ? '⚠️ حجم بیش از حد مجاز' : '⚠️ Overleveraged'}</option>
+              </select>
+            </div>
           </div>
 
-          <!-- Row 4: Multi-line Trade Notes -->
+          <!-- Notes with Voice Dictation Button -->
           <div>
-            <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">${isFa ? 'یادداشت معاملاتی و مدیریت روانشناسی' : 'Trade Review & Psychology Notes'}</label>
-            <textarea id="log-trade-notes" rows="3" placeholder="${isFa ? 'نکات کلیدی ورود، دلایل تایید ستاپ، واکنش به ضرر/سود...' : 'Entry triggers, market context, psychology...'}" style="width: 100%; box-sizing: border-box; padding: 8px 10px; font-size: 12px; line-height: 1.5; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; resize: vertical;"></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="font-size: 11px; font-weight: 600; color: var(--text-dim);">
+                ${isFa ? 'یادداشت معاملاتی و دلایل ورود:' : 'Trade Notes & Review:'}
+              </label>
+              <button type="button" id="btn-modal-voice-dictate" style="background: rgba(0, 242, 176, 0.12); border: 1px solid #00f2b0; color: #00f2b0; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                <span id="modal-voice-label">${isFa ? 'ضبط صوتی' : 'Voice Dictate'}</span>
+              </button>
+            </div>
+            <textarea id="log-trade-notes" rows="2" placeholder="${isFa ? 'توضیحات تکمیلی ورود، احساسات و دلایل خروج...' : 'Entry triggers, market context, psychology...'}" style="width: 100%; box-sizing: border-box; padding: 8px 10px; font-size: 12px; line-height: 1.5; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; color: #fff; resize: vertical; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans), sans-serif'};"></textarea>
           </div>
 
           <!-- Action Buttons -->
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
-            <button id="btn-cancel-log-trade" class="btn-secondary" style="padding: 7px 14px; font-size: 12px;">
+            <button id="btn-cancel-log-trade" class="btn-secondary" style="padding: 7px 14px; font-size: 12px; cursor: pointer;">
               ${isFa ? 'انصراف' : 'Cancel'}
             </button>
-            <button id="btn-save-log-trade" class="btn-primary" style="padding: 7px 20px; font-size: 12px; font-weight: 700;">
+            <button id="btn-save-log-trade" class="btn-primary" style="padding: 7px 20px; font-size: 12px; font-weight: 700; cursor: pointer;">
               ${isFa ? '✓ ثبت در ژورنال' : '✓ Save to Journal'}
             </button>
           </div>
@@ -150,6 +206,8 @@ export class TradeJournalModal {
     const updateSide = (side) => {
       this.selectedSide = side;
       if (side === 'buy') {
+        buyPill.classList.add('active');
+        sellPill.classList.remove('active');
         buyPill.style.background = 'rgba(0, 242, 176, 0.15)';
         buyPill.style.borderColor = 'var(--accent-green)';
         buyPill.style.color = 'var(--accent-green)';
@@ -157,6 +215,8 @@ export class TradeJournalModal {
         sellPill.style.borderColor = 'transparent';
         sellPill.style.color = 'var(--text-dim)';
       } else {
+        sellPill.classList.add('active');
+        buyPill.classList.remove('active');
         sellPill.style.background = 'rgba(255, 77, 91, 0.15)';
         sellPill.style.borderColor = 'var(--accent-red)';
         sellPill.style.color = 'var(--accent-red)';
@@ -170,24 +230,36 @@ export class TradeJournalModal {
     buyPill?.addEventListener('click', () => updateSide('buy'));
     sellPill?.addEventListener('click', () => updateSide('sell'));
 
-    // Live P&L Calculation
+    // Live P&L and Risk-Reward (R) Calculation
     const entryInput = modal.querySelector('#log-trade-entry');
     const exitInput = modal.querySelector('#log-trade-exit');
+    const slInput = modal.querySelector('#log-trade-sl');
     const qtyInput = modal.querySelector('#log-trade-qty');
     const pnlBox = modal.querySelector('#live-pnl-preview-box');
     const pnlVal = modal.querySelector('#log-pnl-preview, #live-pnl-val');
+    const rVal = modal.querySelector('#log-r-preview');
 
     const calcLivePnl = () => {
       const entry = parseFloat(entryInput?.value) || 1;
       const exit = parseFloat(exitInput?.value) || 1;
+      const sl = parseFloat(slInput?.value) || (this.selectedSide === 'buy' ? entry * 0.99 : entry * 1.01);
       const qty = parseFloat(qtyInput?.value) || 0.1;
+
       const pnl = (this.selectedSide === 'buy' ? (exit - entry) : (entry - exit)) * qty;
       const pct = (this.selectedSide === 'buy' ? ((exit - entry) / entry) : ((entry - exit) / entry)) * 100;
       const isWin = pnl >= 0;
 
+      const riskPerUnit = Math.abs(entry - sl) || 1;
+      const rewardPerUnit = (this.selectedSide === 'buy' ? (exit - entry) : (entry - exit));
+      const rMultiple = rewardPerUnit / riskPerUnit;
+
       if (pnlVal) {
         pnlVal.innerText = `${isWin ? '+' : ''}$${pnl.toFixed(2)} (${isWin ? '+' : ''}${pct.toFixed(2)}%)`;
         pnlVal.style.color = isWin ? 'var(--accent-green)' : 'var(--accent-red)';
+      }
+      if (rVal) {
+        rVal.innerText = `R: 1 : ${rMultiple.toFixed(2)}`;
+        rVal.style.color = rMultiple >= 2.0 ? '#00f2b0' : (rMultiple >= 1.0 ? '#38bdf8' : '#facc15');
       }
       if (pnlBox) {
         pnlBox.style.background = isWin ? 'rgba(0, 242, 176, 0.06)' : 'rgba(255, 77, 91, 0.06)';
@@ -205,10 +277,66 @@ export class TradeJournalModal {
 
     entryInput?.addEventListener('input', calcLivePnl);
     exitInput?.addEventListener('input', calcLivePnl);
+    slInput?.addEventListener('input', calcLivePnl);
     qtyInput?.addEventListener('input', calcLivePnl);
     calcLivePnl();
 
-    const close = () => modal.classList.remove('open');
+    // Voice Dictation for Notes
+    const voiceBtn = modal.querySelector('#btn-modal-voice-dictate');
+    const notesTextarea = modal.querySelector('#log-trade-notes');
+    const voiceLabel = modal.querySelector('#modal-voice-label');
+
+    voiceBtn?.addEventListener('click', () => {
+      if (this.isListening) {
+        this.stopVoice();
+        if (voiceLabel) voiceLabel.textContent = isFa ? 'ضبط صوتی' : 'Voice Dictate';
+        voiceBtn.style.background = 'rgba(0, 242, 176, 0.12)';
+        voiceBtn.style.borderColor = '#00f2b0';
+        return;
+      }
+
+      const SpeechConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechConstructor) {
+        alert(isFa ? 'مرورگر از ضبط صوتی پشتیبانی نمی‌کند.' : 'Speech recognition not supported in this browser.');
+        return;
+      }
+
+      try {
+        this.recognition = new SpeechConstructor();
+        this.recognition.lang = isFa ? 'fa-IR' : 'en-US';
+        this.recognition.onstart = () => {
+          this.isListening = true;
+          if (voiceLabel) voiceLabel.textContent = isFa ? 'در حال شنیدن...' : 'Listening…';
+          voiceBtn.style.background = '#ff4d5b';
+          voiceBtn.style.borderColor = '#ff4d5b';
+          voiceBtn.style.color = '#fff';
+        };
+        this.recognition.onresult = (event) => {
+          let text = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            text += event.results[i][0].transcript;
+          }
+          if (notesTextarea) {
+            notesTextarea.value = (notesTextarea.value ? notesTextarea.value + ' ' : '') + text;
+          }
+        };
+        this.recognition.onend = () => {
+          this.stopVoice();
+          if (voiceLabel) voiceLabel.textContent = isFa ? 'ضبط صوتی' : 'Voice Dictate';
+          voiceBtn.style.background = 'rgba(0, 242, 176, 0.12)';
+          voiceBtn.style.borderColor = '#00f2b0';
+          voiceBtn.style.color = '#00f2b0';
+        };
+        this.recognition.start();
+      } catch (e) {
+        this.stopVoice();
+      }
+    });
+
+    const close = () => {
+      this.stopVoice();
+      modal.classList.remove('open');
+    };
     modal.querySelector('#btn-close-log-trade')?.addEventListener('click', close);
     modal.querySelector('#btn-cancel-log-trade')?.addEventListener('click', close);
     modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
@@ -216,8 +344,13 @@ export class TradeJournalModal {
     modal.querySelector('#btn-save-log-trade')?.addEventListener('click', () => {
       const sym = modal.querySelector('#log-trade-symbol')?.value.trim().toUpperCase() || 'BTCUSDT';
       const side = this.selectedSide;
+      const accountId = modal.querySelector('#log-trade-account')?.value || 'tradingchart-paper-1';
+      const playbook = modal.querySelector('#log-trade-strat')?.value || 'smc-order-block';
+      const mistake = modal.querySelector('#log-trade-mistake')?.value || 'None';
+      const notes = modal.querySelector('#log-trade-notes')?.value || '';
       const entry = parseFloat(entryInput?.value) || curPrice;
       const exit = parseFloat(exitInput?.value) || (curPrice * 1.01);
+      const sl = parseFloat(slInput?.value) || (side === 'buy' ? entry * 0.99 : entry * 1.01);
       const qty = parseFloat(qtyInput?.value) || 0.5;
 
       const now = new Date();
@@ -226,39 +359,57 @@ export class TradeJournalModal {
 
       const newExec1 = {
         id: `exec-open-${Date.now()}`,
-        accountId: 'tradingchart-paper-1',
+        accountId,
         symbol: sym,
         side,
         quantity: qty,
         price: entry,
         executedAt: openTime,
-        fee: 1.5
+        fee: 1.5,
+        source: 'manual',
+        assetClass: sym.endsWith('USDT') ? 'crypto' : (sym === 'XAUUSD' ? 'other' : 'forex')
       };
 
       const newExec2 = {
         id: `exec-close-${Date.now()}`,
-        accountId: 'tradingchart-paper-1',
+        accountId,
         symbol: sym,
         side: side === 'buy' ? 'sell' : 'buy',
         quantity: qty,
         price: exit,
         executedAt: closeTime,
-        fee: 1.5
+        fee: 1.5,
+        source: 'manual',
+        assetClass: sym.endsWith('USDT') ? 'crypto' : (sym === 'XAUUSD' ? 'other' : 'forex')
       };
 
-      if (this.app?.tradeJournal?.sampleExecutions) {
+      const tradeKey = `${accountId}|${sym}|${side === 'buy' ? 'long' : 'short'}|${openTime}`;
+      const ann = {
+        playbook,
+        tags: [playbook],
+        mistakes: mistake !== 'None' ? [mistake] : [],
+        notes,
+        stopLoss: sl,
+        rating: 5
+      };
+
+      // Store in JournalStore
+      if (this.app?.tradeJournal?.store) {
+        this.app.tradeJournal.store.addExecutions([newExec2, newExec1], accountId);
+        this.app.tradeJournal.store.setAnnotation(tradeKey, ann);
+      } else if (this.app?.tradeJournal?.sampleExecutions) {
         this.app.tradeJournal.sampleExecutions.unshift(newExec2, newExec1);
         this.app.tradeJournal.saveExecutions?.();
-        this.app.tradeJournal.render();
+        this.app.tradeJournal.render?.();
       }
+
       if (this.app?.fullPageJournal?.sampleExecutions) {
-        this.app.fullPageJournal.sampleExecutions.unshift(newExec2, newExec1);
-        this.app.fullPageJournal.render();
+        this.app.fullPageJournal.render?.();
       }
 
       const pnl = (side === 'buy' ? (exit - entry) : (entry - exit)) * qty;
       const formattedPnl = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}`;
-      this.app.showExecutionToast(side.toUpperCase(), qty, `${sym} (${formattedPnl})`);
+      this.app?.showExecutionToast?.(side.toUpperCase(), qty, `${sym} (${formattedPnl})`);
       close();
     });
   }

@@ -10,6 +10,7 @@ export class BarReplay {
     this.app = options.app || null;
     this.onBarStep = options.onBarStep || (() => {});
     this.onExit = options.onExit || (() => {});
+    this.onStart = options.onStart || (() => {});
     this.isPlaying = false;
     this.speed = 1.0;
     this.timer = null;
@@ -34,6 +35,7 @@ export class BarReplay {
     }
     this.isPlaying = false;
     this.replayPosition = null;
+    this.onStart();
     if (this.container) this.container.classList.add('visible');
     this.updateUI();
     this.onBarStep(this.currentIndex);
@@ -67,6 +69,7 @@ export class BarReplay {
       this.onBarStep(this.currentIndex);
       this.updateUI();
     } else {
+      if (this.isPlaying) this.app?.showToast?.(getLanguage() === 'fa' ? 'بازپخش به آخرین کندل رسید.' : 'Replay reached the latest bar.', 'info');
       this.pause();
     }
   }
@@ -78,34 +81,47 @@ export class BarReplay {
     this.timer = setTimeout(() => this.tick(), delay);
   }
 
+  /** Historical bar time (ms) of the replay cursor — executions are stamped
+   *  with the SIMULATED time, not wall-clock, so the journal is coherent. */
+  barTime() {
+    const bar = this.app?.activeBars?.[this.currentIndex];
+    const t = Number(bar?.time);
+    if (!Number.isFinite(t)) return new Date().toISOString();
+    return new Date(t < 1e12 ? t * 1000 : t).toISOString();
+  }
+
   executeReplayTrade(side) {
     if (this.currentPrice <= 0) return;
-    const qty = 0.1;
-    this.replayPosition = {
-      side,
-      qty,
-      entryPrice: this.currentPrice,
-      pnl: 0
-    };
+    const isFa = getLanguage() === 'fa';
+    // Opposite click while in a position = close it (TradingView replay behaviour)
+    if (this.replayPosition) {
+      if (this.replayPosition.side !== side) { this.closePosition(); return; }
+      this.app?.showToast?.(isFa ? 'یک پوزیشن بازپخش باز است؛ برای بستن از دکمهٔ مخالف یا ✕ استفاده کنید.' : 'A replay position is already open — use the opposite button or ✕ to close.', 'info');
+      return;
+    }
+    this.replayPosition = { side, qty: 0.1, entryPrice: this.currentPrice, pnl: 0, entryAt: this.barTime() };
     this.updatePositionUI();
   }
 
   closePosition() {
     if (!this.replayPosition) return;
-    const pnl = this.replayPosition.pnl;
-    if (this.app?.tradeJournal?.addTrade) {
-      this.app.tradeJournal.addTrade({
-        symbol: this.app.currentSymbol || 'BTCUSDT',
-        side: this.replayPosition.side.toUpperCase(),
-        entryPrice: this.replayPosition.entryPrice,
-        exitPrice: this.currentPrice,
-        size: this.replayPosition.qty,
-        pnl: Number(pnl.toFixed(2)),
-        status: 'CLOSED',
-        strategy: 'Bar Replay Simulation',
-        time: new Date().toISOString()
-      });
+    const pos = this.replayPosition;
+    const isFa = getLanguage() === 'fa';
+    const store = this.app?.tradeJournal?.store;
+    if (store?.addExecutions) {
+      const symbol = (this.app.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
+      const base = { symbol, quantity: pos.qty, fee: 0, source: 'replay', assetClass: 'crypto' };
+      store.addExecutions([
+        { ...base, side: pos.side === 'long' ? 'buy' : 'sell', price: pos.entryPrice, executedAt: pos.entryAt },
+        { ...base, side: pos.side === 'long' ? 'sell' : 'buy', price: this.currentPrice, executedAt: this.barTime() }
+      ]);
+      try { this.app.tradeJournal.render?.(); } catch (e) {}
     }
+    const pnl = pos.pnl;
+    const abs = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    this.app?.showToast?.(isFa
+      ? `پوزیشن بازپخش بسته شد: ${pnl >= 0 ? '+' : '−'}$${abs} — در ژورنال (منبع: بازپخش) ثبت شد`
+      : `Replay position closed: ${pnl >= 0 ? '+' : '−'}$${abs} — logged to journal (source: replay)`, pnl >= 0 ? 'success' : 'warning');
     this.replayPosition = null;
     this.updatePositionUI();
   }
@@ -157,10 +173,10 @@ export class BarReplay {
         <!-- Simulated Trading Execution in Replay -->
         <div style="display: flex; align-items: center; gap: 6px;">
           <button id="btn-replay-buy" style="background: var(--accent-green); border: none; color: #fff; padding: 5px 12px; font-size: 11px; min-height: 32px; font-weight: 800; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'خرید شبیه‌سازی‌شده' : 'Simulated Buy'}" aria-label="Simulated Buy">
-            BUY
+            ${isFa ? 'خرید' : 'Buy'}
           </button>
           <button id="btn-replay-sell" style="background: var(--accent-red); border: none; color: #fff; padding: 5px 12px; font-size: 11px; min-height: 32px; font-weight: 800; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'فروش شبیه‌سازی‌شده' : 'Simulated Sell'}" aria-label="Simulated Sell">
-            SELL
+            ${isFa ? 'فروش' : 'Sell'}
           </button>
         </div>
 
@@ -220,14 +236,13 @@ export class BarReplay {
     const sideColor = isLong ? 'var(--accent-green)' : 'var(--accent-red)';
     const pnlPositive = this.replayPosition.pnl >= 0;
     const pnlColor = pnlPositive ? 'var(--accent-green)' : 'var(--accent-red)';
-    const pnlSign = pnlPositive ? '+' : '';
-
+    
     wrap.style.display = 'flex';
     wrap.innerHTML = `
       <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-size: 10px; font-family: var(--font-mono);">
-        <span style="font-weight: 800; color: ${sideColor}; text-transform: uppercase;">${this.replayPosition.side} 0.1</span>
-        <span style="color: ${pnlColor}; font-weight: 700;" class="num-ltr">${pnlSign}$${this.replayPosition.pnl.toFixed(2)}</span>
-        <button id="btn-replay-close-pos" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-weight: 800;" title="Close Position">✕</button>
+        <span style="font-weight: 800; color: ${sideColor};">${getLanguage() === 'fa' ? (isLong ? 'خرید' : 'فروش') : (isLong ? 'LONG' : 'SHORT')} <bdi>0.1</bdi></span>
+        <span style="color: ${pnlColor}; font-weight: 700;" class="num-ltr">${pnlPositive ? '+' : '−'}$${Math.abs(this.replayPosition.pnl).toFixed(2)}</span>
+        <button id="btn-replay-close-pos" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; min-width: 28px; min-height: 28px; font-weight: 800;" title="${getLanguage() === 'fa' ? 'بستن پوزیشن' : 'Close position'}" aria-label="${getLanguage() === 'fa' ? 'بستن پوزیشن' : 'Close position'}">✕</button>
       </div>
     `;
 
@@ -243,6 +258,6 @@ export class BarReplay {
     if (btnPlayPause) {
       btnPlayPause.innerText = this.isPlaying ? (isFa ? 'توقف' : 'Pause') : (isFa ? 'پخش' : 'Play');
     }
-    if (progress) progress.innerText = `${this.currentIndex + 1} / ${this.totalBars}`;
+    if (progress) { const txt = `${this.currentIndex + 1} / ${this.totalBars}`; progress.innerText = isFa ? toPersianDigits(txt) : txt; }
   }
 }

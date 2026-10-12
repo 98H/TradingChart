@@ -10,14 +10,16 @@ export class StrategyTester {
     this.onExportToPropSim = options.onExportToPropSim || (() => {});
     this.candles = [];
     this.results = null;
+    this.lastCode = null;
+    this.running = false;
     this.renderEmpty();
   }
 
+  /** New candles: re-run the LAST strategy the user actually backtested (if any).
+   *  Never auto-runs an invented strategy — no code, no report. */
   setCandles(candles) {
     this.candles = candles || [];
-    if (!this.results && this.candles.length >= 30) {
-      this.runSimulation(null, this.candles);
-    }
+    if (this.lastCode && !this.running) this.runSimulation(this.lastCode, this.candles, { silent: true });
   }
 
   renderEmpty() {
@@ -26,126 +28,142 @@ export class StrategyTester {
     this.container.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); flex-direction: column; gap: 12px; padding: 24px; text-align: center; ${isFa ? 'direction: rtl; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr;'}">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-cyan);"><polygon points="5 3 19 12 5 21 5 3"/><path d="M5 21v-4"/></svg>
-        <div style="font-size: 14px; font-weight: 700; color: #fff;">${isFa ? 'هنوز نتیجه بک‌تستی برای استراتژی ثبت نشده است' : 'No Strategy Backtest Results Yet'}</div>
-        <div style="font-size: 12px; max-width: 440px; color: var(--text-muted); line-height: 1.5;">${isFa ? 'تب ویرایشگر پاین را باز کنید، یک قالب استراتژی (مانند استراتژی بازتعادل شنون) را انتخاب کرده و روی دکمه «بک‌تست استراتژی» کلیک کنید.' : 'Open the Pine Editor tab, select a strategy template (like Shannon Rebalance Strategy), and click <b>\'Backtest Strategy\'</b>.'}</div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">${isFa ? 'هنوز بک‌تستی اجرا نشده است' : 'No Strategy Backtest Results Yet'}</div>
+        <div style="font-size: 12px; max-width: 440px; color: var(--text-muted); line-height: 1.7;">${isFa ? 'در ویرایشگر پاین یک اسکریپت <code>strategy()</code> بنویسید یا یکی از قالب‌ها را انتخاب کنید، سپس روی «بک‌تست استراتژی» بزنید. نتایج دقیقاً از اجرای همان کد روی کندل‌های چارت محاسبه می‌شود.' : 'Write a <code>strategy()</code> script in the Pine Editor (or pick a template) and click <b>Backtest Strategy</b>. Results are computed by running exactly that code on the chart\'s candles.'}</div>
       </div>
     `;
   }
 
-  runSimulation(strategyCode, bars = this.candles) {
+  renderMessage(msg, tone = 'error') {
+    if (!this.container) return;
     const isFa = getLanguage() === 'fa';
+    const color = tone === 'error' ? 'var(--accent-red)' : 'var(--text-dim)';
+    this.container.innerHTML = `<div style="padding: 24px; color: ${color}; line-height: 1.7; font-size: 12px; ${isFa ? 'direction: rtl; font-family: var(--font-vazirmatn), sans-serif;' : ''}">${msg}</div>`;
+  }
+
+  /**
+   * Execute the user's Pine strategy() with the real PineTS runtime on the
+   * chart's candles and build the report from the engine's own closed trades
+   * (TradingView semantics: fills, sizing, initial_capital from the script).
+   */
+  async runSimulation(strategyCode, bars = this.candles, opts = {}) {
+    const isFa = getLanguage() === 'fa';
+    const esc = (x) => String(x).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    if (!strategyCode || !/\bstrategy\s*\(/.test(strategyCode)) {
+      if (!opts.silent) this.renderMessage(isFa
+        ? 'این اسکریپت یک استراتژی نیست. بک‌تست فقط برای اسکریپت‌هایی که با <code>strategy()</code> تعریف شده‌اند و دستور <code>strategy.entry</code> دارند معنا دارد. اندیکاتورها را با «افزودن به چارت» اجرا کنید.'
+        : 'This script is not a strategy. Backtesting needs a <code>strategy()</code> declaration with <code>strategy.entry</code> calls. Use “Add to chart” for indicators.');
+      return;
+    }
     if (!bars || bars.length < 30) {
-      this.container.innerHTML = `<div style="padding: 24px; color: var(--accent-red); ${isFa ? 'direction: rtl;' : ''}">${isFa ? 'حداقل ۳۰ کندل تاریخی برای اجرای بک‌تست کمی مورد نیاز است.' : 'Need at least 30 historical bars to execute quantitative backtesting.'}</div>`;
+      this.renderMessage(isFa ? 'حداقل ۳۰ کندل تاریخی برای اجرای بک‌تست لازم است.' : 'Need at least 30 historical bars to run a backtest.');
+      return;
+    }
+    this.lastCode = strategyCode;
+    this.running = true;
+    if (!opts.silent) this.renderMessage(isFa ? `در حال اجرای استراتژی روی ${toPersianDigits(String(bars.length))} کندل…` : `Running strategy on ${bars.length} bars…`, 'info');
+    let st;
+    try {
+      const { PineTS, Indicator } = await import('pinets');
+      const md = bars.map(b => ({ openTime: b.time, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume ?? 0, closeTime: b.closeTime }));
+      const sym = (window.__TRADING_APP__?.currentSymbol || 'BTCUSDT').replace(/^.*:/, '');
+      const tf = String(window.__TRADING_APP__?.currentTimeframe || '60');
+      const provider = {
+        getMarketData: async () => md,
+        getSymbolInfo: async () => ({ ticker: sym, tickerid: sym, description: sym, type: 'crypto', currency: 'USD', timezone: 'UTC', session: '24x7', mintick: 0.01, pricescale: 100, pointvalue: 1, minmove: 1 })
+      };
+      const engine = new PineTS(provider, sym, tf, md.length);
+      await engine.ready();
+      const ctx = await engine.run(new Indicator(strategyCode));
+      st = ctx?.fullContext?.strategy ?? ctx?.strategy;
+    } catch (e) {
+      this.running = false;
+      this.renderMessage((isFa ? '<b>خطا در اجرای استراتژی:</b><br>' : '<b>Strategy runtime error:</b><br>') + esc(e?.message || e));
+      return;
+    }
+    this.running = false;
+    if (!st) {
+      this.renderMessage(isFa ? 'موتور پاین برای این اسکریپت وضعیت استراتژی برنگرداند.' : 'The Pine engine returned no strategy state for this script.');
       return;
     }
 
-    // Deterministic Pine strategy execution engine
-    const initialCapital = 100000;
-    let equity = initialCapital;
-    let peakEquity = initialCapital;
-    let maxDd = 0;
-    let maxDdPct = 0;
-    const trades = [];
-    let activePosition = null;
-
-    // Moving average & volatility calculation
-    const period = 20;
-    for (let i = period; i < bars.length; i++) {
-      const slice = bars.slice(i - period, i);
-      const sma = slice.reduce((sum, b) => sum + b.close, 0) / period;
-      const variance = slice.reduce((sum, b) => sum + Math.pow(b.close - sma, 2), 0) / period;
-      const stdev = Math.sqrt(variance);
-      const upper = sma + (2.0 * stdev);
-      const lower = sma - (2.0 * stdev);
-      const curBar = bars[i];
-
-      // Entry Rule: Price closes below lower band (oversold mean reversion)
-      if (!activePosition && curBar.close < lower) {
-        const orderQty = (equity * 0.20) / curBar.close; // 20% position size
-        activePosition = {
-          entryIndex: i,
-          entryTime: curBar.time,
-          entryPrice: curBar.close,
-          qty: orderQty,
-          side: 'long'
-        };
-      }
-      // Exit Rule: Price touches or exceeds upper band
-      else if (activePosition && curBar.close > upper) {
-        const exitPrice = curBar.close;
-        const profit = (exitPrice - activePosition.entryPrice) * activePosition.qty;
-        const profitPct = ((exitPrice - activePosition.entryPrice) / activePosition.entryPrice) * 100;
+    const initialCapital = Number(st.initial_capital) || 100000;
+    const closed = Array.isArray(st.closedtrades) ? st.closedtrades : [];
+    let equity = initialCapital, peakEquity = initialCapital, maxDd = 0, maxDdPct = 0;
+    const trades = closed
+      .filter(t => Number.isFinite(Number(t.exit_price)) && Number(t.size))
+      .sort((x, y) => Number(x.exit_time) - Number(y.exit_time))
+      .map((t, i) => {
+        const size = Number(t.size);
+        const side = size > 0 ? 'long' : 'short';
+        const entryPrice = Number(t.entry_price), exitPrice = Number(t.exit_price);
+        const profit = Number.isFinite(Number(t.profit)) ? Number(t.profit) : (exitPrice - entryPrice) * size;
         equity += profit;
-
         if (equity > peakEquity) peakEquity = equity;
         const dd = peakEquity - equity;
-        const ddPct = (dd / peakEquity) * 100;
         if (dd > maxDd) maxDd = dd;
+        const ddPct = peakEquity > 0 ? (dd / peakEquity) * 100 : 0;
         if (ddPct > maxDdPct) maxDdPct = ddPct;
-
-        trades.push({
-          id: trades.length + 1,
-          side: activePosition.side,
-          entryTime: activePosition.entryTime,
-          entryPrice: activePosition.entryPrice,
-          exitTime: curBar.time,
-          exitPrice,
-          qty: Number(activePosition.qty.toFixed(4)),
+        return {
+          id: i + 1, side,
+          entryTime: Number(t.entry_time), entryPrice,
+          exitTime: Number(t.exit_time), exitPrice,
+          qty: Number(Math.abs(size).toFixed(6)),
           profit: Number(profit.toFixed(2)),
-          profitPct: Number(profitPct.toFixed(2)),
+          profitPct: Number((((exitPrice - entryPrice) / entryPrice) * 100 * (side === 'long' ? 1 : -1)).toFixed(2)),
           equity: Number(equity.toFixed(2)),
-          barsHeld: i - activePosition.entryIndex
-        });
+          barsHeld: Number(t.exit_bar_index) - Number(t.entry_bar_index)
+        };
+      });
+    const openTrades = Array.isArray(st.opentrades) ? st.opentrades.length : 0;
 
-        activePosition = null;
-      }
-    }
-
-    // Summary calculations
     const winTrades = trades.filter(t => t.profit > 0);
     const lossTrades = trades.filter(t => t.profit < 0);
-    const winRate = trades.length > 0 ? (winTrades.length / trades.length) * 100 : 0;
+    const n = trades.length;
+    const winRate = n > 0 ? (winTrades.length / n) * 100 : 0;
     const grossProfit = winTrades.reduce((sum, t) => sum + t.profit, 0);
     const grossLoss = Math.abs(lossTrades.reduce((sum, t) => sum + t.profit, 0));
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 99.9 : 1.0;
+    // null = undefined metric (shown as "—"), never a made-up placeholder
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? Infinity : null);
     const netProfit = equity - initialCapital;
     const netProfitPct = (netProfit / initialCapital) * 100;
+    const avgWin = winTrades.length ? grossProfit / winTrades.length : 0;
+    const avgLoss = lossTrades.length ? grossLoss / lossTrades.length : 0;
+    const rMultiple = avgLoss > 0 ? avgWin / avgLoss : null;
 
-    const avgWin = winTrades.length > 0 ? grossProfit / winTrades.length : 0;
-    const avgLoss = lossTrades.length > 0 ? grossLoss / lossTrades.length : 1;
-    const rMultiple = avgLoss > 0 ? avgWin / avgLoss : 1.5;
-
-    // Advanced quant risk metrics
+    // Per-trade Sharpe/Sortino (not annualised — trades are not daily returns)
     const returns = trades.map(t => t.profitPct / 100);
-    const meanReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
-    const stdDev = returns.length > 1 ? Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - meanReturn, 2), 0) / (returns.length - 1)) : 0.01;
-    const downsideReturns = returns.filter(r => r < 0);
-    const downsideStd = downsideReturns.length > 1 ? Math.sqrt(downsideReturns.reduce((a, b) => a + Math.pow(b, 2), 0) / (downsideReturns.length - 1)) : 0.01;
+    const mean = n ? returns.reduce((x, y) => x + y, 0) / n : 0;
+    const sd = n > 1 ? Math.sqrt(returns.reduce((x, r) => x + (r - mean) ** 2, 0) / (n - 1)) : 0;
+    const neg = returns.filter(r => r < 0);
+    const dsd = neg.length > 1 ? Math.sqrt(neg.reduce((x, r) => x + r * r, 0) / (neg.length - 1)) : 0;
+    const sharpeRatio = sd > 0 ? mean / sd : null;
+    const sortinoRatio = dsd > 0 ? mean / dsd : null;
+    const expectancy = n ? (winRate / 100 * avgWin) - ((1 - winRate / 100) * avgLoss) : 0;
 
-    const sharpeRatio = stdDev > 0 ? (meanReturn / stdDev) * Math.sqrt(252) : 1.5;
-    const sortinoRatio = downsideStd > 0 ? (meanReturn / downsideStd) * Math.sqrt(252) : 2.0;
-    const expectancy = (winRate / 100 * avgWin) - ((1 - winRate / 100) * avgLoss);
+    const spanMs = bars.length > 1 ? (bars.at(-1).time - bars[0].time) : 0;
+    const days = spanMs > 0 ? spanMs / 864e5 : 0;
 
     this.results = {
       initialCapital,
       finalEquity: equity,
-      netProfit,
-      netProfitPct,
-      grossProfit,
-      grossLoss,
+      netProfit, netProfitPct,
+      grossProfit, grossLoss,
       profitFactor,
       winRate,
-      totalTrades: trades.length,
+      totalTrades: n,
+      openTrades,
       winTradesCount: winTrades.length,
       lossTradesCount: lossTrades.length,
       maxDrawdown: maxDd,
       maxDrawdownPct: maxDdPct,
-      sharpeRatio: Number(sharpeRatio.toFixed(2)),
-      sortinoRatio: Number(sortinoRatio.toFixed(2)),
+      sharpeRatio: sharpeRatio == null ? null : Number(sharpeRatio.toFixed(2)),
+      sortinoRatio: sortinoRatio == null ? null : Number(sortinoRatio.toFixed(2)),
       expectancy: Number(expectancy.toFixed(2)),
       trades,
-      avgWinR: Number(rMultiple.toFixed(2)),
-      tradesPerDay: Number((trades.length / Math.max(1, bars.length / 24)).toFixed(1)) || 2.5
+      avgWinR: rMultiple == null ? null : Number(rMultiple.toFixed(2)),
+      tradesPerDay: days > 0 ? Number((n / days).toFixed(2)) : null,
+      barsTested: bars.length
     };
 
     this.renderReport();
@@ -153,33 +171,35 @@ export class StrategyTester {
 
   renderReport() {
     if (!this.container) return;
-    if (!this.results && this.candles && this.candles.length >= 30) {
-      this.runSimulation(null, this.candles);
-      return;
-    }
     if (!this.results) {
       this.renderEmpty();
       return;
     }
     const r = this.results;
     const isFa = getLanguage() === 'fa';
+    if (r.totalTrades === 0) {
+      this.renderMessage(isFa
+        ? `استراتژی روی ${toPersianDigits(String(r.barsTested))} کندل اجرا شد ولی هیچ معاملهٔ بسته‌شده‌ای تولید نکرد${r.openTrades ? ` (${toPersianDigits(String(r.openTrades))} معاملهٔ باز)` : ''}. شرط‌های ورود/خروج یا بازهٔ زمانی را بررسی کنید.`
+        : `The strategy ran on ${r.barsTested} bars but produced no closed trades${r.openTrades ? ` (${r.openTrades} open)` : ''}. Check the entry/exit conditions or the timeframe.`, 'info');
+      return;
+    }
 
     const isProfit = r.netProfit >= 0;
     const profitColor = isProfit ? 'var(--accent-green)' : 'var(--accent-red)';
 
-    // Build equity curve SVG path
+    // Equity curve: one point per closed trade, anchored at initial capital.
     const w = 450;
     const h = 90;
-    const pts = r.trades.map((t, idx) => {
-      const x = (idx / Math.max(1, r.trades.length - 1)) * w;
-      const minEq = Math.min(...r.trades.map(x => x.equity), r.initialCapital);
-      const maxEq = Math.max(...r.trades.map(x => x.equity), r.initialCapital);
-      const range = maxEq - minEq || 1;
-      const y = h - ((t.equity - minEq) / range) * (h - 16) - 8;
-      return `${x},${y}`;
-    });
+    const eqs = [r.initialCapital, ...r.trades.map(t => t.equity)];
+    const minEq = Math.min(...eqs), maxEq = Math.max(...eqs);
+    const range = maxEq - minEq || 1;
+    const yOf = (v) => h - ((v - minEq) / range) * (h - 16) - 8;
+    const pts = eqs.map((v, idx) => `${((idx / Math.max(1, eqs.length - 1)) * w).toFixed(1)},${yOf(v).toFixed(1)}`);
     const svgPath = pts.length > 1 ? `M 0,${h} L ${pts.join(' L ')} L ${w},${h} Z` : '';
     const linePath = pts.length > 1 ? `M ${pts.join(' L ')}` : '';
+    const baseY = yOf(r.initialCapital).toFixed(1);
+    const fmtK = (v) => '$' + Math.round(v).toLocaleString('en-US');
+    const eqColor = r.finalEquity >= r.initialCapital ? '#00e5ff' : '#f6465d';
 
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; ${isFa ? 'direction: rtl; text-align: right; font-family: var(--font-vazirmatn), sans-serif;' : 'direction: ltr; text-align: left;'}">
@@ -188,12 +208,12 @@ export class StrategyTester {
           <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'سود خالص' : 'Net Profit'}</div>
             <div id="strat-net-profit" style="font-size: 15px; font-weight: 800; color: ${profitColor};" class="num-ltr">
-              ${isProfit ? '+' : ''}$${r.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${r.netProfitPct.toFixed(2)}%)
+              ${isProfit ? '+' : '−'}$${Math.abs(r.netProfit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${r.netProfitPct.toFixed(2)}%)
             </div>
           </div>
           <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'ضریب سودآوری (Profit Factor)' : 'Profit Factor'}</div>
-            <div id="strat-profit-factor" style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);" class="num-ltr">${r.profitFactor.toFixed(2)}</div>
+            <div id="strat-profit-factor" style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);" class="num-ltr">${r.profitFactor == null ? '—' : (r.profitFactor === Infinity ? '∞' : r.profitFactor.toFixed(2))}</div>
           </div>
           <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
             <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نرخ برد (Win Rate)' : 'Win Rate'}</div>
@@ -204,12 +224,12 @@ export class StrategyTester {
             <div id="strat-max-drawdown" style="font-size: 15px; font-weight: 800; color: var(--accent-red);" class="num-ltr">-${r.maxDrawdownPct.toFixed(2)}% ($${r.maxDrawdown.toLocaleString(undefined, { maximumFractionDigits: 0 })})</div>
           </div>
           <div class="strat-kpi-card kpi-card" style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'نسبت شارپ / امید ریاضی' : 'Sharpe / Expectancy'}</div>
-            <div id="strat-sharpe" style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio} <span style="font-size: 11px; color: var(--text-dim);">($${r.expectancy}/trade)</span></div>
+            <div style="font-size: 11px; color: var(--text-dim);">${isFa ? 'شارپ (هر معامله) / امید ریاضی' : 'Sharpe (per trade) / Expectancy'}</div>
+            <div id="strat-sharpe" style="font-size: 14px; font-weight: 800; color: var(--accent-gold);" class="num-ltr">${r.sharpeRatio ?? '—'} <span style="font-size: 11px; color: var(--text-dim);">(<bdi>${r.expectancy >= 0 ? '+' : '−'}$${Math.abs(r.expectancy).toFixed(2)}</bdi>${isFa ? ' در هر معامله' : '/trade'})</span></div>
           </div>
           <div style="background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 6px; justify-content: center; border: 1px solid var(--border-subtle);">
             <button id="btn-export-propsim" class="btn-primary" style="font-size: 11px; padding: 6px 12px; min-height: 32px; width: 100%; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'انتقال نتایج به شبیه‌ساز پراپ' : 'Export results to Prop-Sim'}" aria-label="Export to Prop-Sim">
-              ${isFa ? 'انتقال به شبیه‌ساز پراپ →' : 'Export to Prop-Sim →'}
+              ${isFa ? 'انتقال به شبیه‌ساز پراپ ←' : 'Export to Prop-Sim →'}
             </button>
             <button id="btn-export-csv" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; min-height: 32px; width: 100%; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'دانلود دفتر کل معاملات به صورت CSV' : 'Download CSV Ledger'}" aria-label="Download CSV Ledger">
               ${isFa ? 'دریافت دفتر کل CSV' : 'Download CSV Ledger'}
@@ -229,15 +249,19 @@ export class StrategyTester {
                     <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
+                <line x1="0" x2="${w}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="3 3" stroke-width="1" />
                 <path d="${svgPath}" fill="url(#eqGrad)" />
-                <path d="${linePath}" fill="none" stroke="#00e5ff" stroke-width="2" />
+                <path d="${linePath}" fill="none" stroke="${eqColor}" stroke-width="2" />
+                <text x="2" y="10" fill="#94a3b8" font-size="9">${fmtK(maxEq)}</text>
+                <text x="2" y="${h - 1}" fill="#94a3b8" font-size="9">${fmtK(minEq)}</text>
+                <text x="${w - 2}" y="${Math.max(10, Number(baseY) - 3)}" fill="#94a3b8" font-size="9" text-anchor="end">${isFa ? 'سرمایهٔ اولیه' : 'start'} ${fmtK(r.initialCapital)}</text>
               </svg>
             </div>
           </div>
 
           <!-- Trades Table -->
           <div style="flex: 1; min-width: 340px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; max-height: 140px; overflow-y: auto; border: 1px solid var(--border-subtle);">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">${isFa ? 'معاملات بسته‌شده اخیر' : 'Recent Closed Trades'}</div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">${isFa ? `معاملات بسته‌شدهٔ اخیر (${toPersianDigits(String(Math.min(8, r.totalTrades)))} از ${toPersianDigits(String(r.totalTrades))} — همه در CSV)` : `Recent Closed Trades (${Math.min(8, r.totalTrades)} of ${r.totalTrades} — all in CSV)`}</div>
             <table class="data-table" style="font-size: 11px; width: 100%; text-align: ${isFa ? 'right' : 'left'};">
               <thead>
                 <tr>
@@ -257,7 +281,7 @@ export class StrategyTester {
                     <td class="num-ltr">$${t.entryPrice.toFixed(2)}</td>
                     <td class="num-ltr">$${t.exitPrice.toFixed(2)}</td>
                     <td class="num-ltr" style="color: ${t.profit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">
-                      ${t.profit >= 0 ? '+' : ''}$${t.profit.toFixed(2)}
+                      ${t.profit >= 0 ? '+' : '−'}$${Math.abs(t.profit).toFixed(2)}
                     </td>
                     <td class="num-ltr" style="color: ${t.profitPct >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">
                       ${t.profitPct >= 0 ? '+' : ''}${t.profitPct.toFixed(2)}%

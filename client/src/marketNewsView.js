@@ -24,7 +24,7 @@ export class MarketNewsView {
 
   startPolling() {
     if (this.pollTimer) clearInterval(this.pollTimer);
-    this.pollTimer = setInterval(() => this.fetchNews(true), 15000);
+    this.pollTimer = setInterval(() => { if (!document.hidden) this.fetchNews(true); }, 15000);
   }
 
   async fetchNews(silent = false) {
@@ -160,7 +160,7 @@ export class MarketNewsView {
         <div class="news-feed-card" style="padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.15s ease;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <button class="news-sym-pill num-ltr" data-symbol="${item.symbol}" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Switch Chart to ' + item.symbol}" aria-label="Switch Chart to ${item.symbol}" style="background: rgba(0,242,176,0.12); color: var(--accent-green); border: 1px solid rgba(0,242,176,0.25); border-radius: 4px; font-weight: 800; font-size: 11px; min-height: 24px; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center;">
+              <button class="news-sym-pill num-ltr" data-symbol="${item.symbol}" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Switch Chart to ' + item.symbol}" aria-label="Switch Chart to ${item.symbol}" style="background: rgba(0,242,176,0.12); color: var(--accent-green); border: 1px solid rgba(0,242,176,0.25); border-radius: 4px; font-weight: 800; font-size: 11px; min-height: 30px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center;">
                 ${item.symbol}
               </button>
               <span style="font-size: 10px; color: var(--text-dim);">${item.source}</span>

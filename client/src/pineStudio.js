@@ -243,22 +243,30 @@ export class PineStudio {
       const declaration = ind.getDeclarationType();
       const meta = ind.getInputsMeta();
 
-      diagEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">✓ AST Validation Succeeded</span>\nMode: ${declaration.toUpperCase()}\nDetected Inputs: ${meta.length} inputs\nMounting into active chart...`;
+      const fa = getLanguage() === 'fa';
+      diagEl.innerHTML = fa
+        ? `<span style="color: var(--accent-green); font-weight: 700;">✓ اسکریپت معتبر است</span>\nنوع: ${declaration === 'strategy' ? 'استراتژی' : 'اندیکاتور'}\nورودی‌ها: ${meta.length}\nدر حال افزودن به چارت…`
+        : `<span style="color: var(--accent-green); font-weight: 700;">✓ Script validated</span>\nType: ${declaration}\nInputs: ${meta.length}\nAdding to the active chart…`;
 
       this.onAddToChart(sanitized);
     } catch (e) {
-      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">✗ Compilation Error:</span>\n${e.message}`;
+      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">${getLanguage() === 'fa' ? '✗ خطای کامپایل:' : '✗ Compilation error:'}</span>\n${String(e.message).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}`;
     }
   }
 
   runBacktest(source, diagEl) {
+    const isFa = getLanguage() === 'fa';
     try {
       const sanitized = source.replace(/\bcolor\.cyan\b/g, 'color.rgb(0, 229, 255)');
-      const ind = Indicator.from(sanitized);
-      diagEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">✓ Initializing Backtest Engine</span>\nExecuting on active candle dataset...`;
+      Indicator.from(sanitized); // syntax pre-check
+      if (!/\bstrategy\s*\(/.test(sanitized)) {
+        diagEl.innerHTML = `<span style="color: var(--accent-gold); font-weight: 700;">${isFa ? '⚠ این اسکریپت اندیکاتور است، نه استراتژی' : '⚠ This script is an indicator, not a strategy'}</span>\n${isFa ? 'برای بک‌تست، اسکریپت باید با strategy() تعریف شود.' : 'Backtesting requires a strategy() declaration.'}`;
+        return;
+      }
+      diagEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">${isFa ? '✓ بک‌تست آغاز شد' : '✓ Backtest started'}</span>\n${isFa ? 'اجرای همین کد روی کندل‌های چارت فعال…' : 'Running this exact code on the active chart candles…'}`;
       this.onBacktest(sanitized);
     } catch (e) {
-      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">✗ Backtest Parse Error:</span>\n${e.message}`;
+      diagEl.innerHTML = `<span style="color: var(--accent-red); font-weight: 700;">${isFa ? '✗ خطای نحوی در اسکریپت:' : '✗ Script parse error:'}</span>\n${String(e.message).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}`;
     }
   }
 }

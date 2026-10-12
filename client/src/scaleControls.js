@@ -27,6 +27,7 @@ export class ScaleControls {
     }
     this.container = el;
     this.render();
+    this.dockIntoBottomBar();
     this.startCountdownLoop();
 
     // Ensure standard non-inverted price scale on startup
@@ -41,6 +42,31 @@ export class ScaleControls {
       }
       this.syncActiveStates();
     }, 200);
+  }
+
+  /**
+   * Desktop (TradingView parity): the Auto / Log / % / Inv toggles belong in the
+   * chart's bottom bar, beside the clock — never floating over the time axis.
+   * Mobile has no engine bottom bar, so the dock stays a floating pill that the
+   * stylesheet parks above the time axis.
+   */
+  dockIntoBottomBar() {
+    if (!this.container) return;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const bar = document.querySelector('.vela-widget-bottombar');
+    const area = document.querySelector('#chart-area');
+    if (!isMobile && bar && bar.getClientRects().length) {
+      if (this.container.parentElement !== bar) {
+        const anchor = bar.querySelector('.vela-bb-settings');
+        bar.insertBefore(this.container, anchor || null);
+      }
+      this.container.classList.add('in-bottombar');
+    } else if (area && this.container.parentElement !== area) {
+      area.appendChild(this.container);
+      this.container.classList.remove('in-bottombar');
+    } else if (isMobile) {
+      this.container.classList.remove('in-bottombar');
+    }
   }
 
   get renderer() {
@@ -76,17 +102,8 @@ export class ScaleControls {
           <span>Inv</span>
         </button>
 
-        <!-- Real-Time Candle Countdown Timer Badge -->
-        <div class="scale-dock-btn countdown-pill" title="${isFa ? 'زمان باقی‌مانده تا بسته شدن کندل جاری' : 'Time remaining until current bar close'}">
-          <span id="countdown-timer-val" class="num-ltr" style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--accent-gold);">--:--</span>
-        </div>
-
-        <!-- Timezone Selector Pill -->
-        <button id="btn-scale-timezone" class="scale-dock-btn tz-pill" title="${isFa ? 'منطقه زمانی چارت' : 'Chart Timezone'}">
-          <span id="scale-tz-label">${isFa
-            ? ({ 'UTC': 'UTC', 'America/New_York': 'نیویورک', 'Asia/Tehran': 'تهران', 'Europe/London': 'لندن', 'Asia/Tokyo': 'توکیو' })[this.activeTimezone] || this.activeTimezone
-            : (this.activeTimezone === 'Asia/Tehran' ? 'THR' : this.activeTimezone.replace('America/', '').replace('Europe/', '').replace('Asia/', ''))}</span>
-        </button>
+        <!-- The bar-close countdown lives on the price axis (engine-native) and the
+             timezone selector lives in the bottom bar clock — no duplicates here. -->
       </div>
     `;
 
@@ -176,6 +193,10 @@ export class ScaleControls {
     if (this.countdownTimer) clearInterval(this.countdownTimer);
 
     this.countdownTimer = setInterval(() => {
+      if (document.hidden) return;
+      // The engine may rebuild its bottom bar (layout / viewport change):
+      // re-home the dock so it never strands over the plot.
+      this.dockIntoBottomBar();
       this.updateCountdownDisplay();
     }, 1000);
     this.updateCountdownDisplay();
@@ -238,17 +259,9 @@ export class ScaleControls {
     return isNaN(num) ? 3600 : num * 60;
   }
 
-  showToast(msg) {
-    let toast = document.querySelector('#tradingchart-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'tradingchart-toast';
-      toast.className = 'app-floating-toast';
-      document.body.appendChild(toast);
-    }
-    toast.innerText = msg;
-    toast.classList.add('visible');
-    setTimeout(() => toast.classList.remove('visible'), 2200);
+  showToast(msg, type = 'info') {
+    // Delegate to the app's single toast host (consistent style/timing/a11y).
+    if (window.__TRADING_APP__?.showToast) return window.__TRADING_APP__.showToast(msg, type);
   }
 
   destroy() {

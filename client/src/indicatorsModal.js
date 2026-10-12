@@ -2,16 +2,17 @@
 // Complete 84+ Technical Indicators & Smart Money library modal for TradingChart
 
 import { INDICATORS_LIBRARY } from './indicatorsData.js';
+import { INDICATORS_FA } from './indicatorsFa.js';
 import { getLanguage, t, toPersianDigits } from './i18n.js';
 
 export { INDICATORS_LIBRARY };
 
 const CATEGORY_BADGES = {
-  smc: { label: 'SMC / ICT', bg: 'rgba(0, 229, 255, 0.15)', color: '#00e5ff' },
-  trend: { label: 'TREND', bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' },
-  oscillators: { label: 'OSCILLATOR', bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' },
-  volatility: { label: 'VOLATILITY', bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
-  volume: { label: 'VOLUME', bg: 'rgba(14, 203, 129, 0.15)', color: '#34d399' }
+  smc: { label: 'SMC / ICT', labelFa: 'اسمارت مانی', bg: 'rgba(0, 229, 255, 0.15)', color: '#00e5ff' },
+  trend: { label: 'TREND', labelFa: 'روند', bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' },
+  oscillators: { label: 'OSCILLATOR', labelFa: 'اسیلاتور', bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' },
+  volatility: { label: 'VOLATILITY', labelFa: 'نوسان‌پذیری', bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
+  volume: { label: 'VOLUME', labelFa: 'حجم', bg: 'rgba(14, 203, 129, 0.15)', color: '#34d399' }
 };
 
 export class IndicatorsModal {
@@ -125,8 +126,10 @@ export class IndicatorsModal {
 
     const filtered = INDICATORS_LIBRARY.filter(i => {
       const matchCat = this.activeCategory === 'all' || i.category === this.activeCategory;
+      const fa = INDICATORS_FA[i.id];
       const matchQ = !this.searchQuery ||
         i.name.toLowerCase().includes(this.searchQuery) ||
+        (fa && (fa.name.includes(this.searchQuery) || fa.description.includes(this.searchQuery))) ||
         i.description.toLowerCase().includes(this.searchQuery) ||
         (i.id && i.id.toLowerCase().includes(this.searchQuery)) ||
         (i.category && i.category.toLowerCase().includes(this.searchQuery)) ||
@@ -147,14 +150,18 @@ export class IndicatorsModal {
 
     cont.innerHTML = filtered.map(item => {
       const badge = CATEGORY_BADGES[item.category] || { label: item.category.toUpperCase(), bg: 'rgba(255,255,255,0.1)', color: '#fff' };
+      const fa = isFa ? INDICATORS_FA[item.id] : null;
+      const shownName = fa ? fa.name : item.name;
+      const shownDesc = fa ? fa.description : item.description;
+      const badgeLabel = isFa ? (badge.labelFa || badge.label) : badge.label;
       return `
         <div class="ind-card-row indicator-item ind-card ind-item-row" data-id="${item.id}" data-name="${item.name}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 8px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
           <div style="flex: 1; padding-${isFa ? 'left' : 'right'}: 14px;">
             <div style="font-weight: 700; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-              ${item.name}
-              <span style="font-size: 9px; background: ${badge.bg}; color: ${badge.color}; padding: 1px 6px; border-radius: 3px; font-weight: 800; letter-spacing: 0.5px;">${badge.label}</span>
+              <bdi>${shownName}</bdi>
+              <span style="font-size: 10px; background: ${badge.bg}; color: ${badge.color}; padding: 1px 6px; border-radius: 3px; font-weight: 800; ${isFa ? '' : 'letter-spacing: 0.5px;'} white-space: nowrap;">${badgeLabel}</span>
             </div>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.4;">${item.description}</div>
+            <div dir="auto" style="font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.5; text-align: start;">${shownDesc}</div>
           </div>
           <button class="btn-secondary add-ind-btn" data-id="${item.id}" style="padding: 5px 12px; font-size: 11px; white-space: nowrap; flex-shrink: 0; min-width: 68px; text-align: center; font-weight: 700;">
             ${isFa ? '+ افزودن' : '+ Add'}
@@ -163,11 +170,18 @@ export class IndicatorsModal {
       `;
     }).join('');
 
-    const handleAdd = (btn, item) => {
-      const res = this.onAddIndicator(item);
-      btn.innerText = isFa ? '✓ افزوده شد' : '✓ Added';
-      btn.style.borderColor = 'var(--accent-green)';
-      btn.style.color = 'var(--accent-green)';
+    const handleAdd = async (btn, item) => {
+      if (btn.dataset.busy === '1') return;           // debounce double-clicks
+      btn.dataset.busy = '1';
+      let res;
+      try { res = await this.onAddIndicator(item); } catch (e) { res = { success: false, error: e?.message }; }
+      const ok = res === undefined || res === true || res?.success === true;
+      // Only confirm success when the chart actually accepted it (plan gate,
+      // compile errors and engine failures must not show a green tick).
+      btn.innerText = ok ? (isFa ? '✓ افزوده شد' : '✓ Added') : (isFa ? '✕ افزوده نشد' : '✕ Not added');
+      btn.style.borderColor = ok ? 'var(--accent-green)' : 'var(--accent-red)';
+      btn.style.color = ok ? 'var(--accent-green)' : 'var(--accent-red)';
+      setTimeout(() => { delete btn.dataset.busy; }, 1500);
       setTimeout(() => {
         btn.innerText = isFa ? '+ افزودن' : '+ Add';
         btn.style.borderColor = '';

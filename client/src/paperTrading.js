@@ -1,7 +1,7 @@
 // client/src/paperTrading.js
 // Institutional Paper Trading Terminal & Order Execution Manager with Level 2 DOM (Depth of Market)
 
-import { getLanguage, t } from './i18n.js';
+import { getLanguage, t, toPersianDigits } from './i18n.js';
 import { showConfirmDialog, showPromptDialog } from './uiDialog.js';
 
 function escapeHtmlAcc(s) {
@@ -15,8 +15,8 @@ export class PaperTrading {
     this.currentSymbol = 'BTCUSDT';
     this.currentPrice = 78000.0;
     this.activeTab = 'ticket'; // 'ticket' or 'dom'
-    this.loadActiveAccount();
     this.orders = [];
+    this.loadActiveAccount();
     this.render();
   }
 
@@ -96,6 +96,7 @@ export class PaperTrading {
     this.balance = Number(acc.balance) || 0;
     this.positions = Array.isArray(acc.positions) ? acc.positions : [];
     this.history = Array.isArray(acc.history) ? acc.history : [];
+    this.orders = Array.isArray(acc.orders) ? acc.orders : [];
     try { localStorage.setItem('tradingchart_paper_active', this.activeAccountId); } catch (e) {}
   }
 
@@ -103,7 +104,7 @@ export class PaperTrading {
   persistAccount() {
     // Cheap change-signature guard: setMarket() ticks call this constantly,
     // but the store must only be written when something actually changed.
-    const sig = `${this.balance}|${this.positions.length}|${this.positions[this.positions.length - 1]?.id || ''}|${(this.history || []).length}`;
+    const sig = `${this.balance}|${this.positions.length}|${this.positions[this.positions.length - 1]?.id || ''}|${(this.history || []).length}|${(this.orders || []).map(o => o.id).join(',')}`;
     if (this._persistSig === sig) return;
     this._persistSig = sig;
     const acc = this.accounts.find(a => a.id === this.activeAccountId);
@@ -111,6 +112,7 @@ export class PaperTrading {
       acc.balance = this.balance;
       acc.positions = this.positions;
       acc.history = this.history || [];
+      acc.orders = this.orders || [];
       this.saveAccounts();
     }
   }
@@ -179,11 +181,137 @@ export class PaperTrading {
           pos.unrealizedPnlPct = (pos.unrealizedPnl / pos.margin) * 100;
         }
       }
+      this.checkPendingOrders();
       this.updatePositionsView();
       if (this.activeTab === 'dom') {
         this.renderDOMView();
       }
     }
+  }
+
+  // ── Pending order engine (limit / stop) ────────────────────────────────
+  // Real exchange semantics: a resting order fills only when the market
+  // trades through its price. Marketable orders (buy-limit ≥ ask, sell-limit
+  // ≤ bid) fill immediately at the market, never at a better fictitious price.
+  isMarketable(o, px) {
+    if (o.type === 'limit') return o.side === 'long' ? px <= o.price : px >= o.price;
+    if (o.type === 'stop') return o.side === 'long' ? px >= o.price : px <= o.price;
+    return true;
+  }
+
+  checkPendingOrders() {
+    if (!this.orders?.length || !this.currentPrice) return;
+    const px = this.currentPrice;
+    const still = [];
+    const filled = [];
+    for (const o of this.orders) {
+      if (o.symbol === this.currentSymbol && this.isMarketable(o, px)) filled.push(o);
+      else still.push(o);
+    }
+    if (!filled.length) return;
+    this.orders = still;
+    const isFa = getLanguage() === 'fa';
+    for (const o of filled) {
+      // limit: fill at the limit price (or better); stop: becomes market
+      const fillPx = o.type === 'limit'
+        ? (o.side === 'long' ? Math.min(o.price, px) : Math.max(o.price, px))
+        : px;
+      const ok = this.openPosition(o.side, o.qty, o.leverage, fillPx, { silent: true });
+      const sideTxt = isFa ? (o.side === 'long' ? 'خرید' : 'فروش') : (o.side === 'long' ? 'Buy' : 'Sell');
+      const typeTxt = isFa ? (o.type === 'limit' ? 'لیمیت' : 'استاپ') : (o.type === 'limit' ? 'limit' : 'stop');
+      if (ok) {
+        window.__TRADING_APP__?.showToast?.(isFa
+          ? `سفارش ${typeTxt} ${sideTxt} ${o.symbol} در قیمت ${this.fmtPx(fillPx)} اجرا شد`
+          : `${sideTxt} ${typeTxt} ${o.symbol} filled at ${this.fmtPx(fillPx)}`, 'success');
+      }
+    }
+  }
+
+  /** Simulated half-spread model (paper venue). Same function feeds the
+   *  quick-trade bid/ask display, so displayed price === fill price. */
+  spreadFor(px) {
+    const n = Number(px) || 0;
+    return n > 1000 ? 5 : (n > 10 ? 0.05 : 0.0005);
+  }
+  quote(side) {
+    const h = this.spreadFor(this.currentPrice) / 2;
+    return side === 'long' ? this.currentPrice + h : this.currentPrice - h;
+  }
+
+  fmtPnl(v) {
+    const n = Number(v) || 0;
+    const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n > 0.004 ? `+$${abs}` : n < -0.004 ? `−$${abs}` : `$0.00`;
+  }
+
+  fmtPx(v) {
+    const n = Number(v) || 0;
+    const d = n >= 1000 ? 2 : n >= 1 ? 4 : 6;
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: d });
+  }
+
+  /** Single entry point for every order source (ticket, DOM, chart, API). */
+  placeOrder({ side, type = 'market', price = null, qty = 0.1, leverage = null } = {}) {
+    const isFa = getLanguage() === 'fa';
+    const s = (side === 'buy' || side === 'long') ? 'long' : 'short';
+    const q = Number(qty);
+    const lev = Number(leverage) || this.defaultLeverage();
+    if (!(q > 0)) {
+      window.__TRADING_APP__?.showToast?.(isFa ? 'حجم سفارش باید بزرگ‌تر از صفر باشد.' : 'Order quantity must be greater than zero.', 'error');
+      return null;
+    }
+    const px = this.currentPrice;
+    if (type === 'market' || price == null || price === '') {
+      // market: buy lifts the ask, sell hits the bid
+      return this.openPosition(s, q, lev, this.quote(s)) ? 'filled' : null;
+    }
+    const p = Number(price);
+    if (!(p > 0)) {
+      window.__TRADING_APP__?.showToast?.(isFa ? 'قیمت سفارش معتبر نیست.' : 'Invalid order price.', 'error');
+      return null;
+    }
+    const order = {
+      id: 'ord-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      symbol: this.currentSymbol, side: s, type, price: p, qty: q, leverage: lev,
+      createdAt: new Date().toISOString()
+    };
+    if (this.isMarketable(order, px)) {
+      // marketable on arrival → fills now at the market price
+      const q0 = this.quote(s); // buy lifts ask, sell hits bid
+      const fillPx = type === 'limit' ? (s === 'long' ? Math.min(p, q0) : Math.max(p, q0)) : q0;
+      return this.openPosition(s, q, lev, fillPx) ? 'filled' : null;
+    }
+    // reserve margin check up-front so the user is told now, not at trigger time
+    if ((p * q) / lev > this.balance) {
+      window.__TRADING_APP__?.showToast?.(isFa ? 'موجودی مارجین دمو برای این سفارش کافی نیست.' : 'Insufficient paper balance for this order.', 'error');
+      return null;
+    }
+    this.orders.push(order);
+    const sideTxt = isFa ? (s === 'long' ? 'خرید' : 'فروش') : (s === 'long' ? 'Buy' : 'Sell');
+    const typeTxt = isFa ? (type === 'limit' ? 'لیمیت' : 'استاپ') : (type === 'limit' ? 'limit' : 'stop');
+    window.__TRADING_APP__?.showToast?.(isFa
+      ? `سفارش ${typeTxt} ${sideTxt} ${toPersianDigits(String(q))} ${order.symbol} در قیمت ${this.fmtPx(p)} ثبت شد و در انتظار اجراست`
+      : `${sideTxt} ${typeTxt} ${q} ${order.symbol} @ ${this.fmtPx(p)} placed (pending)`, 'info');
+    this.updatePositionsView();
+    return order.id;
+  }
+
+  cancelOrder(id) {
+    const n = this.orders.length;
+    this.orders = this.orders.filter(o => o.id !== id);
+    if (this.orders.length !== n) {
+      const isFa = getLanguage() === 'fa';
+      window.__TRADING_APP__?.showToast?.(isFa ? 'سفارش لغو شد.' : 'Order cancelled.', 'info');
+      this.updatePositionsView();
+    }
+  }
+
+  defaultLeverage() {
+    const sel = this.container?.querySelector?.('#order-lev-sel');
+    const v = parseInt(sel?.value, 10);
+    if (v > 0) return v;
+    const prof = window.__TRADING_APP__?.userProfileModal?.profile;
+    return Number(prof?.defaultLeverage) || 1;
   }
 
   calculateEquity() {
@@ -195,7 +323,7 @@ export class PaperTrading {
     if (!this.container) return;
     const isFa = getLanguage() === 'fa';
     const defaultCap = window.__TRADING_APP__?.userProfileModal?.profile?.defaultStartingCapital || 100000;
-    const defaultLev = window.__TRADING_APP__?.userProfileModal?.profile?.defaultLeverage || 10;
+    const defaultLev = Number(window.__TRADING_APP__?.userProfileModal?.profile?.defaultLeverage) || 10;
 
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow-y: auto; padding: 12px; gap: 12px;">
@@ -207,7 +335,7 @@ export class PaperTrading {
                 ${isFa ? 'موجودی کل حساب مجازی' : 'Paper Account Equity'}
               </div>
               <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 2px;" class="num-ltr" id="paper-equity">
-                $${this.calculateEquity().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $${this.calculateEquity().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
             <button id="btn-reset-paper" class="btn-secondary" style="font-size: 11px; padding: 5px 12px; min-height: 32px; color: var(--text-dim); font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? `بازنشانی موجودی به $${Number(defaultCap).toLocaleString()}` : `Reset balance to $${Number(defaultCap).toLocaleString()}`}" aria-label="Reset account balance">
@@ -227,15 +355,15 @@ export class PaperTrading {
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
             <div>
-              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'موجودی آزاد' : 'Available Balance'}</div>
+              <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'موجودی آزاد (بدون مارجین درگیر)' : 'Free Balance (excl. margin)'}</div>
               <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 2px;" class="num-ltr">
-                $${this.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                $${this.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
             <div>
               <div style="font-size: 10px; color: var(--text-dim);">${isFa ? 'سود/زیان شناور' : 'Unrealized P&L'}</div>
-              <div style="font-size: 13px; font-weight: 800; color: var(--accent-green); margin-top: 2px;" class="num-ltr" id="paper-total-pnl">
-                +$250.00
+              <div style="font-size: 13px; font-weight: 800; color: var(--text-main); margin-top: 2px;" class="num-ltr" id="paper-total-pnl">
+                ${this.fmtPnl(this.positions.reduce((a, x) => a + (x.unrealizedPnl || 0), 0))}
               </div>
             </div>
           </div>
@@ -244,10 +372,10 @@ export class PaperTrading {
         <!-- Mode Sub-Tabs: Ticket vs Level 2 DOM -->
         <div style="display: flex; gap: 4px; background: var(--bg-darkest); padding: 3px; border-radius: 6px; border: 1px solid var(--border-subtle);">
           <button id="btn-subtab-ticket" class="btn-secondary ${this.activeTab === 'ticket' ? 'active' : ''}" style="flex: 1; justify-content: center; font-size: 11px; padding: 5px; ${this.activeTab === 'ticket' ? 'background: var(--bg-card); color: var(--accent-cyan); border-color: var(--accent-cyan);' : 'border-color: transparent;'}">
-            ${isFa ? 'اردر تیکت (Order Ticket)' : 'Order Ticket'}
+            ${isFa ? 'تیکت سفارش' : 'Order Ticket'}
           </button>
           <button id="btn-subtab-dom" class="btn-secondary ${this.activeTab === 'dom' ? 'active' : ''}" style="flex: 1; justify-content: center; font-size: 11px; padding: 5px; ${this.activeTab === 'dom' ? 'background: var(--bg-card); color: var(--accent-cyan); border-color: var(--accent-cyan);' : 'border-color: transparent;'}">
-            ${isFa ? 'عمق بازار (Level 2 DOM)' : 'Depth of Market (DOM)'}
+            ${isFa ? 'عمق بازار (DOM)' : 'Depth of Market (DOM)'}
           </button>
         </div>
 
@@ -255,37 +383,37 @@ export class PaperTrading {
         <div id="paper-ticket-view" style="display: ${this.activeTab === 'ticket' ? 'flex' : 'none'}; flex-direction: column; gap: 10px; background: var(--bg-darkest); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
-              ${isFa ? 'اردر معامله:' : 'Ticket:'} <span id="order-ticket-sym" style="color: var(--accent-cyan); font-weight: 800;">${this.currentSymbol}</span>
+              ${isFa ? 'سفارش روی' : 'Ticket:'} <bdi id="order-ticket-sym" style="color: var(--accent-cyan); font-weight: 800;">${this.currentSymbol}</bdi>
             </span>
             <span style="font-size: 13px; font-weight: 800; color: #fff;" class="num-ltr" id="order-cur-price">$${this.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <button id="btn-order-buy" class="btn-primary" style="background: var(--accent-green); color: #fff; justify-content: center; height: 34px; font-weight: 800;">
-              ${isFa ? 'خرید (BUY / LONG)' : 'BUY / LONG'}
+              ${isFa ? 'خرید' : 'Buy / Long'}
             </button>
             <button id="btn-order-sell" class="btn-primary" style="background: var(--accent-red); color: #fff; justify-content: center; height: 34px; font-weight: 800;">
-              ${isFa ? 'فروش (SELL / SHORT)' : 'SELL / SHORT'}
+              ${isFa ? 'فروش' : 'Sell / Short'}
             </button>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
             <div>
-              <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'نوع اردر' : 'Type'}</label>
+              <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'نوع سفارش' : 'Type'}</label>
               <select id="order-type-sel" style="width: 100%; padding: 4px 6px; font-size: 11px;">
-                <option value="market">Market</option>
-                <option value="limit">Limit</option>
-                <option value="stop">Stop</option>
+                <option value="market">${isFa ? 'بازار' : 'Market'}</option>
+                <option value="limit">${isFa ? 'لیمیت' : 'Limit'}</option>
+                <option value="stop">${isFa ? 'استاپ' : 'Stop'}</option>
               </select>
             </div>
             <div>
               <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'حجم معامله' : 'Quantity'}</label>
-              <input type="number" id="order-qty-input" value="0.25" step="0.05" style="width: 100%; padding: 4px 6px; font-size: 11px;" />
+              <input type="number" id="order-qty-input" value="0.25" min="0" step="0.05" inputmode="decimal" class="num-ltr" style="width: 100%; padding: 4px 6px; font-size: 11px;" />
             </div>
             <div>
-              <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'اهرم (Leverage)' : 'Leverage'}</label>
+              <label style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;">${isFa ? 'اهرم' : 'Leverage'}</label>
               <select id="order-lev-sel" style="width: 100%; padding: 4px 6px; font-size: 11px;">
-                <option value="1" ${defaultLev === 1 ? 'selected' : ''}>1x (Spot)</option>
+                <option value="1" ${defaultLev === 1 ? 'selected' : ''}>${isFa ? '1x (اسپات)' : '1x (Spot)'}</option>
                 <option value="2" ${defaultLev === 2 ? 'selected' : ''}>2x</option>
                 <option value="5" ${defaultLev === 5 ? 'selected' : ''}>5x</option>
                 <option value="10" ${defaultLev === 10 ? 'selected' : ''}>10x</option>
@@ -295,13 +423,17 @@ export class PaperTrading {
               </select>
             </div>
           </div>
+          <div id="order-price-wrap" style="display: none;">
+            <label for="order-price-input" style="font-size: 10px; color: var(--text-dim); display: block; margin-bottom: 2px;"><span id="order-price-label">${isFa ? 'قیمت سفارش' : 'Order price'}</span> <span style="opacity:.7">(USD)</span></label>
+            <input type="number" id="order-price-input" class="num-ltr" min="0" step="any" inputmode="decimal" style="width: 100%; padding: 4px 6px; font-size: 11px;" />
+          </div>
         </div>
 
         <!-- View 2: Level 2 Depth of Market (DOM) -->
         <div id="paper-dom-view" style="display: ${this.activeTab === 'dom' ? 'flex' : 'none'}; flex-direction: column; gap: 8px; background: var(--bg-darkest); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
             <span style="font-weight: 700; color: var(--text-muted);">${isFa ? 'دفتر سفارشات زنده L2' : 'L2 Order Book'}</span>
-            <span id="dom-spread-badge" class="num-ltr" style="font-size: 10px; color: var(--accent-cyan); font-weight: 700;">Spread: $0.50</span>
+            <span id="dom-spread-badge" class="num-ltr" style="font-size: 10px; color: var(--accent-cyan); font-weight: 700;"></span>
           </div>
           <div id="dom-ladder-wrap" class="num-ltr" style="font-family: var(--font-mono); font-size: 11px; display: flex; flex-direction: column; gap: 2px;">
             <!-- DOM rows populated dynamically -->
@@ -312,9 +444,18 @@ export class PaperTrading {
         <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border-subtle);">
           <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between;">
             <span>${isFa ? 'پوزیشن‌های باز معاملاتی' : 'Open Positions'}</span>
-            <span id="pos-count-badge" style="font-size: 10px; background: var(--bg-surface); padding: 1px 6px; border-radius: 3px; color: var(--accent-cyan);">1 Active</span>
+            <span id="pos-count-badge" style="font-size: 10px; background: var(--bg-surface); padding: 1px 6px; border-radius: 3px; color: var(--accent-cyan);"></span>
           </div>
           <div id="positions-table-wrap"></div>
+        </div>
+
+        <!-- Pending (resting) orders -->
+        <div id="pending-orders-card" style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border-subtle);">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>${isFa ? 'سفارش‌های در انتظار' : 'Pending Orders'}</span>
+            <span id="ord-count-badge" style="font-size: 10px; background: var(--bg-surface); padding: 1px 6px; border-radius: 3px; color: var(--accent-gold, #f59e0b);"></span>
+          </div>
+          <div id="orders-table-wrap"></div>
         </div>
       </div>
     `;
@@ -343,17 +484,29 @@ export class PaperTrading {
     const inputQty = this.container.querySelector('#order-qty-input');
     const selLev = this.container.querySelector('#order-lev-sel');
 
-    btnBuy?.addEventListener('click', () => {
-      const qty = parseFloat(inputQty?.value) || 0.1;
+    const selType = this.container.querySelector('#order-type-sel');
+    const priceWrap = this.container.querySelector('#order-price-wrap');
+    const inputPrice = this.container.querySelector('#order-price-input');
+    const syncType = () => {
+      const isMkt = (selType?.value || 'market') === 'market';
+      if (priceWrap) priceWrap.style.display = isMkt ? 'none' : 'block';
+      if (!isMkt && inputPrice && !inputPrice.value) inputPrice.value = String(+this.currentPrice.toFixed(this.currentPrice >= 1 ? 2 : 6));
+      this.ticketType = selType?.value || 'market';
+      const lbl = this.container.querySelector('#order-price-label');
+      const fa = getLanguage() === 'fa';
+      if (lbl) lbl.textContent = selType?.value === 'stop' ? (fa ? 'قیمت فعال‌سازی استاپ' : 'Stop trigger price') : (fa ? 'قیمت لیمیت' : 'Limit price');
+    };
+    selType?.addEventListener('change', syncType);
+    if (selType && this.ticketType) selType.value = this.ticketType;
+    syncType();
+    const submit = (side) => {
+      const qty = parseFloat(inputQty?.value);
       const lev = parseInt(selLev?.value, 10) || 1;
-      this.openPosition('long', qty, lev);
-    });
-
-    btnSell?.addEventListener('click', () => {
-      const qty = parseFloat(inputQty?.value) || 0.1;
-      const lev = parseInt(selLev?.value, 10) || 1;
-      this.openPosition('short', qty, lev);
-    });
+      const type = selType?.value || 'market';
+      this.placeOrder({ side, type, price: type === 'market' ? null : inputPrice?.value, qty, leverage: lev });
+    };
+    btnBuy?.addEventListener('click', () => submit('long'));
+    btnSell?.addEventListener('click', () => submit('short'));
 
     const btnReset = this.container.querySelector('#btn-reset-paper');
     // Multi-account switcher events (TradingView Portfolios parity)
@@ -387,6 +540,7 @@ export class PaperTrading {
         onConfirm: () => {
           this.balance = Number(defaultCap);
           this.positions = [];
+          this.orders = [];
           this.updatePositionsView();
           window.__TRADING_APP__?.showToast?.(isFa ? 'حساب دمو بازنشانی شد' : 'Paper account reset', 'success');
         }
@@ -435,7 +589,7 @@ export class PaperTrading {
     html += `
       <div style="background: var(--bg-surface); padding: 4px 8px; margin: 2px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; border: 1px solid var(--border-subtle);">
         <span style="color: #fff; font-size: 12px;">$${basePrice.toFixed(2)}</span>
-        <span style="font-size: 9px; color: var(--accent-green); background: rgba(0, 242, 176, 0.1); padding: 1px 4px; border-radius: 2px;">LAST TICK</span>
+        <span style="font-size: 9px; color: var(--accent-green); background: rgba(0, 242, 176, 0.1); padding: 1px 4px; border-radius: 2px;">${getLanguage() === 'fa' ? 'آخرین قیمت' : 'LAST'}</span>
       </div>
     `;
 
@@ -452,51 +606,63 @@ export class PaperTrading {
     }
 
     wrap.innerHTML = html;
+    const spreadBadge = this.container.querySelector('#dom-spread-badge');
+    if (spreadBadge) spreadBadge.textContent = `${getLanguage() === 'fa' ? 'اسپرد' : 'Spread'}: $${this.fmtPx(step * 2)}`;
+    wrap.title = getLanguage() === 'fa' ? 'برای ثبت سفارش لیمیت، روی سطح قیمت کلیک کنید' : 'Click a price level to place a limit order';
 
     // Click on DOM price triggers order
     wrap.querySelectorAll('.dom-ask').forEach(row => {
       row.addEventListener('click', () => {
         const p = parseFloat(row.getAttribute('data-price'));
-        this.openPosition('short', 0.2, 10, p);
+        // Ask level above market → resting SELL limit
+        this.placeOrder({ side: 'short', type: 'limit', price: p, qty: parseFloat(this.container.querySelector('#order-qty-input')?.value) || 0.1 });
       });
     });
 
     wrap.querySelectorAll('.dom-bid').forEach(row => {
       row.addEventListener('click', () => {
         const p = parseFloat(row.getAttribute('data-price'));
-        this.openPosition('long', 0.2, 10, p);
+        // Bid level below market → resting BUY limit
+        this.placeOrder({ side: 'long', type: 'limit', price: p, qty: parseFloat(this.container.querySelector('#order-qty-input')?.value) || 0.1 });
       });
     });
   }
 
-  openPosition(side, qty, leverage, customPrice = null) {
-    const execPrice = customPrice || this.currentPrice;
+  openPosition(side, qty, leverage, customPrice = null, opts = {}) {
+    const execPrice = Number(customPrice) || this.currentPrice;
+    const lev = Number(leverage) || 1;
     const notional = execPrice * qty;
-    const margin = notional / leverage;
+    const margin = notional / lev;
     if (margin > this.balance) {
-      window.__TRADING_APP__?.showToast?.(getLanguage() === 'fa' ? 'موجودی مارجین دمو ناکافی است' : 'Insufficient available paper balance');
-      return;
+      window.__TRADING_APP__?.showToast?.(getLanguage() === 'fa' ? 'موجودی مارجین دمو ناکافی است.' : 'Insufficient available paper balance', 'error');
+      return false;
     }
     // TradingView-parity plan gate: holdings-per-account entitlement.
     if (this.app?.auth && !this.app.auth.enforce('holdingsPerAccount', this.positions.length, 'open holdings', 'پوزیشن‌های باز')) {
-      return;
+      return false;
     }
 
     this.balance -= margin;
+    const diff0 = side === 'long' ? (this.currentPrice - execPrice) : (execPrice - this.currentPrice);
     this.positions.push({
-      id: 'pos-' + Date.now(),
+      id: 'pos-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       symbol: this.currentSymbol,
       side,
       qty,
       entryPrice: execPrice,
       markPrice: this.currentPrice,
-      leverage,
+      leverage: lev,
       margin,
-      unrealizedPnl: 0,
-      unrealizedPnlPct: 0
+      unrealizedPnl: diff0 * qty,
+      unrealizedPnlPct: margin ? (diff0 * qty / margin) * 100 : 0,
+      openedAt: new Date().toISOString()
     });
 
     this.updatePositionsView();
+    if (!opts.silent && window.__TRADING_APP__?.soundEngine) {
+      window.__TRADING_APP__.soundEngine.playOrder?.();
+    }
+    return true;
   }
 
   executeOrder(side, type = 'market', price = null, qty = 0.1) {
@@ -504,18 +670,20 @@ export class PaperTrading {
       const opts = side;
       side = opts.side;
       type = opts.type || 'market';
-      price = opts.price || null;
+      price = opts.price ?? null;
       qty = opts.qty || opts.quantity || 0.1;
-      if (opts.symbol && opts.symbol !== this.symbol) {
-        this.setMarket(opts.symbol, opts.price || this.currentPrice);
+      const want = opts.symbol ? String(opts.symbol).replace(/^.*:/, '').toUpperCase() : null;
+      if (want && want !== this.currentSymbol) {
+        // Never price one instrument with another's quote.
+        const isFa = getLanguage() === 'fa';
+        window.__TRADING_APP__?.showToast?.(isFa
+          ? `برای ثبت سفارش روی ${want}، ابتدا همین نماد را روی چارت باز کنید.`
+          : `Open ${want} on the chart before trading it.`, 'warning');
+        return null;
       }
+      return this.placeOrder({ side, type, price, qty, leverage: opts.leverage });
     }
-    const normalizedSide = (side === 'buy' || side === 'long') ? 'long' : 'short';
-    const execPrice = (type === 'market' || !price) ? this.currentPrice : Number(price);
-    this.openPosition(normalizedSide, Number(qty) || 0.1, 10, execPrice);
-    if (window.__TRADING_APP__?.soundEngine) {
-      window.__TRADING_APP__.soundEngine.playOrder();
-    }
+    return this.placeOrder({ side, type, price, qty });
   }
 
   closePosition(posId) {
@@ -534,29 +702,31 @@ export class PaperTrading {
       // Synchronize closed paper trade into Trade Journal
       if (window.__TRADING_APP__?.tradeJournal?.sampleExecutions) {
         const now = new Date();
-        const openTime = new Date(now.getTime() - 600000).toISOString();
+        // Real timestamps only — never fabricate an open time.
+        const openTime = closedPos.openedAt || now.toISOString();
         const closeTime = now.toISOString();
+        const accId = this.activeAccountId || 'pap_main';
 
         const execOpen = {
-          id: `exec-open-${Date.now()}`,
-          accountId: 'tradingchart-paper-1',
+          id: `exec-open-${closedPos.id}`,
+          accountId: accId,
           symbol: closedPos.symbol,
           side: closedPos.side === 'long' ? 'buy' : 'sell',
           quantity: closedPos.qty,
           price: closedPos.entryPrice,
           executedAt: openTime,
-          fee: 1.0
+          fee: 0
         };
 
         const execClose = {
-          id: `exec-close-${Date.now()}`,
-          accountId: 'tradingchart-paper-1',
+          id: `exec-close-${closedPos.id}`,
+          accountId: accId,
           symbol: closedPos.symbol,
           side: closedPos.side === 'long' ? 'sell' : 'buy',
           quantity: closedPos.qty,
           price: closedPos.markPrice,
           executedAt: closeTime,
-          fee: 1.0
+          fee: 0
         };
 
         window.__TRADING_APP__.tradeJournal.sampleExecutions.unshift(execClose, execOpen);
@@ -570,6 +740,30 @@ export class PaperTrading {
 
       this.updatePositionsView();
     }
+  }
+
+  renderOrdersView(isFa) {
+    const wrap = this.container?.querySelector('#orders-table-wrap');
+    const badge = this.container?.querySelector('#ord-count-badge');
+    const n = (this.orders || []).length;
+    if (badge) badge.textContent = isFa ? toPersianDigits(String(n)) : String(n);
+    if (!wrap) return;
+    if (!n) {
+      wrap.innerHTML = `<div style="font-size: 11px; color: var(--text-dim); padding: 8px 0; text-align: center;">${isFa ? 'سفارش در انتظاری ندارید.' : 'No pending orders.'}</div>`;
+      return;
+    }
+    wrap.innerHTML = this.orders.map(o => {
+      const sideTxt = isFa ? (o.side === 'long' ? 'خرید' : 'فروش') : (o.side === 'long' ? 'BUY' : 'SELL');
+      const typeTxt = isFa ? (o.type === 'limit' ? 'لیمیت' : 'استاپ') : o.type.toUpperCase();
+      const col = o.side === 'long' ? 'var(--accent-green)' : 'var(--accent-red)';
+      return `<div class="pending-order-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; margin-bottom: 6px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 11px;">
+        <span style="font-weight: 800; color: ${col};">${sideTxt} ${typeTxt}</span>
+        <span style="color: #fff; font-weight: 700;">${escapeHtmlAcc(o.symbol)}</span>
+        <span class="num-ltr" style="color: var(--text-main);">${o.qty} @ $${this.fmtPx(o.price)}</span>
+        <button class="btn-secondary cancel-ord-btn" data-id="${o.id}" style="padding: 2px 10px; font-size: 11px; min-height: 28px; color: var(--accent-red);" title="${isFa ? 'لغو سفارش' : 'Cancel order'}" aria-label="${isFa ? 'لغو سفارش' : 'Cancel order'}">${isFa ? 'لغو' : 'Cancel'}</button>
+      </div>`;
+    }).join('');
+    wrap.querySelectorAll('.cancel-ord-btn').forEach(b => b.addEventListener('click', () => this.cancelOrder(b.getAttribute('data-id'))));
   }
 
   updatePositionsView() {
@@ -589,12 +783,13 @@ export class PaperTrading {
 
     if (eqEl) eqEl.innerText = `$${this.calculateEquity().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (curPriceEl) curPriceEl.innerText = `$${this.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (countBadge) countBadge.innerText = `${this.positions.length} ${isFa ? 'فعال' : 'Active'}`;
+    if (countBadge) countBadge.innerText = isFa ? `${toPersianDigits(String(this.positions.length))} فعال` : `${this.positions.length} Active`;
+    this.renderOrdersView(isFa);
 
     const totalUnrealized = this.positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
     if (pnlEl) {
-      pnlEl.innerText = `${totalUnrealized >= 0 ? '+' : ''}$${totalUnrealized.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      pnlEl.style.color = totalUnrealized >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      pnlEl.innerText = this.fmtPnl(totalUnrealized);
+      pnlEl.style.color = totalUnrealized > 0.004 ? 'var(--accent-green)' : totalUnrealized < -0.004 ? 'var(--accent-red)' : 'var(--text-main)';
     }
 
     if (!wrap) return;
@@ -617,7 +812,7 @@ export class PaperTrading {
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-weight: 800; font-size: 13px; color: #fff;">${p.symbol}</span>
               <span style="font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; background: ${sideBg}; color: ${sideColor};">
-                ${p.side.toUpperCase()} ${p.leverage}x
+                ${isFa ? (p.side === 'long' ? 'خرید' : 'فروش') : p.side.toUpperCase()} <span class="num-ltr">${p.leverage}x</span>
               </span>
             </div>
             <button class="btn-secondary close-pos-btn" data-id="${p.id}" style="padding: 4px 12px; font-size: 11px; min-height: 30px; color: var(--accent-red); border-color: rgba(255, 77, 91, 0.4); font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'بستن پوزیشن' : 'Close position'}" aria-label="Close position">
@@ -642,7 +837,7 @@ export class PaperTrading {
             <div style="text-align: end;">
               <span style="color: var(--text-dim);">${isFa ? 'سود/زیان:' : 'P&L:'}</span>
               <span class="num-ltr" style="font-weight: 800; color: ${color}; margin-left: 2px;">
-                ${isWin ? '+' : ''}$${p.unrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${isWin ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
+                ${this.fmtPnl(p.unrealizedPnl)} (${p.unrealizedPnlPct > 0.05 ? '+' : ''}${p.unrealizedPnlPct.toFixed(1)}%)
               </span>
             </div>
           </div>

@@ -33,16 +33,44 @@ export class DepthOfMarketView {
     this.pollTimer = setInterval(() => this.fetchDepth(true), 1500);
   }
 
+  /** Only poll while the ladder is actually on screen and the tab is visible
+   *  (was: every 1.5 s forever, for every visitor, even with the panel closed). */
+  isVisible() {
+    if (document.hidden || !this.container) return false;
+    return this.container.getClientRects().length > 0 && this.container.offsetParent !== null;
+  }
+
   async fetchDepth(silent = false) {
+    if (silent && !this.isVisible()) return;
+    if (this._inflight) return;
+    this._inflight = true;
     try {
       const res = await fetch(`/api/depth?symbol=${this.symbol}&levels=12`);
       if (res.ok) {
         this.data = await res.json();
         this.updateLadder();
+        this.updateSourceBadge();
       }
     } catch (e) {
-      if (!silent) console.error('[DOM] Fetch depth error:', e);
+      if (!silent) console.warn('[DOM] Fetch depth error:', e);
+    } finally {
+      this._inflight = false;
     }
+  }
+
+  /** Honest provenance: real exchange book vs simulated ladder. */
+  updateSourceBadge() {
+    const b = this.container?.querySelector('#dom-source-badge');
+    if (!b || !this.data) return;
+    const isFa = getLanguage() === 'fa';
+    const sim = this.data.simulated !== false;
+    b.style.display = 'inline-block';
+    b.textContent = sim ? (isFa ? 'شبیه‌سازی‌شده' : 'Simulated') : (isFa ? 'زنده · بایننس' : 'Live · Binance');
+    b.style.color = sim ? 'var(--accent-gold, #f59e0b)' : 'var(--accent-green)';
+    b.style.background = sim ? 'rgba(245,158,11,0.12)' : 'rgba(14,203,129,0.12)';
+    b.title = sim
+      ? (isFa ? 'برای این نماد دفتر سفارش عمومی در دسترس نیست؛ پله‌ها نمایشی هستند.' : 'No public order book for this instrument; levels are illustrative.')
+      : (isFa ? 'دفتر سفارش واقعی بایننس (به‌روزرسانی هر ۱٫۵ ثانیه)' : 'Real Binance order book (≈1.5 s refresh)');
   }
 
   render() {
@@ -56,14 +84,15 @@ export class DepthOfMarketView {
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-weight: 800; font-family: var(--font-mono); color: #fff; font-size: 13px;" id="dom-symbol">${this.symbol}</span>
-              <span style="font-size: 10px; color: var(--accent-cyan); background: rgba(0,242,176,0.1); padding: 1px 5px; border-radius: 3px; font-weight: 700;">${isFa ? 'عمق بازار L2' : 'DOM L2'}</span>
+              <span style="font-size: 10px; color: var(--accent-cyan); background: rgba(0,242,176,0.1); padding: 1px 5px; border-radius: 3px; font-weight: 700;">${isFa ? 'عمق بازار' : 'DOM L2'}</span>
+              <span id="dom-source-badge" style="font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 700; display: none;"></span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'حجم سفارش:' : 'Size:'}</span>
               <div style="display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden;">
-                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 4px 10px; min-width: 32px; min-height: 32px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
-                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 58px; height: 32px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 12px; padding: 0 4px; appearance: textfield; -moz-appearance: textfield;" aria-label="Order size" />
-                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 4px 10px; min-width: 32px; min-height: 32px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
+                <button id="dom-qty-dec" style="background: transparent; border: none; color: #fff; padding: 0; min-width: 30px; min-height: 30px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'کاهش حجم سفارش' : 'Decrease order size'}" aria-label="Decrease order size">−</button>
+                <input type="number" id="dom-order-qty" value="${this.orderQty.toFixed(2)}" step="0.05" min="0.01" style="width: 42px; height: 30px; background: transparent; border: none; color: #fff; text-align: center; font-family: var(--font-mono); font-size: 12px; padding: 0 4px; appearance: textfield; -moz-appearance: textfield;" aria-label="Order size" />
+                <button id="dom-qty-inc" style="background: transparent; border: none; color: #fff; padding: 0; min-width: 30px; min-height: 30px; cursor: pointer; font-weight: 800; font-size: 14px;" title="${isFa ? 'افزایش حجم سفارش' : 'Increase order size'}" aria-label="Increase order size">+</button>
               </div>
             </div>
           </div>
@@ -83,7 +112,7 @@ export class DepthOfMarketView {
 
         <!-- Table Columns Header -->
         <div style="display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 6px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); text-align: end;">
-          <div style="text-align: start;">${isFa ? 'اردر' : 'Order'}</div>
+          <div style="text-align: start;">${isFa ? 'سفارش' : 'Order'}</div>
           <div>${isFa ? 'قیمت' : 'Price'}</div>
           <div>${isFa ? 'حجم' : 'Size'}</div>
           <div>${isFa ? 'مجموع' : 'Total'}</div>
@@ -96,7 +125,7 @@ export class DepthOfMarketView {
 
           <!-- Mid-Market Spread Strip -->
           <div id="dom-mid-spread" style="padding: 6px 12px; text-align: center; font-size: 11px; font-weight: 700; background: rgba(255,184,0,0.08); border-top: 1px solid rgba(255,184,0,0.2); border-bottom: 1px solid rgba(255,184,0,0.2); color: var(--accent-gold);">
-            ${isFa ? 'تراز بازار و اسپرد جاری' : 'Mid Market · Real-Time Spread'}
+            ${isFa ? 'میانهٔ بازار و اسپرد' : 'Mid Market · Spread'}
           </div>
 
           <!-- Bids Container (Green, best bid down to lowest) -->
@@ -153,17 +182,17 @@ export class DepthOfMarketView {
 
     buyBtn?.addEventListener('click', () => {
       if (this.app?.paperTrading) {
-        this.app.paperTrading.executeOrder('buy', 'market', this.data?.lastPrice || 0, this.orderQty);
-        const isFa = getLanguage() === 'fa';
-        this.showToast(isFa ? `🟢 خرید مارکت به میزان ${this.orderQty} از ${this.symbol} اجرا گردید` : `🟢 ${this.symbol} Market Buy of ${this.orderQty} executed!`);
+        if (this.app.paperTrading.executeOrder({ side: 'buy', type: 'market', qty: this.orderQty, symbol: this.symbol })) {
+          this.app.showExecutionToast?.('BUY', this.orderQty, this.symbol);
+        }
       }
     });
 
     sellBtn?.addEventListener('click', () => {
       if (this.app?.paperTrading) {
-        this.app.paperTrading.executeOrder('sell', 'market', this.data?.lastPrice || 0, this.orderQty);
-        const isFa = getLanguage() === 'fa';
-        this.showToast(isFa ? `🔴 فروش مارکت به میزان ${this.orderQty} از ${this.symbol} اجرا گردید` : `🔴 ${this.symbol} Market Sell of ${this.orderQty} executed!`);
+        if (this.app.paperTrading.executeOrder({ side: 'sell', type: 'market', qty: this.orderQty, symbol: this.symbol })) {
+          this.app.showExecutionToast?.('SELL', this.orderQty, this.symbol);
+        }
       }
     });
   }
@@ -203,7 +232,7 @@ export class DepthOfMarketView {
           <div class="dom-row dom-ask-row" data-price="${ask.price}" data-side="sell" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(246,70,93,0.12); pointer-events: none; z-index: 0;"></div>
             <div style="text-align: start; z-index: 1;">
-              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 4px 8px; font-size: 11px; min-height: 28px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت فروش' : 'Limit Sell'}" aria-label="Limit Sell">
+              <button class="btn-dom-limit-sell" data-price="${ask.price}" style="background: rgba(246,70,93,0.2); border: 1px solid rgba(246,70,93,0.4); color: #f6465d; padding: 4px 8px; font-size: 11px; min-height: 32px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت فروش' : 'Limit Sell'}" aria-label="Limit Sell">
                 ${isFa ? '− فروش' : '− Sell'}
               </button>
             </div>
@@ -223,7 +252,7 @@ export class DepthOfMarketView {
           <div class="dom-row dom-bid-row" data-price="${bid.price}" data-side="buy" style="position: relative; display: grid; grid-template-columns: 75px 1fr 1fr 65px; padding: 4px 12px; font-size: 11px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; align-items: center; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);">
             <div style="position: absolute; right: 0; top: 0; bottom: 0; width: ${depthPct}%; background: rgba(14,203,129,0.12); pointer-events: none; z-index: 0;"></div>
             <div style="text-align: start; z-index: 1;">
-              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 4px 8px; font-size: 11px; min-height: 28px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت خرید' : 'Limit Buy'}" aria-label="Limit Buy">
+              <button class="btn-dom-limit-buy" data-price="${bid.price}" style="background: rgba(14,203,129,0.2); border: 1px solid rgba(14,203,129,0.4); color: #0ecb81; padding: 4px 8px; font-size: 11px; min-height: 32px; font-weight: 800; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'سفارش لیمیت خرید' : 'Limit Buy'}" aria-label="Limit Buy">
                 ${isFa ? '+ خرید' : '+ Buy'}
               </button>
             </div>
@@ -241,9 +270,8 @@ export class DepthOfMarketView {
         e.stopPropagation();
         const price = parseFloat(btn.getAttribute('data-price'));
         if (price && this.app?.paperTrading) {
-          this.app.paperTrading.executeOrder('sell', 'limit', price, this.orderQty);
-          const isFa = getLanguage() === 'fa';
-          this.showToast(isFa ? `سفارش لیمیت فروش در نرخ $${price} (${this.orderQty} ${this.symbol}) ثبت گردید` : `Limit Sell order placed at $${price} (${this.orderQty} ${this.symbol})`);
+          // PaperTrading.placeOrder owns validation + the (single) confirmation toast
+          this.app.paperTrading.executeOrder({ side: 'sell', type: 'limit', price, qty: this.orderQty, symbol: this.symbol });
         }
       });
     });
@@ -253,40 +281,15 @@ export class DepthOfMarketView {
         e.stopPropagation();
         const price = parseFloat(btn.getAttribute('data-price'));
         if (price && this.app?.paperTrading) {
-          this.app.paperTrading.executeOrder('buy', 'limit', price, this.orderQty);
-          const isFa = getLanguage() === 'fa';
-          this.showToast(isFa ? `سفارش لیمیت خرید در نرخ $${price} (${this.orderQty} ${this.symbol}) ثبت گردید` : `Limit Buy order placed at $${price} (${this.orderQty} ${this.symbol})`);
+          // PaperTrading.placeOrder owns validation + the (single) confirmation toast
+          this.app.paperTrading.executeOrder({ side: 'buy', type: 'limit', price, qty: this.orderQty, symbol: this.symbol });
         }
       });
     });
   }
 
-  showToast(msg) {
-    let toast = document.querySelector('#tradingchart-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'tradingchart-toast';
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-card);
-        border: 1px solid var(--accent-cyan);
-        color: #fff;
-        padding: 12px 18px;
-        border-radius: 6px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        font-size: 13px;
-        font-weight: 700;
-        z-index: 999999;
-        transition: opacity 0.2s;
-      `;
-      document.body.appendChild(toast);
-    }
-    toast.textContent = msg;
-    toast.style.opacity = '1';
-    setTimeout(() => {
-      toast.style.opacity = '0';
-    }, 2500);
+  showToast(msg, type = 'info') {
+    // Delegate to the app's single toast host (consistent style/timing/a11y).
+    if (window.__TRADING_APP__?.showToast) return window.__TRADING_APP__.showToast(msg, type);
   }
 }

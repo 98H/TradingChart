@@ -1337,7 +1337,7 @@ hline(0, "Equilibrium", color=color.gray)
 `
   },
   {
-    id: 'bb_width',
+    id: 'bb_width_bbw',
     name: 'Bollinger Bands Width (BBW)',
     nativeName: 'Bollinger Bands Width',
     category: 'volatility',
@@ -1418,7 +1418,7 @@ hline(10, "Oversold (10)", color=color.green, linestyle=hline.style_dashed)
 `
   },
   {
-    id: 'elder_ray',
+    id: 'elder_ray_osc',
     name: 'Elder Ray (Bull & Bear Power)',
     nativeName: 'Elder Ray',
     category: 'oscillators',

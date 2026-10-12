@@ -1,14 +1,19 @@
 // client/src/chartAlertsOverlay.js
 // Visual Canvas Alert Overlay for TradingChart (TradingView Signature Feature)
-// Renders mathematically precise horizontal price alert lines when in range,
-// and docked directional indicator badges when outside visible scale.
+// Draws price-alert lines at the EXACT pixel the engine maps the price to
+// (projected through Vela's own coordinate system — never an approximation),
+// and docks directional badges inside the price-axis column when the alert
+// level lies outside the visible price range.
 
-import { getLanguage, toPersianDigits } from './i18n.js';
+import { getLanguage } from './i18n.js';
 
 export class ChartAlertsOverlay {
   constructor(app) {
     this.app = app;
     this.container = null;
+    this._last = { alerts: [], symbol: 'BTCUSDT', price: 0 };
+    this._raf = 0;
+    this._sig = '';
     this.mount();
   }
 
@@ -22,6 +27,20 @@ export class ChartAlertsOverlay {
       chartArea.appendChild(el);
     }
     this.container = el;
+
+    // Lines must follow the chart on pan / zoom / autoscale. Re-project on user
+    // interaction (rAF-coalesced) plus a slow 1 s catch-up for autoscale on
+    // live ticks; both are no-ops while no alert exists or the tab is hidden.
+    const area = document.querySelector('#chart-area');
+    const kick = () => this.scheduleReproject();
+    if (area) {
+      ['wheel', 'pointermove', 'pointerup', 'touchmove', 'touchend', 'keyup'].forEach(ev =>
+        area.addEventListener(ev, kick, { passive: true }));
+    }
+    window.addEventListener('resize', kick, { passive: true });
+    this._timer = setInterval(() => {
+      if (!document.hidden && this._last.alerts.length) this.reproject();
+    }, 1000);
   }
 
   addAlert(targetPrice, condition = null) {
@@ -31,71 +50,92 @@ export class ChartAlertsOverlay {
     return null;
   }
 
+  /** Projection helpers from the active cell's inner Vela renderer (null until mounted). */
+  projection() {
+    try {
+      const active = this.app?.chartManager?.workspace?.active;
+      const R = active?.chart?.renderer?.renderer;
+      const pane = R?.scene?.panes?.get?.('price');
+      const cell = active?.host;
+      if (!R || !pane || !pane.scale || !cell || !this.container) return null;
+      if (!(pane.bounds?.height > 0)) return null;
+      const cr = cell.getBoundingClientRect();
+      const or = this.container.getBoundingClientRect();
+      if (cr.width < 10 || cr.height < 10) return null;
+      const dy = cr.top - or.top;
+      return {
+        y: (price) => R.coords.priceToY(price, pane.scale, pane.bounds) + dy,
+        paneTop: pane.bounds.top + dy,
+        paneBottom: pane.bounds.top + pane.bounds.height + dy,
+        left: cr.left - or.left,
+        plotRight: (cr.right - or.left) - (R.rightAxisW || 64),
+        rightInset: Math.max(0, or.right - cr.right) + 2,
+        min: pane.scale.min, max: pane.scale.max, invert: !!pane.scale.invert
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  scheduleReproject() {
+    if (this._raf || !this._last.alerts.length) return;
+    this._raf = requestAnimationFrame(() => { this._raf = 0; this.reproject(); });
+  }
+
   updateAlerts(alerts, activeSymbol, currentPrice) {
     if (!this.container) return;
     const cleanSym = (activeSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
-    const activeAlerts = (alerts || []).filter(a => a.active && !a.triggered && a.symbol === cleanSym);
+    const activeAlerts = (alerts || []).filter(a => a.active && !a.triggered && a.symbol === cleanSym && Number.isFinite(Number(a.targetPrice)));
+    this._last = { alerts: activeAlerts, symbol: cleanSym, price: currentPrice };
+    this._sig = '';
+    this.reproject();
+  }
 
-    if (activeAlerts.length === 0) {
-      this.container.innerHTML = '';
-      return;
-    }
+  reproject() {
+    if (!this.container) return;
+    const { alerts } = this._last;
+    if (!alerts.length) { if (this.container.innerHTML) this.container.innerHTML = ''; this._sig = ''; return; }
+    const P = this.projection();
+    if (!P) return; // engine not ready — the 1 s catch-up retries
 
-    const chart = this.app?.chartManager?.workspace?.active?.chart;
     const isFa = getLanguage() === 'fa';
-    const curPrice = currentPrice || 80900;
+    const fmt = (v) => Number(v).toLocaleString('en-US', { maximumFractionDigits: 8 });
+    const items = alerts.map(a => {
+      const price = Number(a.targetPrice);
+      const y = P.y(price);
+      if (y >= P.paneTop + 2 && y <= P.paneBottom - 2) return { a, price, kind: 'line', y: Math.round(y) };
+      const aboveRange = price > P.max;
+      const atTop = P.invert ? !aboveRange : aboveRange;
+      return { a, price, kind: atTop ? 'top' : 'bottom', up: aboveRange };
+    });
 
-    this.container.innerHTML = activeAlerts.map(a => {
-      // Calculate true price distance
-      const diffPct = ((a.targetPrice - curPrice) / curPrice) * 100;
+    const sig = JSON.stringify(items.map(i => [i.a.id, i.kind, i.y])) + '|' + Math.round(P.plotRight) + '|' + Math.round(P.rightInset) + '|' +
+      Math.round(P.paneTop) + '|' + Math.round(P.paneBottom) + '|' + (isFa ? 'fa' : 'en');
+    if (sig === this._sig) return;
+    this._sig = sig;
 
-      // If price is within +/- 5% range of current view, draw horizontal level
-      if (Math.abs(diffPct) <= 6.0) {
-        // Linear scale mapping within visible window
-        const topPct = 50 - (diffPct * 7.5);
-        const clampedTop = Math.max(8, Math.min(92, topPct));
-
-        return `
-          <div class="canvas-alert-line" style="position: absolute; left: 0; right: 56px; top: ${clampedTop}%; height: 1px; border-top: 1px dashed var(--accent-gold); pointer-events: auto; z-index: 10;">
-            <div class="canvas-alert-badge" style="position: absolute; right: 0; top: -11px; background: var(--bg-card); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer;" title="${a.condition}">
-              <span>🔔</span>
-              <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
-              <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 11px;">✕</button>
-            </div>
-          </div>
-        `;
-      } else if (a.targetPrice > curPrice) {
-        // Pinned Above Visible Range: dock directly at top-right scale axis header (right: 4px; top: 8px)
-        return `
-          <div class="canvas-alert-line-pinned-top" style="position: absolute; left: 0; right: 54px; top: 22px; height: 1px; border-top: 1px dashed rgba(245,158,11,0.3); pointer-events: none; z-index: 15;"></div>
-          <div class="canvas-alert-pinned-top" style="position: absolute; right: 4px; top: 8px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
-            <span>▲ 🔔</span>
-            <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
-            <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>
-          </div>
-        `;
-      } else {
-        // Pinned Below Visible Range: dock directly at bottom-right scale axis footer (right: 4px; bottom: 32px)
-        return `
-          <div class="canvas-alert-line-pinned-bottom" style="position: absolute; left: 0; right: 54px; bottom: 46px; height: 1px; border-top: 1px dashed rgba(245,158,11,0.3); pointer-events: none; z-index: 15;"></div>
-          <div class="canvas-alert-pinned-bottom" style="position: absolute; right: 4px; bottom: 32px; background: rgba(15,20,32,0.95); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: var(--font-mono); font-weight: 700; color: var(--accent-gold); display: flex; align-items: center; gap: 4px; z-index: 20; pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.6);" title="${a.condition}">
-            <span>▼ 🔔</span>
-            <span class="num-ltr">$${Number(a.targetPrice).toLocaleString()}</span>
-            <button class="btn-delete-alert-pill" data-alert-id="${a.id}" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 10px;">✕</button>
-          </div>
-        `;
+    let topStack = 0, botStack = 0;
+    const delTitle = isFa ? 'حذف هشدار' : 'Delete alert';
+    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    this.container.innerHTML = items.map(({ a, price, kind, y, up }) => {
+      const del = `<button class="btn-delete-alert-pill" data-alert-id="${esc(a.id)}" title="${delTitle}" aria-label="${delTitle}">✕</button>`;
+      if (kind === 'line') {
+        return `<div class="canvas-alert-line" style="top:${y}px; left:${Math.round(P.left)}px; width:${Math.max(0, Math.round(P.plotRight - P.left))}px;"></div>` +
+          `<div class="canvas-alert-badge" style="top:${y - 10}px; right:${Math.max(0, Math.round(this.container.clientWidth - P.plotRight) + 2)}px;" title="${esc((isFa && a.conditionFa) || a.condition)}">` +
+          `<span aria-hidden="true">🔔</span><span class="num-ltr">${fmt(price)}</span>${del}</div>`;
       }
+      const top = kind === 'top'
+        ? Math.round(P.paneTop + 6 + (topStack++) * 24)
+        : Math.round(P.paneBottom - 26 - (botStack++) * 24);
+      return `<div class="canvas-alert-pinned canvas-alert-pinned-${kind}" style="top:${top}px; right:${Math.round(P.rightInset)}px;" title="${esc((isFa && a.conditionFa) || a.condition)}">` +
+        `<span aria-hidden="true" class="cap-arrow">${up ? '▲' : '▼'}</span><span class="num-ltr">${fmt(price)}</span>${del}</div>`;
     }).join('');
 
-    // Bind delete buttons
     this.container.querySelectorAll('.btn-delete-alert-pill').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-alert-id');
-        if (id && this.app?.alertsManager) {
-          this.app.alertsManager.deleteAlert(id);
-          this.updateAlerts(this.app.alertsManager.alerts, activeSymbol, currentPrice);
-        }
+        if (id && this.app?.alertsManager) this.app.alertsManager.deleteAlert(id);
       });
     });
   }

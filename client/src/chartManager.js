@@ -102,6 +102,7 @@ export class ChartManager {
       this.workspace.events?.on('market:changed', (e) => {
         if (e && e.symbol) {
           const clean = e.symbol.replace(/^.*:/, '').toUpperCase();
+          this.swapDrawingsForSymbol(clean);
           this.activeSymbol = clean;
           this.onSymbolChange(clean);
         }
@@ -180,8 +181,50 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     }
   }
 
+  /* ---- Per-symbol drawings (TradingView semantics) ----------------------
+   * Drawings are anchored to prices, so a BTC trendline at 83,000 is
+   * meaningless on ETH at 2,500. The active cell's drawings are stashed under
+   * the symbol they were made on and restored when that symbol returns. */
+  _drawingStore() {
+    if (!this._drawStore) {
+      try { this._drawStore = JSON.parse(localStorage.getItem('tc_drawings_by_symbol') || '{}') || {}; }
+      catch (e) { this._drawStore = {}; }
+    }
+    return this._drawStore;
+  }
+
+  stashActiveDrawings() {
+    const d = this.workspace?.active?.chart?.drawings;
+    const sym = this._drawSym;
+    if (!d?.all || !sym) return;
+    const store = this._drawingStore();
+    try {
+      if (d.all().length) store[sym] = d.toJSON(); else delete store[sym];
+      localStorage.setItem('tc_drawings_by_symbol', JSON.stringify(store));
+    } catch (e) {}
+  }
+
+  swapDrawingsForSymbol(newSym) {
+    const d = this.workspace?.active?.chart?.drawings;
+    if (!d?.all) return;
+    if (!this._drawSym) {
+      const cur = String(this.workspace?.active?.symbol || this.activeSymbol || '').replace(/^.*:/, '').toUpperCase();
+      this._drawSym = cur || newSym;
+    }
+    if (this._drawSym === newSym) return;
+    this.stashActiveDrawings();
+    try {
+      const ids = d.all().map(x => x.id);
+      if (ids.length) d.removeMany(ids);
+      const saved = this._drawingStore()[newSym];
+      if (saved) d.fromJSON(saved);
+    } catch (e) { console.warn('[Drawings] per-symbol swap failed:', e); }
+    this._drawSym = newSym;
+  }
+
   setSymbol(symbol) {
     const clean = symbol.replace(/^.*:/, '').toUpperCase();
+    this.swapDrawingsForSymbol(clean);
     this.activeSymbol = clean;
     if (this.workspace?.active) {
       this.workspace.active.setSymbol(`universal:${clean}`);
@@ -199,6 +242,8 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
   }
 
   setTimeframe(tf) {
+    // '15m' / '4h' style labels → canonical Vela ids (see normalizeTf in main.js)
+    if (typeof window !== 'undefined' && typeof window.__normalizeTf === 'function') tf = window.__normalizeTf(tf);
     this.activeTimeframe = String(tf);
     if (this.workspace) {
       // Route through setMarket so the deep-history `bars` depth is re-applied

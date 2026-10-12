@@ -81,6 +81,11 @@ const FAV_ICON_MAP = {
   pricerange: { p: '<path d="M8 4 V20 M8 6 H18 M8 18 H18"/>', en: 'Price Range', fa: 'محدوده قیمت' },
 };
 
+// Chart chrome below/beside the plot: engine bottom bar (38px) + time axis
+// (22px) + 8px breathing room; engine left toolbar is 44px wide.
+const SAFE_BOTTOM = 68;
+const SAFE_LEFT = 52;
+
 const DEFAULT_FAVORITES = ['trendline', 'hline', 'ray', 'fibretracement', 'box', 'position', 'datepricerange', 'freehand', 'text'];
 
 export class FloatingDrawingToolbar {
@@ -99,9 +104,14 @@ export class FloatingDrawingToolbar {
       savedPos = null;
     }
     // Default position: bottom-left thumb & drawing zone (TradingView canonical placement)
-    if (!savedPos || (savedPos.top !== undefined && (savedPos.top < 60 || savedPos.top > 600))) {
-      savedPos = { bottom: 44, left: 16 };
+    // Default sits just above the time axis and right of the engine's left
+    // drawing toolbar — it must never cover axis labels or the toolbar's own
+    // collapse control. Legacy saved positions inside those zones are migrated.
+    if (!savedPos || (savedPos.top !== undefined && (savedPos.top < 60 || savedPos.top > 600)) ||
+        (savedPos.bottom !== undefined && savedPos.bottom < SAFE_BOTTOM)) {
+      savedPos = { bottom: SAFE_BOTTOM, left: SAFE_LEFT };
     }
+    if (savedPos.left !== undefined && savedPos.left < SAFE_LEFT) savedPos.left = SAFE_LEFT;
     this.pos = savedPos;
 
     this.mount();
@@ -311,8 +321,14 @@ export class FloatingDrawingToolbar {
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
 
-      const newLeft = Math.max(10, Math.min(window.innerWidth - 100, startLeft + dx));
-      const newTop = Math.max(50, Math.min(window.innerHeight - 80, startTop + dy));
+      // Clamp inside the plot: never onto the left toolbar, the time axis or
+      // the bottom bar, and never past the right price axis.
+      const area = this.el.offsetParent || document.querySelector('#chart-area');
+      const areaW = area ? area.clientWidth : window.innerWidth;
+      const areaH = area ? area.clientHeight : window.innerHeight;
+      const w = this.el.offsetWidth || 120, h = this.el.offsetHeight || 38;
+      const newLeft = Math.max(SAFE_LEFT, Math.min(areaW - w - 70, startLeft + dx));
+      const newTop = Math.max(46, Math.min(areaH - SAFE_BOTTOM - h, startTop + dy));
 
       this.el.style.left = `${newLeft}px`;
       this.el.style.top = `${newTop}px`;

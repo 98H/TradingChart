@@ -189,8 +189,8 @@ export class AuthManager {
         const limStr = this.isUnlimited(chk.limit) ? '∞' : toPersianDigits(String(chk.limit));
         this.app.showToast(
           isFa
-            ? `سقف پلن ${limStr === '∞' ? 'نامحدود' : limStr} برای ${label} در پلن شما پر شده است — ارتقا به ${nextName} (${priceText})`
-            : `You've reached your plan's ${label} limit (${chk.limit}) — upgrade to ${nextName} ($${next.priceUSD}/mo)`,
+            ? `به سقف ${limStr} ${label} در پلن فعلی خود رسیده‌اید. برای افزایش این سقف، پلن خود را به ${nextName} (${priceText}) ارتقا دهید.`
+            : `You've reached your plan's ${label} limit (${chk.limit}). Upgrade to ${nextName} (${priceText}) to raise it.`,
           'warning'
         );
       }

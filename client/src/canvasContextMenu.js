@@ -67,19 +67,28 @@ export class CanvasContextMenu {
     });
   }
 
+  /** EXACT price under the cursor via Vela's own inverse projection
+   *  (log/invert aware), snapped to the instrument's tick. Returns null when
+   *  the cursor is not over the main price pane — never a guessed value. */
   calculatePriceAtY(clientY) {
-    const chartArea = document.querySelector('#chart-area');
-    if (!chartArea) return this.app.barReplay?.currentPrice || 84000;
-    const rect = chartArea.getBoundingClientRect();
-    const relY = clientY - rect.top;
-    const height = rect.height;
-
-    // Use current symbol price and variance
-    const basePrice = Number(document.querySelector('#quick-buy-price')?.innerText?.replace(/[^0-9.]/g, '')) || 84000;
-    // Estimate price range: +- 3% from top to bottom
-    const pct = (height / 2 - relY) / height;
-    const estPrice = basePrice * (1 + pct * 0.05);
-    return Math.round(estPrice * 100) / 100;
+    try {
+      const active = this.app?.chartManager?.workspace?.active;
+      const R = active?.chart?.renderer?.renderer;
+      const pane = R?.scene?.panes?.get?.('price');
+      const host = active?.host;
+      if (!R?.coords?.yToPrice || !pane?.scale || !pane.bounds || !host) return null;
+      const y = clientY - host.getBoundingClientRect().top;
+      if (y < pane.bounds.top || y > pane.bounds.top + pane.bounds.height) return null;
+      const raw = R.coords.yToPrice(y, pane.scale, pane.bounds);
+      if (!Number.isFinite(raw) || raw <= 0) return null;
+      const span = Math.abs(pane.scale.max - pane.scale.min) || raw;
+      // tick ≈ 4 significant digits of the visible span (e.g. 0.01 on BTC, 0.00001 on DOGE)
+      const tick = Math.pow(10, Math.floor(Math.log10(span)) - 3);
+      const dec = Math.max(0, -Math.floor(Math.log10(tick)));
+      return Number((Math.round(raw / tick) * tick).toFixed(dec));
+    } catch (e) {
+      return null;
+    }
   }
 
   // Return the most recent unlocked drawing as the right-click target.
@@ -162,6 +171,7 @@ export class CanvasContextMenu {
       log: document.querySelector('#btn-scale-log')?.classList.contains('active'),
       pct: document.querySelector('#btn-scale-percent')?.classList.contains('active'),
       invert: document.querySelector('#btn-scale-invert')?.classList.contains('active'),
+      auto: document.querySelector('#btn-scale-auto')?.classList.contains('active'),
     };
     const check = (on) => on ? '<span style="color: var(--accent-green); font-size: 11px;">✓</span>' : '<span style="width: 11px; display: inline-block;"></span>';
     const item = (id, label, on = null, color = '#fff') => `
@@ -172,11 +182,11 @@ export class CanvasContextMenu {
     this.menuEl.innerHTML = `
       <div class="ctx-menu-inner" style="background: rgba(14,17,23,0.97); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 1px; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans)'}; min-width: 230px; z-index: 99999; direction: ${isFa ? 'rtl' : 'ltr'};">
         <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); padding: 4px 10px 6px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 3px;">${isFa ? 'مقیاس قیمت' : 'Price Scale'}</div>
-        ${item('ctx-ps-auto', isFa ? 'خودکار (Auto Scale)' : 'Auto (Fits Data)', null)}
-        ${item('ctx-ps-log', isFa ? 'لگاریتمی (Log)' : 'Logarithmic', scaleState.log)}
-        ${item('ctx-ps-percent', isFa ? 'درصدی (Percentage)' : 'Percentage', scaleState.pct)}
-        ${item('ctx-ps-invert', isFa ? 'معکوس (Invert)' : 'Invert Scale', scaleState.invert)}
-        ${item('ctx-ps-lock', isFa ? 'قفل مقیاس (Lock)' : 'Lock Price Scale', null)}
+        ${item('ctx-ps-auto', isFa ? 'مقیاس خودکار' : 'Auto (Fits Data)', scaleState.auto)}
+        ${item('ctx-ps-log', isFa ? 'لگاریتمی' : 'Logarithmic', scaleState.log)}
+        ${item('ctx-ps-percent', isFa ? 'درصدی' : 'Percentage', scaleState.pct)}
+        ${item('ctx-ps-invert', isFa ? 'معکوس' : 'Invert Scale', scaleState.invert)}
+        ${item('ctx-ps-lock', isFa ? 'قفل مقیاس فعلی' : 'Lock Price Scale', !scaleState.auto)}
         <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>
         ${item('ctx-ps-reset', isFa ? 'بازنشانی مقیاس' : 'Reset Price Scale', null, 'var(--accent-cyan)')}
       </div>`;
@@ -196,14 +206,34 @@ export class CanvasContextMenu {
     click('#ctx-ps-reset', '#btn-scale-auto');
     this.menuEl.querySelector('#ctx-ps-lock')?.addEventListener('click', () => {
       this.hideMenu();
-      this.app?.showToast?.(isFa ? 'قفل مقیاس قیمت فعال شد' : 'Price scale locked');
+      // Lock = freeze the current price window (Vela manual mode = autoScale off)
+      const r = this.app?.chartManager?.workspace?.active?.chart?.renderer;
+      if (!r?.set || !r?.get) return;
+      const locking = !!r.get('autoScale');
+      r.set('autoScale', !locking);
+      this.app?.scaleControls?.syncButtons?.();
+      document.querySelector('#btn-scale-auto')?.classList.toggle('active', !locking);
+      this.app?.showToast?.(locking
+        ? (isFa ? 'مقیاس قیمت در محدودهٔ فعلی قفل شد' : 'Price scale locked to the current range')
+        : (isFa ? 'قفل مقیاس برداشته شد؛ مقیاس خودکار فعال است' : 'Price scale unlocked (auto)'), 'info');
     });
   }
 
   showMenu(e) {
     const isFa = getLanguage() === 'fa';
     this.activePrice = this.calculatePriceAtY(e.clientY);
-    const priceStr = `$${this.activePrice >= 100 ? this.activePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : this.activePrice.toFixed(4)}`;
+    const hasPrice = Number.isFinite(this.activePrice) && this.activePrice > 0;
+    const priceStr = hasPrice
+      ? this.activePrice.toLocaleString('en-US', { maximumFractionDigits: this.activePrice >= 100 ? 2 : 8 })
+      : '';
+    // TradingView semantics: a buy BELOW market is a limit, ABOVE is a stop
+    // (and vice-versa for sells). Label + route accordingly.
+    const mkt = Number(this.app?.paperTrading?.currentPrice) || 0;
+    const above = hasPrice && mkt > 0 && this.activePrice > mkt;
+    this._buyType = above ? 'stop' : 'limit';
+    this._sellType = above ? 'limit' : 'stop';
+    const buyKind = above ? 'Stop' : 'Limit', sellKind = above ? 'Limit' : 'Stop';
+    const buyKindFa = above ? 'استاپ' : 'لیمیت', sellKindFa = above ? 'لیمیت' : 'استاپ';
 
     const menuWidth = 240;
     const menuHeight = 360;
@@ -219,7 +249,7 @@ export class CanvasContextMenu {
 
     this.menuEl.innerHTML = `
       <div class="ctx-menu-inner" style="background: rgba(14, 17, 23, 0.96); backdrop-filter: blur(16px); border: 1px solid var(--border-medium); border-radius: 8px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 2px; font-family: ${isFa ? 'var(--font-vazirmatn), sans-serif' : 'var(--font-sans)'}; min-width: 220px; z-index: 99999; direction: ${isFa ? 'rtl' : 'ltr'};">
-        <!-- Add Alert at price -->
+        ${hasPrice ? `<!-- Add Alert at price -->
         <button class="ctx-item context-menu-item" id="ctx-add-alert" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'}; transition: background 0.12s;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="color: var(--accent-gold);">🔔</span>
@@ -232,7 +262,7 @@ export class CanvasContextMenu {
         <button class="ctx-item context-menu-item" id="ctx-buy-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-green); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'};">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>⚡</span>
-            <span>${isFa ? `سفارش لیمیت خرید روی ${priceStr}` : `Buy Limit at ${priceStr}`}</span>
+            <span>${isFa ? `سفارش ${buyKindFa} خرید روی ${priceStr}` : `Buy ${buyKind} at ${priceStr}`}</span>
           </div>
         </button>
 
@@ -240,12 +270,11 @@ export class CanvasContextMenu {
         <button class="ctx-item context-menu-item" id="ctx-sell-limit" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; font-weight: 600; color: var(--accent-red); background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'};">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span>⚡</span>
-            <span>${isFa ? `سفارش لیمیت فروش روی ${priceStr}` : `Sell Limit at ${priceStr}`}</span>
+            <span>${isFa ? `سفارش ${sellKindFa} فروش روی ${priceStr}` : `Sell ${sellKind} at ${priceStr}`}</span>
           </div>
         </button>
 
-        <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>
-
+        <div style="height: 1px; background: var(--border-subtle); margin: 3px 4px;"></div>` : ''}
         <!-- Add Indicator -->
         <button class="ctx-item context-menu-item" id="ctx-add-indicator" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; font-size: 11px; color: #fff; background: transparent; border: none; border-radius: 4px; cursor: pointer; text-align: ${isFa ? 'right' : 'left'};">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -341,28 +370,29 @@ export class CanvasContextMenu {
     this.menuEl.querySelector('#ctx-add-alert')?.addEventListener('click', () => {
       this.hideMenu();
       if (this.app) {
-        this.app.chartAlertsOverlay?.addAlert(this.activePrice, `Alert at $${this.activePrice}`);
-        this.app.openAlertsModal(this.activePrice);
-        this.app.showExecutionToast('ALERT', 1, `$${this.activePrice}`);
-        this.app.soundEngine?.playAlert();
+        // Create the alert through the alerts manager (plan gate, persistence,
+        // overlay sync) — previously this only drew a line + toasted "EXECUTED".
+        const id = this.app.alertsManager?.addAlert(this.activePrice);
+        if (id) {
+          const isFa = getLanguage() === 'fa';
+          const px = Number(this.activePrice).toLocaleString('en-US', { maximumFractionDigits: 8 });
+          this.app.showToast(isFa ? `هشدار قیمت در سطح ${px} ساخته شد` : `Price alert created at ${px}`, 'success');
+        }
       }
     });
 
     this.menuEl.querySelector('#ctx-buy-limit')?.addEventListener('click', () => {
       this.hideMenu();
       if (this.app?.paperTrading) {
-        this.app.paperTrading.openPosition('long', 0.1, 10, this.activePrice);
-        this.app.showExecutionToast('LIMIT BUY', 0.1, `$${this.activePrice}`);
-        this.app.soundEngine?.playOrder();
+        // Resting limit at the clicked price (fills immediately only if marketable)
+        this.app.paperTrading.placeOrder({ side: 'long', type: this._buyType || 'limit', price: this.activePrice, qty: parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1 });
       }
     });
 
     this.menuEl.querySelector('#ctx-sell-limit')?.addEventListener('click', () => {
       this.hideMenu();
       if (this.app?.paperTrading) {
-        this.app.paperTrading.openPosition('short', 0.1, 10, this.activePrice);
-        this.app.showExecutionToast('LIMIT SELL', 0.1, `$${this.activePrice}`);
-        this.app.soundEngine?.playOrder();
+        this.app.paperTrading.placeOrder({ side: 'short', type: this._sellType || 'limit', price: this.activePrice, qty: parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1 });
       }
     });
 

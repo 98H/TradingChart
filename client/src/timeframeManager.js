@@ -152,7 +152,7 @@ export class TimeframeManager {
                 ${this.customTimeframes.map(ctf => `
                   <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 4px 8px; border-radius: 4px; font-size: 12px;">
                     <span class="btn-select-tf" data-id="${ctf.id}" style="font-weight: 700; color: var(--accent-cyan); cursor: pointer;">${ctf.label}</span>
-                    <button class="btn-delete-custom-tf" data-id="${ctf.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 4px 8px; min-width: 28px; min-height: 28px; font-size: 12px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف این تایم‌فریم سفارشی' : 'Delete custom timeframe'}" aria-label="Delete custom timeframe">✕</button>
+                    <button class="btn-delete-custom-tf" data-id="${ctf.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; font-size: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف این تایم‌فریم سفارشی' : 'Delete custom timeframe'}" aria-label="Delete custom timeframe">✕</button>
                   </div>
                 `).join('')}
               </div>

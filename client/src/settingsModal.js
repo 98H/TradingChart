@@ -162,7 +162,7 @@ export class SettingsModal {
           <div style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text-dim); background: var(--bg-surface); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
             <span>${isFa ? 'میزان شفافیت:' : 'Opacity:'}</span>
             <input type="range" id="cfg-watermark-opacity" min="5" max="50" value="${this.settings.watermarkOpacity}" style="flex: 1; accent-color: var(--accent-cyan); cursor: pointer;" />
-            <input type="number" id="cfg-watermark-num" min="5" max="50" value="${this.settings.watermarkOpacity}" style="width: 44px; background: var(--bg-darkest); border: 1px solid var(--border-subtle); color: #fff; text-align: center; border-radius: 4px; font-size: 11px; font-family: var(--font-mono);" class="num-ltr" />
+            <input type="number" id="cfg-watermark-num" min="5" max="50" value="${this.settings.watermarkOpacity}" style="width: 58px; min-height: 28px; padding: 2px 4px; box-sizing: border-box; background: var(--bg-darkest); border: 1px solid var(--border-subtle); color: #fff; text-align: center; border-radius: 4px; font-size: 11px; font-family: var(--font-mono);" class="num-ltr" />
             <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">%</span>
           </div>
         </div>

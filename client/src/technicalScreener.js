@@ -107,18 +107,18 @@ export class TechnicalScreenerView {
 
         <!-- Rigid Column-Locked Synchronized Table Container -->
         <div class="screener-table-container" style="flex: 1; overflow-y: auto; overflow-x: auto; position: relative;">
-          <table style="width: 100%; min-width: 960px; table-layout: fixed; border-collapse: collapse; font-size: 11px;">
+          <table style="width: 100%; min-width: 1000px; table-layout: fixed; border-collapse: collapse; font-size: 11px;">
             <colgroup>
-              <col style="width: 18%;">
+              <col style="width: 20%;">
               <col style="width: 11%;">
               <col style="width: 9%;">
               <col style="width: 10%;">
               <col style="width: 10%;">
               <col style="width: 9%;">
-              <col style="width: 12%;">
+              <col style="width: 10%;">
               <col style="width: 8%;">
-              <col style="width: 8%;">
-              <col style="width: 5%;">
+              <col style="width: 7%;">
+              <col style="width: 6%;">
             </colgroup>
             <thead style="position: sticky; top: 0; background: var(--bg-darkest); z-index: 2;">
               <tr style="border-bottom: 1px solid var(--border-subtle); font-weight: 700; color: #cbd5e1; font-size: 11px;">
@@ -218,6 +218,13 @@ export class TechnicalScreenerView {
     }
 
     tbody.innerHTML = this.items.map(item => {
+      if (item.unavailable || item.price == null) {
+        const nm = String(item.symbol).replace(/[&<>"]/g, '');
+        return `<tr class="screener-row" data-symbol="${nm}" style="opacity: 0.55;">
+          <td style="padding: 7px 10px; font-weight: 700;">${nm}</td>
+          <td colspan="9" style="padding: 7px 10px; color: var(--text-dim); text-align: center;">${isFa ? 'داده در دسترس نیست' : 'Data unavailable'}</td>
+        </tr>`;
+      }
       const isUp = item.priceChangePercent >= 0;
       const chgColor = isUp ? 'var(--accent-green, #0ecb81)' : 'var(--accent-red, #f6465d)';
       const chgSign = isUp ? '+' : '';
@@ -256,7 +263,8 @@ export class TechnicalScreenerView {
         iran_gold: 'طلای تهران',
         iran_tse: 'بورس تهران'
       };
-      const catLabel = isFa ? (catFaMap[item.category] || item.category) : item.category.toUpperCase();
+      const catEnMap = { iran_gold: 'TEHRAN GOLD', iran_tse: 'TSE', fx: 'FOREX' };
+      const catLabel = isFa ? (catFaMap[item.category] || item.category) : (catEnMap[item.category] || item.category.replace(/_/g, ' ').toUpperCase());
       const displaySymbol = (isFa && item.tickerFa) ? item.tickerFa : item.symbol;
       const displayName = (isFa && item.nameFa) ? item.nameFa : localizeInstrumentName(item.name);
 
@@ -264,9 +272,9 @@ export class TechnicalScreenerView {
         <tr class="screener-row" data-symbol="${item.symbol}" style="border-bottom: 1px solid rgba(255,255,255,0.03); cursor: pointer; transition: background 0.12s;">
           <!-- Symbol -->
           <td style="padding: 7px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-weight: 800; color: #fff; font-family: var(--font-mono); font-size: 12px;">${displaySymbol}</span>
-              <span style="font-size: 9px; color: var(--text-dim); background: var(--bg-card); padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${catLabel}</span>
+            <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+              <span style="font-weight: 800; color: #fff; font-family: var(--font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0;" title="${item.symbol}">${displaySymbol}</span>
+              <span style="flex-shrink: 0; font-size: 9px; color: var(--text-dim); background: var(--bg-card); padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${catLabel}</span>
             </div>
             <div style="font-size: 10px; color: var(--text-dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
           </td>
@@ -293,7 +301,7 @@ export class TechnicalScreenerView {
 
           <!-- Volume -->
           <td style="padding: 7px 10px; text-align: right; font-family: var(--font-mono); color: var(--text-dim);">
-            ${Number(item.volume).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <span title="${Number(item.volume).toLocaleString('en-US', { maximumFractionDigits: 0 })}">${Number(item.volume).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 })}</span>
           </td>
 
           <!-- RSI Gauge -->
@@ -324,7 +332,7 @@ export class TechnicalScreenerView {
 
           <!-- Action -->
           <td style="padding: 7px 10px; text-align: center;">
-            <button class="btn-screener-chart btn-secondary" data-symbol="${item.symbol}" style="padding: 4px 10px; font-size: 11px; min-height: 26px; border-radius: 4px;" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Open chart for ' + item.symbol}" aria-label="Open chart for ${item.symbol}">
+            <button class="btn-screener-chart btn-secondary" data-symbol="${item.symbol}" style="padding: 4px 10px; font-size: 11px; min-height: 32px; border-radius: 4px;" title="${isFa ? 'مشاهده چارت ' + item.symbol : 'Open chart for ' + item.symbol}" aria-label="Open chart for ${item.symbol}">
               ${isFa ? 'چارت ↗' : 'Chart ↗'}
             </button>
           </td>

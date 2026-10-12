@@ -99,20 +99,19 @@ async function computeSingleSymbol(sym) {
       updatedAt: Date.now()
     };
   } catch (e) {
+    // No fabricated quote: an instrument whose data failed is reported as
+    // unavailable (the UI shows "—") instead of a fake price of 100 / RSI 50.
+    const prev = screenerCache.find(x => x.symbol === sym.symbol && !x.unavailable);
+    if (prev) return { ...prev, stale: true };
     return {
       symbol: sym.symbol,
       name: sym.name,
       category: sym.category,
       exchange: sym.exchange,
-      price: 100.0,
-      priceChange: 0,
-      priceChangePercent: 0,
-      highPrice: 105.0,
-      lowPrice: 95.0,
-      volume: 50000,
-      rsi14: 50.0,
-      sma20: 100.0,
-      sma50: 100.0,
+      unavailable: true,
+      price: null, priceChange: null, priceChangePercent: null,
+      highPrice: null, lowPrice: null, volume: null,
+      rsi14: null, sma20: null, sma50: null,
       trend: 'Neutral',
       technicalRating: 'Neutral',
       technicalScore: 0,
@@ -136,8 +135,12 @@ export async function refreshScreenerCache() {
   return screenerCache;
 }
 
-// Background auto-refresh loop every 8 seconds
+// Demand-driven refresh: recompute every 8s only while someone has asked for
+// screener data in the last 2 minutes. An idle server makes zero upstream
+// requests for the screener instead of ~45k/day.
+let lastDemandAt = 0;
 setInterval(() => {
+  if (Date.now() - lastDemandAt > 120000) return;
   refreshScreenerCache().catch(() => {});
 }, 8000);
 
@@ -145,7 +148,9 @@ setInterval(() => {
 refreshScreenerCache().catch(() => {});
 
 export async function getScreenerData({ category = 'all', rating = 'all', search = '' } = {}) {
-  if (screenerCache.length === 0) {
+  const idleFor = Date.now() - lastDemandAt;
+  lastDemandAt = Date.now();
+  if (screenerCache.length === 0 || idleFor > 120000) {
     await refreshScreenerCache();
   }
   return filterScreener(screenerCache, { category, rating, search });

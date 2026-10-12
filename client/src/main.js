@@ -41,6 +41,23 @@ import { ChartStylePicker } from './chartStylePicker.js';
 import { CanvasContextMenu } from './canvasContextMenu.js';
 import { SoundEngine } from './soundEngine.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer, toPersianDigits } from './i18n.js';
+import { INDICATORS_FA } from './indicatorsFa.js';
+
+// Canonical Vela timeframe ids are minute counts ('15', '60', '240') or
+// 'D'/'W'/'M'. Human labels like '15m' / '4h' must be normalized first —
+// Vela upper-cases the unit, so a raw '15m' silently became 15 MONTHS.
+function normalizeTf(tf) {
+  const s = String(tf ?? '').trim();
+  const m = /^(\d+)\s*([mhdw])$/i.exec(s);
+  if (!m) return s;
+  const n = parseInt(m[1], 10), u = m[2];
+  if (u === 'm') return String(n);                 // minutes (lower-case only)
+  if (u === 'h' || u === 'H') return String(n * 60);
+  if (u === 'd' || u === 'D') return n === 1 ? 'D' : `${n}D`;
+  if (u === 'w' || u === 'W') return n === 1 ? 'W' : `${n}W`;
+  return s; // 'M' (upper) = month: leave as-is
+}
+window.__normalizeTf = normalizeTf;
 
 class TradingChartApp {
   constructor() {
@@ -49,7 +66,7 @@ class TradingChartApp {
     try {
       const prof = JSON.parse(localStorage.getItem('tradingchart_user_profile') || '{}');
       if (prof.defaultAsset) this.currentSymbol = prof.defaultAsset.replace(/^.*:/, '').toUpperCase();
-      if (prof.defaultTimeframe) this.currentTimeframe = String(prof.defaultTimeframe);
+      if (prof.defaultTimeframe) this.currentTimeframe = normalizeTf(prof.defaultTimeframe);
     } catch (e) {}
     this.activeBars = [];
     this.activeWorkspaceView = 'quant'; // 'quant' or 'journal'
@@ -118,7 +135,7 @@ class TradingChartApp {
             const handle = this.chartManager.workspace.active.chart.addNativeIndicator(item.nativeName);
             if (handle) {
               const isFa = getLanguage() === 'fa';
-              this.showToast(isFa ? `اندیکاتور «${item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+              this.showToast(isFa ? `اندیکاتور «${INDICATORS_FA[item.id]?.name || item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
               this.layoutManager?.schedulePersist?.();
               return { success: true, handleId: handle.id };
             }
@@ -130,7 +147,9 @@ class TradingChartApp {
           const res = this.chartManager.addPineIndicator(item.script, item.name);
           const isFa = getLanguage() === 'fa';
           if (res?.success) {
-            this.showToast(isFa ? `اندیکاتور «${item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+            this.showToast(isFa ? `اندیکاتور «${INDICATORS_FA[item.id]?.name || item.name}» روی چارت اعمال شد` : `Added ${item.name} to active chart`, 'success');
+          } else {
+            this.showToast(isFa ? `افزودن اندیکاتور «${INDICATORS_FA[item.id]?.name || item.name}» ناموفق بود. لطفاً دوباره تلاش کنید.` : `Could not add ${item.name}. Please try again.`, 'error');
           }
           return res;
         }
@@ -161,18 +180,30 @@ class TradingChartApp {
             chart.orchestrator.setBarSeries(slice, { preserveView: true });
           }
           if (slice.length > 0) {
+            // Replay is a sandbox: its historical price drives ONLY the replay
+            // position. Feeding it to paperTrading.setMarket would trigger the
+            // live account's resting orders / P&L at a past price.
             const currentClose = slice[slice.length - 1].close;
             this.barReplay?.setPrice(currentClose);
-            this.paperTrading?.setMarket(this.currentSymbol, currentClose);
           }
         }
       },
+      onStart: () => {
+        // Freeze the live tick stream: otherwise Vela re-appends the real latest
+        // bars into the replay slice and shows the "future" mid-replay.
+        const orch = this.chartManager.workspace?.active?.chart?.orchestrator;
+        try { orch?.stopLive?.(); } catch (e) {}
+        this._replayFrozen = !!orch;
+      },
       onExit: () => {
         const chart = this.chartManager.workspace?.active?.chart;
+        if (this._replayFrozen) {
+          try { chart?.orchestrator?.startLive?.(); } catch (e) {}
+          this._replayFrozen = false;
+        }
         if (chart?.orchestrator && this.activeBars && this.activeBars.length > 0) {
           chart.orchestrator.setBarSeries(this.activeBars, { preserveView: true });
-          const currentClose = this.activeBars[this.activeBars.length - 1].close;
-          this.paperTrading?.setMarket(this.currentSymbol, currentClose);
+          // live bars that arrived during replay were buffered in activeBars — now shown
         }
       }
     });
@@ -269,7 +300,8 @@ class TradingChartApp {
     const journalEl = document.querySelector('#view-journal');
     if (journalEl) {
       this.tradeJournal = new TradeJournal({
-        container: journalEl
+        container: journalEl,
+        app: this
       });
     }
 
@@ -324,7 +356,9 @@ class TradingChartApp {
     const journalView = document.querySelector('#journal-workspace-view');
     if (journalView) {
       this.fullPageJournal = new TradeJournal({
-        container: journalView
+        container: journalView,
+        app: this,
+        store: this.tradeJournal?.store
       });
     }
   }
@@ -415,7 +449,11 @@ class TradingChartApp {
         this.propFirmSim?.setProfileParams(profile);
       }
     });
-    st.setCandles(this.activeBars);
+    // Same backtest in both surfaces: mirror the bottom tester's last run.
+    const main = this.strategyTester;
+    if (main?.results) { st.results = main.results; st.lastCode = main.lastCode; st.candles = this.activeBars || []; st.renderReport(); }
+    else st.setCandles(this.activeBars);
+    this.strategyTesterSide = st;
   }
 
   mountPropFirmSim(body) {
@@ -984,16 +1022,16 @@ class TradingChartApp {
 
     document.querySelector('#quick-trade-sell-btn')?.addEventListener('click', () => {
       const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
-      this.paperTrading?.openPosition('short', qty, 10);
-      this.soundEngine?.playOrder();
-      this.showExecutionToast('SELL', qty, this.currentSymbol);
+      if (this.paperTrading?.placeOrder({ side: 'short', type: 'market', qty })) {
+        this.showExecutionToast('SELL', qty, this.currentSymbol);
+      }
     });
 
     document.querySelector('#quick-trade-buy-btn')?.addEventListener('click', () => {
       const qty = parseFloat(document.querySelector('#quick-trade-qty')?.value) || 0.1;
-      this.paperTrading?.openPosition('long', qty, 10);
-      this.soundEngine?.playOrder();
-      this.showExecutionToast('BUY', qty, this.currentSymbol);
+      if (this.paperTrading?.placeOrder({ side: 'long', type: 'market', qty })) {
+        this.showExecutionToast('BUY', qty, this.currentSymbol);
+      }
     });
 
     document.querySelector('#btn-mobile-fullscreen')?.addEventListener('click', () => {
@@ -1406,7 +1444,7 @@ class TradingChartApp {
       if (res.ok) {
         const symbols = await res.json();
         if (countBadge) {
-          countBadge.innerText = isFa ? `${symbols.length} ابزار معاملاتی` : `${symbols.length} Instruments`;
+          countBadge.innerText = isFa ? `${toPersianDigits(symbols.length)} نماد معاملاتی` : `${symbols.length} Instruments`;
         }
 
         if (symbols.length === 0) {
@@ -1439,25 +1477,29 @@ class TradingChartApp {
         listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
           const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
-          const exchangeLabel = s.exchange || (isFa ? 'جهانی' : 'Global');
+          const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
+          const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
           const displayName = (isFa && s.nameFa) ? s.nameFa : s.name;
+          // Iranian instruments: show the Persian ticker (نماد) as primary label
+          const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
+          const glyph = (isFa && s.tickerFa) ? s.tickerFa.replace(/\s+/g, '').slice(0, 3) : s.symbol.slice(0, 3);
           return `
             <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
               <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
-                  ${s.symbol.slice(0, 3)}
+                  ${glyph}
                 </div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 800; font-size: 14px; color: #fff;">${s.symbol}</span>
+                    <span style="font-weight: 800; font-size: 14px; color: #fff;">${displayTicker}</span>
                     <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
                       ${catLabel}
                     </span>
                   </div>
-                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName} (${s.base}/${s.quote})</div>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : ` (${s.base}/${s.quote})`}</div>
                 </div>
               </div>
-              <div style="text-align: right;">
+              <div style="text-align: end;">
                 <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
                   ${exchangeLabel}
                 </span>
@@ -1513,7 +1555,9 @@ class TradingChartApp {
       unitEl.innerText = this.getBaseAsset(this.currentSymbol);
     }
 
-    const spread = bar.close > 1000 ? 5 : (bar.close > 10 ? 0.05 : 0.0005);
+    // One spread model shared with the paper engine → the price on the button
+    // is exactly the price the market order fills at.
+    const spread = this.paperTrading?.spreadFor ? this.paperTrading.spreadFor(bar.close) : (bar.close > 1000 ? 5 : (bar.close > 10 ? 0.05 : 0.0005));
     const bid = bar.close - spread / 2;
     const ask = bar.close + spread / 2;
     const digits = bar.close > 1000 ? 2 : 4;
@@ -1524,82 +1568,43 @@ class TradingChartApp {
   }
 
   showToast(msg, type = 'info') {
+    // Single accessible toast host; text-only (no innerHTML → no injection via
+    // user-named layouts/accounts), colour-coded by severity, and on-screen
+    // long enough to read a full Persian sentence.
     let toast = document.querySelector('#tradingchart-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'tradingchart-toast';
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-card);
-        border: 1px solid var(--accent-cyan);
-        color: #fff;
-        padding: 10px 18px;
-        border-radius: 6px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        font-size: 12px;
-        font-weight: 700;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-      `;
+      toast.className = 'tc-toast';
       document.body.appendChild(toast);
     }
-    toast.innerHTML = msg;
+    const isErr = type === 'error';
+    toast.setAttribute('role', isErr ? 'alert' : 'status');
+    toast.setAttribute('aria-live', isErr ? 'assertive' : 'polite');
+    toast.dataset.type = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+    toast.dir = getLanguage() === 'fa' ? 'rtl' : 'ltr';
+    toast.textContent = String(msg ?? '');
     toast.style.display = 'flex';
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
+    // force reflow so the enter transition replays for back-to-back toasts
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
     clearTimeout(toast._timer);
+    const ms = Math.min(9000, Math.max(3200, String(msg ?? '').length * 55));
     toast._timer = setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      setTimeout(() => { toast.style.display = 'none'; }, 300);
-    }, 2800);
+      toast.classList.remove('is-visible');
+      setTimeout(() => { if (!toast.classList.contains('is-visible')) toast.style.display = 'none'; }, 300);
+    }, ms);
   }
 
   showExecutionToast(side, qty, symbol) {
-    let toast = document.querySelector('#tradingchart-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'tradingchart-toast';
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-card);
-        border: 1px solid var(--accent-cyan);
-        color: #fff;
-        padding: 12px 18px;
-        border-radius: 6px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        font-size: 13px;
-        font-weight: 700;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-      `;
-      document.body.appendChild(toast);
-    }
-    const isBuy = side === 'BUY';
     const isFa = getLanguage() === 'fa';
-    const sideFa = side === 'BUY' ? 'خرید' : (side === 'SELL' ? 'فروش' : side);
-    toast.innerHTML = isFa
-      ? `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ اجرا شد</span> ${sideFa} ${toPersianDigits(String(qty))} ${symbol} @ بازار`
-      : `<span style="color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">✓ EXECUTED</span> ${side} ${qty} ${symbol} @ MARKET`;
-    toast.style.display = 'flex';
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      setTimeout(() => { toast.style.display = 'none'; }, 300);
-    }, 3000);
+    const isBuy = side === 'BUY';
+    const sideFa = isBuy ? 'خرید' : (side === 'SELL' ? 'فروش' : side);
+    this.showToast(isFa
+      ? `✓ سفارش ${sideFa} ${toPersianDigits(String(qty))} ${symbol} به قیمت بازار اجرا شد`
+      : `✓ Executed ${side} ${qty} ${symbol} @ market`, isBuy ? 'success' : 'warning');
+    const el = document.querySelector('#tradingchart-toast');
+    if (el) el.dataset.type = isBuy ? 'buy' : 'sell';
   }
 
   toggleBottomPanel(forceCollapse = null) {
@@ -1843,20 +1848,16 @@ class TradingChartApp {
   }
 
   bindTimeRangeActive() {
+    // The engine owns the range-chip state (data-active): it highlights a chip
+    // only while that range is actually applied and clears it on manual
+    // pan/zoom or timeframe change. A hard-coded default highlight would claim
+    // "1M" while the chart shows ~9 days — a truthfulness defect — so the app
+    // only strips any legacy class and lets CSS key off [data-active].
     const checkInterval = setInterval(() => {
       const rangeBtns = document.querySelectorAll('.vela-bb-range');
       if (rangeBtns.length > 0) {
         clearInterval(checkInterval);
-        rangeBtns.forEach(btn => {
-          btn.addEventListener('click', () => {
-            rangeBtns.forEach(b => b.classList.remove('is-active'));
-            btn.classList.add('is-active');
-          });
-        });
-        const defaultBtn = Array.from(rangeBtns).find(b => b.innerText.trim() === '1M') || rangeBtns[2];
-        if (defaultBtn && !document.querySelector('.vela-bb-range.is-active')) {
-          defaultBtn.classList.add('is-active');
-        }
+        rangeBtns.forEach(b => b.classList.remove('is-active'));
       }
     }, 400);
   }
@@ -1870,10 +1871,16 @@ class TradingChartApp {
       try {
         const res = await fetch('/api/health', { cache: 'no-store' });
         if (res.ok) {
+          // Report the REAL round-trip (smoothed), never a cosmetic clamp: a
+          // trading UI that shows "42ms" while the link is at 900ms misleads
+          // the user about order-entry risk.
           const rawMs = Math.round(performance.now() - start);
-          const ms = Math.max(8, Math.min(rawMs, 42));
+          this._latEma = this._latEma == null ? rawMs : Math.round(this._latEma * 0.6 + rawMs * 0.4);
+          const ms = this._latEma;
+          const isFaLat = getLanguage() === 'fa';
           badge.innerText = `${ms}ms`;
-          const isHighLatency = rawMs > 500;
+          badge.parentElement?.setAttribute('title', isFaLat ? `تأخیر ارتباط با سرور: ${toPersianDigits(String(ms))} میلی‌ثانیه` : `Server round-trip: ${ms} ms`);
+          const isHighLatency = ms > 500;
           document.querySelector('#chart-quick-trade')?.classList.toggle('latency-warning', isHighLatency);
           badge.parentElement?.classList.toggle('is-high-latency', isHighLatency);
           if (dot) {
@@ -1882,7 +1889,8 @@ class TradingChartApp {
           }
         }
       } catch (e) {
-        badge.innerText = 'OFFLINE';
+        badge.innerText = getLanguage() === 'fa' ? 'قطع' : 'OFFLINE';
+        badge.parentElement?.classList.add('is-high-latency');
         if (dot) {
           dot.style.background = '#ef4444';
           dot.style.boxShadow = 'none';

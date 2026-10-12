@@ -248,6 +248,7 @@ export class LayoutManager {
             });
             this.applyAllSyncOptions();
             this.bindWorkspaceCellListeners();
+            this.syncAppToActiveCell();
           } else if (attempts++ < 60) {
             setTimeout(pollAndRestore, 100);
           }
@@ -255,6 +256,24 @@ export class LayoutManager {
         setTimeout(pollAndRestore, 150);
       }
     } catch (e) {}
+  }
+
+  /** After a restored layout repoints the active cell, the app-level market
+   *  state (currentSymbol/timeframe/activeBars → paper trading, alerts, quick
+   *  trade, DOM, watchlist) must follow it — otherwise the chart shows ETH 4h
+   *  while orders and alerts run on BTC 1h prices. */
+  async syncAppToActiveCell() {
+    const app = this.app;
+    const cell = app?.chartManager?.workspace?.active;
+    if (!app || !cell) return;
+    const sym = String(cell.symbol || cell.market?.symbol || '').replace(/^.*:/, '').toUpperCase();
+    const tf = String(cell.timeframe || cell.market?.timeframe || '');
+    try {
+      if (sym && sym !== app.currentSymbol) await app.switchSymbol(sym);
+      if (tf && tf !== String(app.currentTimeframe)) await app.setTimeframe(tf);
+    } catch (e) {
+      console.warn('[Layout] app/cell market sync failed:', e);
+    }
   }
 
   schedulePersist() {
@@ -655,7 +674,7 @@ export class LayoutManager {
     if (!labelEl) return;
     const isFa = getLanguage() === 'fa';
     const preset = DEFAULT_LAYOUT_PRESETS.find(p => p.layoutId === this.activeLayoutId);
-    const genericNames = new Set(['1', '1x1', '1x1 Single Chart', '2h', '2v', '4', 'g1x3', 'g3x1', 'g2x3', '8', preset?.nameEn, preset?.nameFa]);
+    const genericNames = new Set(['1', '1x1', '1x1 Single', '1x1 Single Chart', '2h', '2v', '4', 'g1x3', 'g3x1', 'g2x3', '8', preset?.nameEn, preset?.nameFa]);
     if (this.activeLayoutName && !genericNames.has(this.activeLayoutName)) {
       labelEl.innerText = this.activeLayoutName;
       return;
@@ -973,7 +992,8 @@ export class LayoutManager {
         const isActive = ws?.active === cell;
         const isMaxed = ws?.maximizedId === cell.id;
         const sym = (cell.symbol || 'BTCUSDT').replace(/^.*:/, '');
-        const tf = cell.timeframe || '15m';
+        const tfRaw = String(cell.timeframe || '15');
+        const tf = /^\d+$/.test(tfRaw) ? (Number(tfRaw) % 60 === 0 ? `${Number(tfRaw) / 60}h` : `${tfRaw}m`) : tfRaw;
         return `
           <button class="cell-strip-pill ${(isActive || isMaxed) ? 'active' : ''}" data-cell-id="${cell.id}" title="${isFa ? `فوکوس روی چارت ${idx + 1}` : `Focus Chart ${idx + 1}`}">
             <span style="font-weight: 800; color: var(--accent-cyan);">#${idx + 1}</span>

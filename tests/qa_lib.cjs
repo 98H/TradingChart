@@ -34,10 +34,30 @@ async function closeAllBrowsers() {
   ACTIVE_PROFILES.clear();
 }
 
-['exit', 'SIGINT', 'SIGTERM', 'unhandledRejection', 'uncaughtException'].forEach(sig => {
+// 'exit' handlers cannot await, so profile dirs are removed synchronously there
+// (otherwise `browser.close(); process.exit()` leaks ~10MB per run).
+process.on('exit', () => {
+  for (const dir of ACTIVE_PROFILES) { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {} }
+});
+
+// Profiles left behind by runs killed with SIGKILL/timeout: remove any whose
+// owning PID is no longer alive.
+function pruneStaleProfiles(base) {
+  let names = [];
+  try { names = fs.readdirSync(base); } catch (e) { return; }
+  for (const n of names) {
+    const m = n.match(/^qa_chrome_profile_(\d+)_/);
+    if (!m) continue;
+    const pid = Number(m[1]);
+    let alive = false;
+    try { process.kill(pid, 0); alive = true; } catch (e) { alive = e.code === 'EPERM'; }
+    if (!alive) { try { fs.rmSync(path.join(base, n), { recursive: true, force: true }); } catch (e) {} }
+  }
+}
+
+['SIGINT', 'SIGTERM', 'unhandledRejection', 'uncaughtException'].forEach(sig => {
   process.on(sig, async () => {
     await closeAllBrowsers();
-    if (sig === 'exit') return;
     process.exit(sig === 'unhandledRejection' || sig === 'uncaughtException' ? 1 : 0);
   });
 });
@@ -60,6 +80,7 @@ async function launch(viewportName = 'desktop') {
     ? '/root/snap/chromium/common/chromium-headless'
     : '/tmp';
   fs.mkdirSync(headlessBase, { recursive: true });
+  pruneStaleProfiles(headlessBase);
   const profileDir = path.join(headlessBase, `qa_chrome_profile_${process.pid}_${Math.random().toString(36).slice(2, 7)}`);
   ACTIVE_PROFILES.add(profileDir);
 
@@ -196,6 +217,8 @@ const INPAGE = {
       if (txt.length < 3) continue;
       if (/[\u0600-\u06FF]/.test(txt)) continue; // already Persian (bilingual terms OK)
       if (allowRe.test(txt)) continue;
+      // Ticker glyphs (XRP, ADA) and keyboard chords (Alt+A, Ctrl+Z) are Latin by convention
+      if (/^[A-Z0-9]{2,6}$/.test(txt) || /^(Alt|Ctrl|Shift|Cmd|Meta)(\\+[A-Za-z0-9]+)+$/.test(txt)) continue;
       if (/[A-Za-z]{3,}/.test(txt)) {
         out.push({ tag: el.tagName, cls: (el.className||el.id||'').toString().slice(0,50), text: txt.slice(0,70) });
       }

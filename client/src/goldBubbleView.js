@@ -19,7 +19,7 @@ export class GoldBubbleView {
   mount() {
     this.fetchData();
     if (!this.pollInterval) {
-      this.pollInterval = setInterval(() => this.fetchData(true), 4000);
+      this.pollInterval = setInterval(() => { if (!document.hidden) this.fetchData(true); }, 4000);
     }
   }
 

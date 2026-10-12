@@ -137,10 +137,10 @@ export class TemplateManager {
                     <div style="font-size: 10px; color: var(--text-dim);">${ut.date} &nbsp;·&nbsp; ${ut.scripts.length} ${isFa ? 'اندیکاتور' : 'indicators'}</div>
                   </div>
                   <div style="display: flex; gap: 6px; align-items: center;">
-                    <button class="btn-apply-user-template btn-secondary" data-id="${ut.id}" style="font-size: 11px; padding: 4px 10px; min-height: 28px; color: var(--accent-cyan);" title="${isFa ? 'اعمال این قالب روی چارت' : 'Apply template to chart'}" aria-label="Apply template">
+                    <button class="btn-apply-user-template btn-secondary" data-id="${ut.id}" style="font-size: 11px; padding: 4px 12px; min-height: 32px; color: var(--accent-cyan);" title="${isFa ? 'اعمال این قالب روی چارت' : 'Apply template to chart'}" aria-label="Apply template">
                       ${isFa ? 'اعمال' : 'Apply'}
                     </button>
-                    <button class="btn-delete-user-template" data-id="${ut.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 4px 8px; min-width: 28px; min-height: 28px; font-size: 12px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف قالب' : 'Delete Template'}" aria-label="Delete Template">
+                    <button class="btn-delete-user-template" data-id="${ut.id}" style="background: transparent; border: none; color: var(--accent-red); cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; font-size: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;" title="${isFa ? 'حذف قالب' : 'Delete Template'}" aria-label="Delete Template">
                       ✕
                     </button>
                   </div>
@@ -153,14 +153,14 @@ export class TemplateManager {
         <!-- Curated Algorithmic Presets -->
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
           <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
-            ${isFa ? 'قالب‌های الگوریتمی آماده (Curated)' : 'Curated Algorithmic Setups'}
+            ${isFa ? 'قالب‌های الگوریتمی آماده' : 'Curated Algorithmic Setups'}
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             ${CURATED_TEMPLATES.map(t => `
               <div class="template-card curated-template-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <div style="font-weight: 700; font-size: 12px; color: #fff;">${isFa ? (t.nameFa || t.name) : t.name}</div>
-                  <span style="font-size: 9px; font-weight: 800; background: rgba(255,255,255,0.06); color: ${t.color}; padding: 1px 5px; border-radius: 3px;">${t.category}</span>
+                  <span style="font-size: 9px; font-weight: 800; background: rgba(255,255,255,0.06); color: ${t.color}; padding: 1px 5px; border-radius: 3px;">${isFa ? ({ 'SMC/ICT': 'اسمارت مانی', TREND: 'روند', VOLATILITY: 'نوسان', VOLUME: 'حجم' }[t.category] || t.category) : t.category}</span>
                 </div>
                 <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.3;">
                   ${isFa ? (t.descriptionFa || t.description) : t.description}

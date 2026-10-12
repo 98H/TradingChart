@@ -364,6 +364,22 @@ export const VELA_UI_FA = {
   // Large-frame data window / legend leftovers
   'YTD': 'از ابتدای سال',
   'ALL': 'همه',
+  // Symbol search category chips / footer / engine leftovers
+  'Gold & FX': 'طلا و ارز',
+  'Iran TSE': 'بورس تهران',
+  'Navigate': 'پیمایش',
+  'Select': 'انتخاب',
+  'Date Range': 'بازه تاریخی',
+  'Tehran Gold & Bubbles': 'حباب طلای تهران',
+  'Iran Bourse & Tape': 'تابلوخوانی بورس',
+  // Object tree toolbar (engine)
+  'Group the selected drawings': 'گروه‌بندی ترسیم‌های انتخاب‌شده',
+  'Duplicate the selected drawings': 'تکثیر ترسیم‌های انتخاب‌شده',
+  'Group this drawing': 'گروه‌بندی این ترسیم',
+  'Group these drawings': 'گروه‌بندی این ترسیم‌ها',
+  'Already in a group': 'در حال حاضر در یک گروه است',
+  'Duplicate': 'تکثیر',
+  'Drawings': 'ترسیم‌ها',
 
   // ── Template / curated setup panel (rendered lazily when the dock opens) ──
   'Curated Algorithmic Setups': 'ستاپ‌های الگوریتمی آماده',
@@ -606,12 +622,22 @@ export const VELA_BRAND_WHITELIST = [
   /^TradingView\b/
 ];
 
+// Engine chrome + app tooltip dictionary (drawing tools, chart settings dialog,
+// context menu, header aria-labels). Exact-match; generated + reviewed.
+import { VELA_ENGINE_FA, TZ_CITY_FA } from './i18nEngineFa.js';
+const faLookup = (s) => VELA_UI_FA[s] || VELA_ENGINE_FA[s] || VELA_UI_NEWS_SOURCES_FA[s] || VELA_UI_MARKET_NAMES_FA[s] ||
+  // Mobile drawers render the same section headers in Title case ("Channels")
+  // that the desktop toolbar renders in CAPS ("CHANNELS").
+  (/^[A-Z][a-z]+( [A-Za-z]+)*$/.test(s) ? (VELA_ENGINE_FA[s.toUpperCase()] || VELA_UI_FA[s.toUpperCase()]) : undefined);
+const _origAttrKey = 'data-tc-orig-';
+
 const _origTextKey = 'velaI18n';
 let _autoRunning = false;
 
 // Pattern-based localization for dynamic Vela strings (timeframe, meta lines)
-const VELA_TF_FA = { 'm': 'د', 'h': 'س', 'D': 'ر', 'W': 'ه', 'M': 'م' }; // minute/hour/Day/Week/Month suffixes
-const tfFa = (tf) => toPersianDigits(String(tf)).replace(/([mhDWM])$/, (s, u) => VELA_TF_FA[u] || u);
+const VELA_TF_FA = { 'm': 'دقیقه', 'h': 'ساعت', 'D': 'روز', 'W': 'هفته', 'M': 'ماه' }; // minute/hour/Day/Week/Month
+// Full unit words: single-letter suffixes ("۱ر", "۱م") were unreadable.
+const tfFa = (tf) => toPersianDigits(String(tf)).replace(/([mhDWM])$/, (s, u) => VELA_TF_FA[u] ? '\u00A0' + VELA_TF_FA[u] : u);
 const VELA_UI_PATTERNS = [
   // Legend metadata line: "· UNIVERSAL · 15m" / "· OVERLAY · 1h"
   [/^·\s*UNIVERSAL\s*·\s*([0-9A-Za-z.]+)\s*$/, (m) => `· جهانی · ${tfFa(m[1])}`],
@@ -628,7 +654,12 @@ const VELA_UI_PATTERNS = [
   [/^—\s*Target\s*\((.*)\)$/, (m) => `— تارگت سود (${m[1]})`],
   [/^—\s*Drawdown\s*\((.*)\)$/, (m) => `— افت سرمایه (${m[1]})`],
   // Paper trading leverage badge: "LONG 10x"
-  [/^(LONG|SHORT)\s+(\d+x)$/, (m) => `${m[1] === 'LONG' ? 'خرید' : 'فروش'} ${m[2]}`]
+  [/^(LONG|SHORT)\s+(\d+x)$/, (m) => `${m[1] === 'LONG' ? 'خرید' : 'فروش'} ${m[2]}`],
+  // Timezone menu: "(UTC+3:30) Tehran"
+  [/^\((UTC[+-]?[0-9:]*)\)\s+(.+)$/, (m) => TZ_CITY_FA[m[2]] ? `(${m[1]}) ${TZ_CITY_FA[m[2]]}` : null],
+  // Engine aria-labels: "Timeframe — 1h" / "Chart style — Candles"
+  [/^Timeframe\s+—\s+(\S+)$/, (m) => `بازه زمانی — ${tfFa(m[1])}`],
+  [/^Chart style\s+—\s+(.+)$/, (m) => `سبک نمودار — ${VELA_UI_FA[m[1]] || m[1]}`]
 ];
 
 /**
@@ -645,7 +676,16 @@ export function autoLocalizeUI(root = document.body) {
       const orig = sp.getAttribute(_origTextKey);
       if (orig !== null) sp.replaceWith(document.createTextNode(orig));
     });
-    if (currentLang !== 'fa') return 0;
+    if (currentLang !== 'fa') {
+      // Lossless attribute restore (tooltips / aria-labels / placeholders)
+      for (const attr of ['title', 'aria-label', 'placeholder']) {
+        root.querySelectorAll('[' + _origAttrKey + attr + ']').forEach(el => {
+          el.setAttribute(attr, el.getAttribute(_origAttrKey + attr));
+          el.removeAttribute(_origAttrKey + attr);
+        });
+      }
+      return 0;
+    }
 
     const SKIP = 'script,style,svg,.num-ltr,#pine-code-editor,.code-editor,pre,code,[data-no-i18n],' +
                  '.vela-widget-symbol-badge,[class*="price-badge"],[class*="axis-badge"]';
@@ -661,7 +701,7 @@ export function autoLocalizeUI(root = document.body) {
       if (!el || el.closest(SKIP)) continue;
       const txt = (node.textContent || '').trim();
       if (!txt || /[\u0600-\u06FF]/.test(txt)) continue;
-      let fa = VELA_UI_FA[txt] || VELA_UI_NEWS_SOURCES_FA[txt] || VELA_UI_MARKET_NAMES_FA[txt];
+      let fa = faLookup(txt);
       if (!fa) {
         for (const [re, fn] of VELA_UI_PATTERNS) {
           const m = txt.match(re);
@@ -678,11 +718,26 @@ export function autoLocalizeUI(root = document.body) {
     }
 
     // 3. Attributes (tooltips / accessibility / placeholders)
+    // .num-ltr only protects numeric TEXT from Persian-digit/RTL rewriting;
+    // its tooltips/aria-labels are human language and must still localise.
+    const ATTR_SKIP = SKIP.replace('.num-ltr,', '');
     root.querySelectorAll('[title],[aria-label],[placeholder]').forEach(el => {
-      if (el.closest(SKIP)) return;
+      if (el.closest(ATTR_SKIP)) return;
       for (const attr of ['title', 'aria-label', 'placeholder']) {
         const v = el.getAttribute(attr);
-        if (v && VELA_UI_FA[v]) { el.setAttribute(attr, VELA_UI_FA[v]); count++; }
+        if (!v || /[\u0600-\u06FF]/.test(v)) continue;
+        let fa = faLookup(v);
+        if (!fa) {
+          for (const [re, fn] of VELA_UI_PATTERNS) {
+            const m = v.match(re);
+            if (m) { fa = fn(m); break; }
+          }
+        }
+        if (fa) {
+          if (!el.hasAttribute(_origAttrKey + attr)) el.setAttribute(_origAttrKey + attr, v);
+          el.setAttribute(attr, fa);
+          count++;
+        }
       }
     });
     return count;
@@ -811,12 +866,33 @@ if (typeof window !== 'undefined') {
 
 let currentLang = 'en';
 
+const AXIS_EN = {
+  m: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  w: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+};
+const AXIS_FA = {
+  m: ['ژانویه', 'فوریه', 'مارس', 'آوریل', 'مه', 'ژوئن', 'ژوئیه', 'اوت', 'سپتامبر', 'اکتبر', 'نوامبر', 'دسامبر'],
+  w: ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه']
+};
+/** Swap Vela's (build-exposed) axis month/weekday words in place, then repaint. */
+function localizeAxisWords(lang) {
+  const src = lang === 'fa' ? AXIS_FA : AXIS_EN;
+  const M = globalThis.__VELA_MONTHS__, W = globalThis.__VELA_WEEKDAYS__;
+  if (Array.isArray(M)) M.splice(0, 12, ...src.m);
+  if (Array.isArray(W)) W.splice(0, 7, ...src.w);
+  try {
+    const ws = window.__TRADING_APP__?.chartManager?.workspace;
+    (ws?.charts || (ws?.active ? [ws.active] : [])).forEach(c => (c.chart || c)?.renderer?.renderer?.requestRender?.() ?? (c.chart || c)?.renderer?.invalidate?.());
+  } catch (e) { /* repaint happens on next frame anyway */ }
+}
+
 export function setLanguage(lang) {
   if (translations[lang]) {
     currentLang = lang;
     document.documentElement.lang = lang;
     document.documentElement.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
     document.body.classList.toggle('persian-mode', lang === 'fa');
+    localizeAxisWords(lang);
     applyTranslationsToDOM();
     localizeMoreDrawer();
     autoLocalizeUI();
@@ -853,6 +929,14 @@ export function applyTranslationsToDOM() {
   if (jEl) jEl.innerText = dict.navJournal;
   const pEl = document.querySelector('#nav-label-panels');
   if (pEl) pEl.innerText = dict.navPanels;
+
+  const layoutLabel = document.querySelector('#active-layout-name');
+  if (layoutLabel) {
+    const txt = layoutLabel.innerText.trim();
+    if (txt === '1x1 Single' || txt === '1x1 Single Chart' || txt === 'چارت تک‌پنجره‌ای (1x1)') {
+      layoutLabel.innerText = currentLang === 'fa' ? 'چارت تک‌پنجره‌ای (1x1)' : '1x1 Single Chart';
+    }
+  }
 
   // 2. Bottom Suite Tabs
   const tabPine = document.querySelector('#tab-label-pine');

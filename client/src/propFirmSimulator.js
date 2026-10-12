@@ -218,7 +218,7 @@ export class PropFirmSimulator {
 
       area.innerHTML = `
         <!-- Left: 4 KPI Cards (2x2 Grid) -->
-        <div style="width: 40%; min-width: 310px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="flex: 1 1 280px; min-width: 0; max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div class="prop-kpi-card" style="background: var(--bg-card); padding: 8px 10px; border-radius: var(--radius-sm); border-${isFa ? 'right' : 'left'}: 3px solid ${passColor};">
             <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">${isFa ? 'احتمال قبولی در چالش' : 'Pass Probability'}</div>
             <div id="propsim-pass-rate" style="font-size: 18px; font-weight: 800; color: ${passColor}; margin: 2px 0;" class="num-ltr">${passPct}%</div>
@@ -245,7 +245,7 @@ export class PropFirmSimulator {
         </div>
 
         <!-- Right: Monte Carlo Trajectory Curves -->
-        <div style="flex: 1; min-width: 360px; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column;">
+        <div style="flex: 1 1 300px; min-width: 0; max-width: 100%; background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">${isFa ? 'مسیرهای تعادلی اکوئیتی (۳۵ نمونه شبیه‌سازی مونت‌کارلو)' : 'Monte Carlo Equity Trajectories (35 Sample Simulation Paths)'}</span>
             <div style="display: flex; gap: 12px; font-size: 10px;">

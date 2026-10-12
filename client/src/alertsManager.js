@@ -59,48 +59,12 @@ export class AlertsManager {
           return arr.filter(a => a && a.id && !deleted[a.id]);
         }
       }
-    } catch (e) { /* fall through to defaults */ }
-    return [
-      {
-        id: 'alt-1',
-        symbol: 'BTCUSDT',
-        condition: 'Resistance Target Crossing Above $95,000',
-        conditionFa: 'تقاطع به بالای مقاومت کلیدی ۹۵,۰۰۰ دلار',
-        targetPrice: 95000,
-        direction: 'above',
-        channel: 'Sound & Popup',
-        channelFa: 'صوتی و اعلان تصویری',
-        active: true,
-        triggered: false,
-        createdAt: '2026-09-18 10:00'
-      },
-      {
-        id: 'alt-2',
-        symbol: 'BTCUSDT',
-        condition: 'Demand Zone Bounce Crossing Below $72,000',
-        conditionFa: 'برخورد به زون تقاضای ۷۲,۰۰۰ دلار',
-        targetPrice: 72000,
-        direction: 'below',
-        channel: 'Sound & Webhook',
-        channelFa: 'صوتی و وب‌هوک',
-        active: true,
-        triggered: false,
-        createdAt: '2026-09-18 10:30'
-      },
-      {
-        id: 'alt-3',
-        symbol: 'XAUUSD',
-        condition: 'Price Crossing Above $2,750 (All-Time High)',
-        conditionFa: 'شکست سقف تاریخی ۲,۷۵۰ دلار طلا',
-        targetPrice: 2750,
-        direction: 'above',
-        channel: 'Webhook Relay (Auto-Order)',
-        channelFa: 'رله وب‌هوک (سفارش خودکار)',
-        active: true,
-        triggered: false,
-        createdAt: '2026-09-18 11:00'
-      }
-    ];
+    } catch (e) { /* fall through to empty */ }
+    // A fresh account starts with NO alerts. Seeded demo alerts used to fill
+    // the Basic plan's 3-alert quota (so a new user could not create a single
+    // alert of their own) and showed an "auto-order webhook" the user never
+    // configured. Empty state + clear CTA is the honest default.
+    return [];
   }
 
   saveAlerts() {
@@ -133,10 +97,16 @@ export class AlertsManager {
       return null;
     }
     const cleanSym = (this.currentSymbol || 'BTCUSDT').replace(/^.*:/, '').toUpperCase();
-    const dir = numPrice >= this.currentPrice ? 'above' : 'below';
-    const newId = 'alt-' + Date.now();
-    const defaultCondition = condition || (extra.note ? extra.note : `Price Crossing ${dir === 'above' ? 'Above' : 'Below'} $${numPrice.toLocaleString()}`);
-    const defaultConditionFa = `تقاطع قیمت با تراز $${numPrice.toLocaleString()}`;
+    // Direction must come from a LIVE reference price. Fallback chain:
+    // explicit → manager's last tick → chart's last close. Never compare to 0.
+    const ref = Number(this.currentPrice) || Number(this.app?.chartManager?.lastPrice) || numPrice;
+    const dir = extra.direction === 'above' || extra.direction === 'below'
+      ? extra.direction
+      : (numPrice >= ref ? 'above' : 'below');
+    const newId = 'alt-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    const priceTxt = numPrice.toLocaleString('en-US', { maximumFractionDigits: 8 });
+    const defaultCondition = condition || (extra.note ? extra.note : `Price Crossing ${dir === 'above' ? 'Above' : 'Below'} ${priceTxt}`);
+    const defaultConditionFa = extra.noteFa || `عبور قیمت ${dir === 'above' ? 'به بالای' : 'به زیر'} ${priceTxt}`;
 
     const created = {
       id: newId,
@@ -269,38 +239,9 @@ export class AlertsManager {
     }
   }
 
-  showToast(msg) {
-    let toast = document.querySelector('#tradingchart-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'tradingchart-toast';
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-card);
-        border: 1px solid var(--accent-cyan);
-        color: #fff;
-        padding: 12px 18px;
-        border-radius: 6px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        font-size: 13px;
-        font-weight: 700;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-      `;
-      document.body.appendChild(toast);
-    }
-    toast.innerText = msg;
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-    }, 4000);
+  showToast(msg, type = 'info') {
+    // Delegate to the app's single toast host (consistent style/timing/a11y).
+    if (window.__TRADING_APP__?.showToast) return window.__TRADING_APP__.showToast(msg, type);
   }
 
   render() {
@@ -409,7 +350,7 @@ export class AlertsManager {
             ${isFa ? `هشدارهای فعال (${toPersianDigits(this.alerts.length)})` : `Active Alerts (${this.alerts.length})`}
           </div>
           <div id="alerts-list-wrap">
-            ${this.alerts.length === 0 ? `<div style="font-size: 11px; color: var(--text-muted); padding: 16px 0; text-align: center;">${isFa ? 'هیچ هشدار فعالی ثبت نشده است.' : 'No active price alerts.'}</div>` : ''}
+            ${this.alerts.length === 0 ? `<div style="font-size: 11px; color: var(--text-muted); padding: 16px 0; text-align: center;">${isFa ? 'هنوز هشداری ثبت نکرده‌اید. با دکمهٔ «+ هشدار جدید» یا کلیک راست روی چارت، برای سطح قیمتی دلخواه هشدار بسازید.' : 'No alerts yet. Use “+ New Alert” or right-click the chart to set one at any price.'}</div>` : ''}
             ${this.alerts.map(a => `
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface); margin-bottom: 6px; border-radius: 6px; gap: 8px; ${(!a.active || a.triggered) ? 'opacity: 0.6;' : ''}">
                 <div style="flex: 1; min-width: 0;">

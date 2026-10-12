@@ -1128,7 +1128,8 @@ html[dir="rtl"] .panel-item-info {
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
-.vela-bb-range.is-active {
+.vela-bb-range.is-active,
+.vela-bb-range[data-active='1'] {
   background: rgba(0, 242, 176, 0.15) !important;
   color: #00F2B0 !important;
   font-weight: 700 !important;
@@ -1310,13 +1311,24 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:foc
 }
 
 /* Numbers in LTR & Tabular Figures */
+/* NOTE: only true inline number spans get display:inline-block. Table rows
+   (.screener-row), grid rows (.dom-row) and flex buttons (.scale-dock-btn)
+   keep their own display — forcing inline-block on a <tr> detaches it from the
+   table's column grid, so body cells stop lining up under the header. */
+.num-ltr,
+.qt-price {
+  display: inline-block;
+}
+/* Table cells carrying .num-ltr must stay table cells (inline-block on a <td>
+   pulls it out of the column grid) and align with the page reading edge. */
+td.num-ltr, th.num-ltr { display: table-cell; unicode-bidi: isolate; }
+body.persian-mode td.num-ltr, body.persian-mode th.num-ltr { text-align: right !important; }
 .num-ltr,
 .dom-row,
 .screener-row,
 .qt-price,
 .scale-dock-btn {
   direction: ltr !important;
-  display: inline-block;
   font-variant-numeric: tabular-nums;
   -webkit-font-feature-settings: "tnum";
   font-feature-settings: "tnum";
@@ -2647,7 +2659,13 @@ body.persian-mode #active-layout-name {
 }
 
 /* ── Multi-Chart Active Cell & Splitters (TradingView Parity) ─────── */
-.vela-cell[data-active="1"] {
+/* Single-chart layouts have nothing to disambiguate: the focus ring only
+   draws when the grid actually holds several cells (TradingView parity). */
+.vela-ws-grid:not([data-multi='1']) .vela-cell[data-active="1"] {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.vela-ws-grid[data-multi='1'] .vela-cell[data-active="1"] {
   outline: 2px solid var(--accent-cyan) !important;
   box-shadow: inset 0 0 0 1px rgba(0, 242, 176, 0.4), 0 0 16px rgba(0, 242, 176, 0.15) !important;
   z-index: 2 !important;
@@ -2880,3 +2898,280 @@ body.persian-mode #active-layout-name {
     font-size: 13px !important;
   }
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   R1 QA — chart chrome must never cover the time axis / price axis
+   ════════════════════════════════════════════════════════════════════ */
+/* Desktop: scale toggles docked inside the engine bottom bar (TV parity) */
+.scale-controls-dock.in-bottombar {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  margin-inline-end: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.scale-controls-dock.in-bottombar .scale-dock-inner {
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 2px;
+}
+.scale-controls-dock.in-bottombar .scale-dock-btn {
+  height: 24px;
+  min-height: 24px !important;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vela-fg-muted, var(--text-dim));
+}
+.scale-controls-dock.in-bottombar .scale-dock-btn.active {
+  color: var(--accent-cyan);
+}
+body.persian-mode .scale-dock-btn { font-family: var(--font-vazirmatn), var(--font-sans); }
+
+/* Price-alert lines: exact engine projection, plot-only width */
+.canvas-alert-line {
+  position: absolute;
+  height: 0;
+  border-top: 1px dashed var(--accent-gold);
+  pointer-events: none;
+  z-index: 10;
+}
+.canvas-alert-badge,
+.canvas-alert-pinned {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 1px 0 4px;
+  max-width: 66px;
+  overflow: hidden;
+  background: rgba(15, 20, 32, 0.96);
+  border: 1px solid var(--accent-gold);
+  border-radius: 4px;
+  font: 700 10px/1 var(--font-mono);
+  color: var(--accent-gold);
+  white-space: nowrap;
+  pointer-events: auto;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.canvas-alert-pinned { opacity: 0.92; gap: 2px; }
+.canvas-alert-pinned .cap-arrow { font-size: 8px; }
+.canvas-alert-pinned .btn-delete-alert-pill { min-width: 13px; font-size: 9px; }
+.btn-delete-alert-pill {
+  all: unset;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+.btn-delete-alert-pill:hover { color: #fff; background: rgba(246, 70, 93, 0.35); }
+
+@media (max-width: 768px) {
+  /* Mobile: plot ends above the 55px mobilebar; the time axis takes the last
+     22px of the plot. Floating pills park above it. */
+  .scale-controls-dock {
+    bottom: calc(55px + 22px + 6px) !important;
+    right: auto !important;
+    left: 8px !important;
+  }
+  .qt-pill-trigger {
+    bottom: calc(55px + 22px + 6px) !important;
+    right: 66px !important;
+  }
+  .canvas-alert-badge, .canvas-alert-pinned { display: none !important; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   R1 QA — Touch-target floor for coarse pointers (phones/tablets).
+   Measured on 390px viewport: dozens of panel controls were 22–28px tall
+   (WCAG 2.5.8 / Apple HIG). Raise every interactive control to ≥36px
+   without changing desktop density.
+   ══════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse), (max-width: 768px) {
+  .panel-body-area button,
+  .panel-body-area select,
+  .panel-body-area input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  /* Vela side-panels (watchlist, paper, alerts, pine, prop-sim, journal,
+     DOM, templates, workspaces, object tree) mount under .vela-panel-body */
+  .vela-panel-body button,
+  .vela-panel-body select,
+  .vela-panel-body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  .modal-box button,
+  .modal-box select,
+  .modal-box input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  [role="dialog"] button,
+  [role="dialog"] select,
+  .vela-drawer button,
+  .tc-auth-forgot,
+  .journal-nav-tab {
+    min-height: 36px;
+  }
+  .panel-body-area button:not(.btn-delete-alert-pill),
+  .vela-panel-body button:not(.btn-delete-alert-pill),
+  .modal-box button,
+  [role="dialog"] button,
+  .vela-drawer button { min-width: 36px; }
+  /* checkboxes / radios: enlarge the hit box, keep the glyph legible */
+  .panel-body-area input[type="checkbox"],
+  .panel-body-area input[type="radio"],
+  .vela-panel-body input[type="checkbox"],
+  .vela-panel-body input[type="radio"],
+  .modal-box input[type="checkbox"],
+  .modal-box input[type="radio"],
+  [role="dialog"] input[type="checkbox"] {
+    width: 22px; height: 22px; margin: 7px;
+  }
+  .panel-body-area input[type="range"],
+  .vela-panel-body input[type="range"],
+  .modal-box input[type="range"] { min-height: 36px; }
+  /* settings modal opacity toggle */
+  #cfg-watermark-toggle { width: 22px; height: 22px; margin: 7px; }
+  #cfg-watermark-num { min-width: 52px; }
+  .modal-box input[type="color"],
+  [role="dialog"] .vela-color-field,
+  [role="dialog"] .vela-switch { min-width: 36px; min-height: 36px; }
+  .vela-drawer-close-custom { width: 40px !important; height: 40px !important; }
+  .tc-auth-forgot { display: inline-flex; align-items: center; }
+}
+
+
+/* R1 QA — Mobile quick-trade: thumb-reachable steppers + minimize handle.
+   Was 16×22 / 12×24 on a 390px phone (impossible to hit reliably). */
+@media (pointer: coarse), (max-width: 768px) {
+  .qt-step-btn { width: 30px !important; height: 30px !important; font-size: 16px !important; }
+  .qt-qty-wrap input, #quick-trade-qty { height: 30px !important; line-height: 30px !important; width: 52px !important; font-size: 13px !important; }
+  .qt-minimize-btn { min-width: 28px !important; min-height: 36px !important; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   R1 QA — Pill rows that scroll horizontally must never squeeze their
+   pills (flex-shrink clipped "Central Banks", "Commodities", "Appearance").
+   ══════════════════════════════════════════════════════════════════ */
+.cal-filter-btn,
+.comp-cat-btn,
+.settings-tab-btn,
+.screener-cat-pills > button,
+.wl-flag-filter-btn,
+.paper-account-chip { flex-shrink: 0; white-space: nowrap; }
+.screener-cat-pills { flex-wrap: wrap; max-width: 100%; }
+.screener-wrapper .screener-topbar > * { min-width: 0; max-width: 100%; }
+
+@media (pointer: coarse), (max-width: 768px) {
+  /* Panel controls that carry their own inline heights */
+  .wl-flag-filter-btn,
+  #btn-reset-paper,
+  .paper-account-chip,
+  #btn-paper-new-account,
+  #journal-account-filter,
+  #journal-time-filter,
+  #btn-journal-privacy,
+  #btn-journal-export-csv,
+  .btn-dom-limit-sell,
+  .btn-dom-limit-buy { min-height: 36px !important; }
+  .wl-flag-filter-btn, #btn-paper-new-account { min-width: 36px !important; }
+  #sync-symbol-check, #sync-tf-check, #sync-cross-check, #sync-drawings-check,
+  #cfg-watermark-toggle { width: 30px !important; height: 30px !important; margin: 3px !important; }
+  #cfg-watermark-num { min-height: 36px !important; }
+}
+
+
+/* ── Toast (R1 QA): one host, severity colours, RTL-aware, above modals ── */
+.tc-toast {
+  position: fixed;
+  /* clear the bottom panel tab strip (34px) + chart bottom bar (38px) */
+  bottom: calc(34px + 38px + 12px);
+  inset-inline-end: 24px;
+  max-width: min(440px, calc(100vw - 32px));
+  background: var(--bg-card);
+  border: 1px solid var(--accent-cyan);
+  border-inline-start-width: 4px;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  z-index: 100000;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: auto;
+}
+.tc-toast.is-visible { opacity: 1; transform: translateY(0); }
+.tc-toast[data-type="success"], .tc-toast[data-type="buy"] { border-color: var(--accent-green); }
+.tc-toast[data-type="warning"] { border-color: var(--accent-gold, #f59e0b); }
+.tc-toast[data-type="error"], .tc-toast[data-type="sell"] { border-color: var(--accent-red); }
+body.persian-mode .tc-toast { font-family: var(--font-vazirmatn); }
+@media (max-width: 768px) {
+  .tc-toast { bottom: calc(55px + 16px + env(safe-area-inset-bottom, 0px)); inset-inline: 12px; max-width: none; }
+}
+
+
+/* ── Paper ticket (R1 QA): consistent controls, RTL-correct selects ── */
+#paper-ticket-view select,
+#paper-ticket-view input[type="number"] {
+  min-height: 30px;
+  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-family: inherit;
+}
+#paper-ticket-view input[type="number"] { direction: ltr; text-align: start; font-variant-numeric: tabular-nums; }
+body.persian-mode #paper-ticket-view input[type="number"] { text-align: right; }
+#paper-ticket-view label { font-size: 10.5px !important; color: var(--text-dim) !important; white-space: nowrap; }
+#btn-order-buy, #btn-order-sell { white-space: nowrap; font-size: 12.5px; }
+#paper-ticket-view select:focus-visible,
+#paper-ticket-view input:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 1px; }
+
+
+/* ── R1 QA cycle 4: mobile fit + touch targets ─────────────────────── */
+@media (max-width: 768px) {
+  /* Quick-trade must fit a 350px phone viewport without clipping */
+  #chart-quick-trade { max-width: calc(100vw - 24px) !important; box-sizing: border-box !important; }
+  #chart-quick-trade .qt-content { min-width: 0 !important; flex: 1 1 auto !important; gap: 3px !important; }
+  #chart-quick-trade .qt-btn { min-width: 0 !important; flex: 1 1 0 !important; padding: 4px 6px !important; }
+  #chart-quick-trade .qt-price { font-size: 11px !important; }
+  #chart-quick-trade .qt-middle-wrap { flex: 0 1 auto !important; min-width: 0 !important; }
+  #chart-quick-trade #quick-trade-qty { width: 40px !important; }
+  #chart-quick-trade .qt-step-btn { min-width: 30px !important; min-height: 30px !important; }
+  #chart-quick-trade .qt-unit { display: none !important; }
+  #chart-quick-trade .qt-minimize-btn { width: 30px !important; min-width: 30px !important; min-height: 36px !important; }
+  /* watchlist row actions */
+  .btn-toggle-flag, .btn-remove-wl { min-width: 32px !important; min-height: 32px !important; }
+  /* drawings dropdown search field */
+  .vela-dd-search input { min-height: 34px !important; }
+  /* checkbox / toggle hit-areas: enlarge with an invisible ring */
+  #sync-symbol-check, #sync-tf-check, #sync-cross-check, #sync-drawings-check,
+  #cfg-watermark-toggle { width: 30px !important; height: 30px !important; }
+  /* DOM ladder stepper */
+  #dom-qty-dec, #dom-qty-inc { min-width: 30px !important; min-height: 30px !important; }
+}
+/* DOM header: let the size stepper wrap instead of clipping in narrow panels */
+.dom-wrapper > div:first-child > div:first-child { flex-wrap: wrap !important; row-gap: 6px !important; }
+
+/* Strategy KPI values: numbers stay LTR internally but sit on the reading edge */
+body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right; }
+
+/* Inline code tokens inside localized prose */
+#view-strategy code, .vela-panel-body code { font-family: var(--font-mono); font-size: 0.92em; padding: 0 4px; border-radius: 4px; background: rgba(255,255,255,0.06); direction: ltr; unicode-bidi: isolate; }
