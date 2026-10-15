@@ -5,3 +5,13 @@ dist
 screenshots/*.png
 screenshots/*/*.png
 screenshots/audit_report.json
+
+# Runtime data (user accounts, sessions, secrets) — never commit
+server/data/admin_master.key
+server/data/accounts/
+
+# Runtime data and QA evidence (screenshots and admin probe reports can show real user data)
+server/data/
+screenshots/**/*.png
+screenshots/qa_cycles/admin/
+screenshots/qa_cycles/admin_e2e/

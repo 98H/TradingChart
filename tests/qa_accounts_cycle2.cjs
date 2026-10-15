@@ -16,7 +16,7 @@ function record(name, defects, extra = {}) {
   for (const d of defects) console.log(`    · ${d.kind}: ${d.text}`);
 }
 
-async function signup(page) {
+async function signupOnce(page) {
   await page.evaluate(() => document.querySelector('.user-avatar-badge')?.click());
   await new Promise(r => setTimeout(r, 350));
   await page.evaluate(() => { [...document.querySelectorAll('#tc-account-menu [data-act]')].find(x => x.dataset.act === 'signup')?.click(); });
@@ -30,7 +30,7 @@ async function signup(page) {
   await page.evaluate(() => document.querySelector('#tc-verify-modal')?.remove());
 }
 
-async function login(page) {
+async function loginOnce(page) {
   await page.evaluate(() => document.querySelector('.user-avatar-badge')?.click());
   await new Promise(r => setTimeout(r, 350));
   await page.evaluate(() => { [...document.querySelectorAll('#tc-account-menu [data-act]')].find(x => x.dataset.act === 'login')?.click(); });
@@ -43,13 +43,38 @@ async function login(page) {
   await new Promise(r => setTimeout(r, 2500));
 }
 
+// Harness guard: if signup/login silently fails (e.g. the per-IP register limiter,
+// 5/min, was drained by another process), every sync check below would run as a
+// guest and report misleading "sync" defects. Verify the account really exists,
+// wait out the limiter window once, and otherwise fail loudly as an env error.
+async function authStep(page, once, label) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const resp = page.waitForResponse(r => /\/api\/auth\/(register|login)$/.test(new URL(r.url()).pathname), { timeout: 15000 }).catch(() => null);
+    await once(page);
+    const r = await resp;
+    if (await page.evaluate(() => Boolean(window.__TRADING_APP__?.auth?.user))) return true;
+    console.log(`⚠ ${label} attempt ${attempt} failed (HTTP ${r ? r.status() : 'no response'})`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => { document.querySelector('#tc-auth-modal')?.remove(); document.querySelector('#tc-verify-modal')?.remove(); });
+    if (attempt === 1) await new Promise(res => setTimeout(res, 62000));
+  }
+  return false;
+}
+const signup = (page) => authStep(page, signupOnce, 'signup');
+const login = (page) => authStep(page, loginOnce, 'login');
+
 (async () => {
   // Wait for a free register-limiter window (back-to-back runs otherwise 429-cascade)
   await awaitRegisterWindow();
   // ── Device A: register, upgrade to Plus (simulated billing), then mutate ──
   const A = await launch('desktop');
   await boot(A, { settle: 3500 });
-  await signup(A.page);
+  if (!(await signup(A.page))) {
+    record('A_setup_signup', [{ kind: 'env', text: 'signup did not complete — sync checks skipped (see ⚠ lines)' }]);
+    console.log('CYCLE2 RESULT: aborted — environment failure (signup)');
+    await A.browser.close();
+    process.exit(2);
+  }
 
   // A0: on Basic, the tier gates must REJECT over-limit creations (TradingView parity)
   const basicBlocks = await A.page.evaluate(() => {
