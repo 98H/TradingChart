@@ -73,7 +73,7 @@ export class CommandPalette {
     add('action', 'Chart Settings', 'تنظیمات چارت', () => app.settingsModal?.open(), '⚙');
     add('action', 'Keyboard Shortcuts', 'میانبرهای صفحه‌کلید', () => app.shortcutsModal?.open(), '⌨');
     add('action', 'Compare Symbol', 'مقایسه نماد', () => app.compareModal?.open(), '➕');
-    add('action', 'Plans Studio (Admin)', 'استودیوی مدیریت پلن‌ها و اشتراک‌ها', () => app.auth?.openPlanAdminStudio?.(), '💎');
+    if (app.auth?.isAdmin?.()) add('action', 'Admin Console', 'پنل مدیریت پلتفرم', () => app.auth.openPlanAdminStudio('dashboard'), '🛡️');
     add('action', 'Toggle Log Scale', 'مقیاس لگاریتمی', () => document.querySelector('#btn-scale-log')?.click(), '📈');
     add('action', 'Toggle Language FA/EN', 'تغییر زبان فارسی/انگلیسی', () => app.switchLanguage?.(getLanguage() === 'fa' ? 'en' : 'fa'), '🌐');
     this.items = items;

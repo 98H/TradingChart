@@ -5,7 +5,6 @@
 
 import { getLanguage, t, toPersianDigits } from './i18n.js';
 import { AVATAR_PRESETS } from './userProfileModal.js';
-import { PlanAdminManager } from './planAdminManager.js';
 
 // ── Central storage bus: every 'tradingchart_*' localStorage write dispatches
 // a 'storage-write' event so the cloud sync engine can debounce-push changes.
@@ -64,7 +63,7 @@ export class AuthManager {
     this.entitlements = PLANS.basic;
     this.usage = null;
     this.plansMeta = PLANS;
-    this.planAdmin = new PlanAdminManager(app, this);
+    this.adminSession = false; // server-verified (role or unlocked admin cookie)
     this.syncEnabled = (() => { try { return localStorage.getItem('tradingchart_sync_enabled') !== '0'; } catch (e) { return true; } })();
     this.syncTimer = null;
     this.syncInFlight = false;
@@ -151,15 +150,16 @@ export class AuthManager {
 
   planRank(id) { return PLAN_ORDER.indexOf(id); }
 
+  /** Admin status is decided by the server only (role or unlocked admin session cookie). */
   isAdmin() {
-    if (this.user?.role === 'admin' || this.user?.isAdmin === true) return true;
-    const key = sessionStorage.getItem('tradingchart_admin_key') || localStorage.getItem('tradingchart_admin_key');
-    return Boolean(key && key.trim() === 'tradingchart_master_nexus');
+    return Boolean(this.user?.isAdmin === true || this.user?.role === 'admin' || this.adminSession);
   }
 
-  openPlanAdminStudio() {
+  /** Opens the back-office console (separate page; it handles its own unlock gate). */
+  openPlanAdminStudio(section = 'plans') {
     this.closeAccountMenu();
-    return this.planAdmin.open();
+    const target = `/admin#/${section}`;
+    try { window.open(target, '_blank', 'noopener'); } catch (e) { window.location.href = target; }
   }
 
   /** Enforce a limit; shows the TradingView-style upgrade toast and returns false when blocked. */
@@ -213,6 +213,7 @@ export class AuthManager {
         const curPlan = this.user?.plan || data.current || 'basic';
         this.entitlements = data.plans[curPlan] || data.plans.basic || this.entitlements;
         this.usage = data.usage || null;
+        this.adminSession = data.isAdmin === true;
       }
     } catch (e) { /* keep local mirror */ }
   }
@@ -692,7 +693,7 @@ export class AuthManager {
         ${this.menuItem('profile', isFa ? 'پروفایل و تنظیمات' : 'Profile & Settings', '👤')}
         ${this.menuItem('account', isFa ? 'حساب و صورت‌حساب' : 'Account & Billing', '🧾')}
         ${this.menuItem('plans', isFa ? 'پلن‌ها و ارتقا' : 'Plans & Upgrade', '⭐')}
-        ${this.menuItem('plan-admin', isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans & Feature Studio', '⚙️')}
+        ${this.isAdmin() ? this.menuItem('plan-admin', isFa ? 'پنل مدیریت پلتفرم' : 'Admin Console', '🛡️') : ''}
         ${this.menuItem('devices', isFa ? 'دستگاه‌های فعال' : 'Active Devices', '📱')}
         ${this.menuItem('sync', this.syncEnabled ? (isFa ? 'همگام‌سازی: روشن' : 'Sync: On') : (isFa ? 'همگام‌سازی: خاموش' : 'Sync: Off'), '☁️')}
         <div style="border-top: 1px solid var(--border-subtle); margin: 6px 0;"></div>
@@ -711,7 +712,6 @@ export class AuthManager {
         ${this.menuItem('login', isFa ? 'ورود به حساب' : 'Sign In', '→')}
         ${this.menuItem('signup', isFa ? 'ایجاد حساب رایگان' : 'Create Free Account', '✦')}
         ${this.menuItem('plans', isFa ? 'مقایسه پلن‌ها' : 'Compare Plans', '⭐')}
-        ${this.menuItem('plan-admin', isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans Studio (Admin)', '⚙️')}
         ${this.menuItem('data', isFa ? 'پشتیبان‌گیری جامع و بازیابی' : 'Full Backup & Restore', '🛡️')}
       </div>`;
   }
@@ -734,7 +734,7 @@ export class AuthManager {
       case 'data': this.app?.userProfileModal?.open?.('data'); break;
       case 'account': this.openAccountSettingsModal(); break;
       case 'plans': this.openPlansModal(); break;
-      case 'plan-admin': this.openPlanAdminStudio(); break;
+      case 'plan-admin': this.openPlanAdminStudio('dashboard'); break;
       case 'devices': this.openDevicesModal(); break;
       case 'sync': this.toggleSync(); break;
       case 'logout': this.logout(); break;
@@ -840,6 +840,9 @@ export class AuthManager {
         password_weak: isFa ? 'گذرواژه باید حداقل ۸ کاراکتر و شامل حرف و رقم باشد.' : 'Password needs 8+ chars incl. letters & digits.',
         password_length: isFa ? 'گذرواژه باید حداقل ۸ کاراکتر باشد.' : 'Password must be at least 8 characters.',
         invalid_credentials: isFa ? 'ایمیل/نام کاربری یا گذرواژه نادرست است.' : 'Incorrect email/username or password.',
+        account_suspended: isFa ? 'این حساب کاربری توسط مدیریت تعلیق شده است. برای پیگیری با پشتیبانی تماس بگیرید.' : 'This account has been suspended by an administrator. Please contact support.',
+        registration_closed: isFa ? 'ثبت‌نام کاربر جدید در حال حاضر غیرفعال است.' : 'New registrations are currently closed.',
+        maintenance: isFa ? 'سامانه در حال به‌روزرسانی و نگهداری است؛ لطفاً کمی بعد دوباره تلاش کنید.' : 'The platform is under maintenance — please try again shortly.',
         rate_limited: isFa ? 'تلاش‌های بیش از حد؛ کمی بعد دوباره امتحان کنید.' : 'Too many attempts — try again shortly.',
         network: isFa ? 'خطای شبکه — اتصال خود را بررسی کنید.' : 'Network error — check your connection.'
       };
@@ -1597,9 +1600,9 @@ export class AuthManager {
         <div style="padding:14px 18px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;">
           <span style="font-weight:800; font-size:14px; color:#fff;">${isFa ? 'پلن‌های تریدینگ‌چارت' : 'TradingChart Plans'}</span>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="tc-plans-open-admin" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:1px solid rgba(0,242,176,0.3); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-              <span>⚙️</span><span>${isFa ? 'استودیوی مدیریت پلن‌ها' : 'Plans Studio (Admin)'}</span>
-            </button>
+            ${this.isAdmin() ? `<button id="tc-plans-open-admin" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:1px solid rgba(0,242,176,0.3); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+              <span>⚙️</span><span>${isFa ? 'مدیریت پلن‌ها' : 'Manage Plans'}</span>
+            </button>` : ''}
             <button data-close style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-dim); cursor:pointer; width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:14px;">✕</button>
           </div>
         </div>
@@ -1615,7 +1618,7 @@ export class AuthManager {
       if (e.target === overlay || e.target.closest('[data-close]')) { overlay.remove(); return; }
       if (e.target.closest('#tc-plans-open-admin')) {
         overlay.remove();
-        this.openPlanAdminStudio();
+        this.openPlanAdminStudio('plans');
         return;
       }
       const btn = e.target.closest('[data-plan]');

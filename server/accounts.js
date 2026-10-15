@@ -7,7 +7,11 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { FEATURES_CATALOG } from './featuresCatalog.js';
+import { FEATURES_CATALOG, CATEGORIES } from './featuresCatalog.js';
+import { isReqAdmin, audit } from './adminAuth.js';
+import { mountAdminApi } from './adminApi.js';
+import { getPlatformSettings, publicPlatformInfo } from './platformSettings.js';
+export { isReqAdmin };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data', 'accounts');
@@ -20,13 +24,6 @@ const STATE_DIR = path.join(DATA_DIR, 'states');
 const SESSION_TTL_MS = 30 * 24 * 3600 * 1000; // 30 days
 const STATE_MAX_BYTES = 2 * 1024 * 1024;      // 2MB cloud state budget
 const SESSION_COOKIE = 'tc_session';
-export const MASTER_KEY = process.env.TRADINGCHART_MASTER_KEY || 'tradingchart_master_nexus';
-
-export function isReqAdmin(req) {
-  if (req.user && (req.user.role === 'admin' || req.user.isAdmin === true)) return true;
-  const key = req.headers['x-master-key'] || req.query?.masterKey || (req.body && req.body.masterKey);
-  return Boolean(key && String(key).trim() === MASTER_KEY);
-}
 
 // ── Plan tiers (TradingView-parity entitlement matrix) ────────────────────
 export const PLAN_ORDER = ['basic', 'essential', 'plus', 'premium', 'ultimate'];
@@ -62,7 +59,7 @@ const SEED_PLANS = {
     id: 'essential', priceUSD: 12.95, priceYearlyUSD: 129.50, billingCycle: 'monthly',
     nameEn: 'Essential', nameFa: 'اسنشیال',
     descriptionEn: 'Unleash multi-timeframe analytics, custom intervals, and enhanced indicators',
-    descriptionFa: 'تحلیل چند‌تایم‌فریم، بازه‌های زمانی سفارشی و افزایش سقف اندیکاتورها',
+    descriptionFa: 'تحلیل چندتایم‌فریمی، بازه‌های زمانی سفارشی و سقف بالاتر اندیکاتورها',
     badge: 'POPULAR', badgeFa: 'محبوب', color: '#3b82f6', order: 1, isDefault: false, isActive: true,
     features: {
       chartsPerTab: 2, savedLayouts: 5, indicatorsPerChart: 5, indicatorsOnIndicator: 1,
@@ -86,7 +83,7 @@ const SEED_PLANS = {
     id: 'plus', priceUSD: 29.95, priceYearlyUSD: 299.50, billingCycle: 'monthly',
     nameEn: 'Plus', nameFa: 'پلاس',
     descriptionEn: 'Intraday mastery with webhook alerts, synthetic charts, and 4-chart grids',
-    descriptionFa: 'تسلط روزانه با هشدارهای وب‌هوک، چارت‌های رنکو/کاگی و چیدمان ۴ چارت',
+    descriptionFa: 'معاملات روزانه حرفه‌ای با هشدارهای وب‌هوک، چارت‌های رنکو و کاگی و چیدمان ۴ چارتی',
     badge: 'RECOMMENDED', badgeFa: 'پیشنهادی', color: '#00F2B0', order: 2, isDefault: false, isActive: true,
     features: {
       chartsPerTab: 4, savedLayouts: 10, indicatorsPerChart: 10, indicatorsOnIndicator: 9,
@@ -110,7 +107,7 @@ const SEED_PLANS = {
     id: 'premium', priceUSD: 59.95, priceYearlyUSD: 599.50, billingCycle: 'monthly',
     nameEn: 'Premium', nameFa: 'پریمیوم',
     descriptionEn: 'Institutional-grade depth, 20,000 bars, 8-chart layouts, and deep backtesting',
-    descriptionFa: 'قدرت نهادی، ۲۰ هزار کندل، چیدمان ۸ چارت و بک‌تست عمیق نامحدود',
+    descriptionFa: 'عمق تحلیل در سطح نهادی، ۲۰ هزار کندل، چیدمان ۸ چارتی و بک‌تست عمیق نامحدود',
     badge: 'PRO', badgeFa: 'حرفه‌ای', color: '#a855f7', order: 3, isDefault: false, isActive: true,
     features: {
       chartsPerTab: 8, savedLayouts: -1, indicatorsPerChart: 25, indicatorsOnIndicator: 24,
@@ -134,7 +131,7 @@ const SEED_PLANS = {
     id: 'ultimate', priceUSD: 199.95, priceYearlyUSD: 1999.50, billingCycle: 'monthly',
     nameEn: 'Ultimate', nameFa: 'آلتیمیت',
     descriptionEn: 'Limitless power with 16-chart grids, 40,000 bars, 1000 alerts, and priority compute',
-    descriptionFa: 'نهایت قدرت با ۱۶ چارت همزمان، ۴۰ هزار کندل، ۱۰۰۰ هشدار و اولویت پردازش',
+    descriptionFa: 'حداکثر توان با ۱۶ چارت هم‌زمان، ۴۰ هزار کندل، ۱۰۰۰ هشدار و اولویت پردازش',
     badge: 'VIP', badgeFa: 'ویژه', color: '#f59e0b', order: 4, isDefault: false, isActive: true,
     features: {
       chartsPerTab: 16, savedLayouts: -1, indicatorsPerChart: 50, indicatorsOnIndicator: 49,
@@ -162,16 +159,23 @@ export function normalizePlan(raw) {
   p.nameEn = String(p.nameEn || p.id).trim();
   p.nameFa = String(p.nameFa || p.nameEn).trim();
   p.descriptionEn = String(p.descriptionEn || '').trim();
-  p.descriptionFa = String(p.descriptionFa || p.descriptionEn).trim();
+  p.descriptionFa = String(p.descriptionFa ?? p.descriptionEn).trim();
   p.priceUSD = typeof p.priceUSD === 'number' ? Math.max(0, p.priceUSD) : 0;
   p.priceYearlyUSD = typeof p.priceYearlyUSD === 'number' ? Math.max(0, p.priceYearlyUSD) : Math.round(p.priceUSD * 10 * 100) / 100;
   p.billingCycle = p.billingCycle || 'monthly';
   p.badge = String(p.badge || '').trim();
-  p.badgeFa = String(p.badgeFa || p.badge).trim();
+  p.badgeFa = String(p.badgeFa ?? p.badge).trim();
   p.color = p.color || '#00F2B0';
   p.order = typeof p.order === 'number' ? p.order : 0;
   p.isActive = p.isActive !== false;
   p.isDefault = Boolean(p.isDefault);
+
+  p.priceUSD = Math.round(p.priceUSD * 100) / 100;
+  p.priceYearlyUSD = Math.round(p.priceYearlyUSD * 100) / 100;
+  if (!/^#[0-9a-fA-F]{6}$/.test(String(p.color))) p.color = '#00F2B0';
+  p.nameEn = p.nameEn.slice(0, 40); p.nameFa = p.nameFa.slice(0, 40);
+  p.badge = p.badge.slice(0, 16); p.badgeFa = p.badgeFa.slice(0, 16);
+  p.descriptionEn = p.descriptionEn.slice(0, 240); p.descriptionFa = p.descriptionFa.slice(0, 240);
 
   // Features object
   p.features = { ...(p.features || {}) };
@@ -179,11 +183,68 @@ export function normalizePlan(raw) {
     if (p.features[f.id] === undefined) {
       p.features[f.id] = (raw[f.id] !== undefined) ? raw[f.id] : f.default;
     }
+    // Type-safe coercion: booleans stay booleans; quotas are integers ≥ 0 or -1 (unlimited)
+    if (f.type === 'boolean') p.features[f.id] = p.features[f.id] === true || p.features[f.id] === 'true';
+    else {
+      let n = Math.round(Number(p.features[f.id]));
+      if (!Number.isFinite(n)) n = f.default;
+      if (n === -1 && f.allowUnlimited === false) n = f.max;
+      if (n !== -1) n = Math.min(f.max ?? n, Math.max(f.min ?? 0, n));
+      p.features[f.id] = n;
+    }
     // Also flatten onto top level for backward compatibility
     p[f.id] = p.features[f.id];
   }
   return p;
 }
+
+/**
+ * Strict validation for admin plan writes (create/update). normalizePlan()
+ * still clamps defensively, but invalid admin input is reported instead of
+ * being silently rewritten. Returns [] when valid.
+ */
+const PLAN_MAX_PRICE = 100000;
+const PLAN_TEXT_LIMITS = { nameEn: 40, nameFa: 40, badge: 16, badgeFa: 16, descriptionEn: 240, descriptionFa: 240 };
+export function validatePlanInput(raw, { partial = false } = {}) {
+  const errors = [];
+  const has = k => raw[k] !== undefined;
+  for (const k of ['nameFa', 'nameEn']) {
+    if (!partial || has(k)) {
+      if (!String(raw[k] ?? '').trim()) errors.push({ field: k, code: 'required' });
+    }
+  }
+  for (const [k, max] of Object.entries(PLAN_TEXT_LIMITS)) {
+    if (has(k) && String(raw[k]).trim().length > max) errors.push({ field: k, code: 'too_long', max });
+  }
+  for (const k of ['priceUSD', 'priceYearlyUSD']) {
+    if (!has(k)) continue;
+    const v = raw[k];
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > PLAN_MAX_PRICE) {
+      errors.push({ field: k, code: 'out_of_range', min: 0, max: PLAN_MAX_PRICE });
+    }
+  }
+  if (has('color') && !/^#[0-9a-fA-F]{6}$/.test(String(raw.color))) errors.push({ field: 'color', code: 'invalid' });
+  for (const k of ['isActive', 'isDefault']) {
+    if (has(k) && typeof raw[k] !== 'boolean') errors.push({ field: k, code: 'invalid' });
+  }
+  if (raw.features !== undefined) {
+    if (!raw.features || typeof raw.features !== 'object' || Array.isArray(raw.features)) {
+      errors.push({ field: 'features', code: 'invalid' });
+    } else {
+      for (const f of FEATURES_CATALOG) {
+        if (!(f.id in raw.features)) continue;
+        const v = raw.features[f.id];
+        if (f.type === 'boolean') {
+          if (typeof v !== 'boolean') errors.push({ field: `features.${f.id}`, code: 'invalid' });
+        } else if (!(v === -1 && f.allowUnlimited !== false) && !(Number.isInteger(v) && v >= (f.min ?? 0) && v <= (f.max ?? Infinity))) {
+          errors.push({ field: `features.${f.id}`, code: 'out_of_range', min: f.min ?? 0, max: f.max ?? null });
+        }
+      }
+    }
+  }
+  return errors;
+}
+const SEED_PLAN_IDS = () => Object.keys(SEED_PLANS);
 
 export function loadPlans() {
   const store = readJson(PLANS_FILE, null);
@@ -225,9 +286,22 @@ export function savePlansStore() {
 
 // ── Atomic JSON store ─────────────────────────────────────────────────────
 function ensureDirs() {
-  for (const d of [DATA_DIR, STATE_DIR]) if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  for (const d of [DATA_DIR, STATE_DIR]) if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true, mode: 0o700 });
 }
 ensureDirs();
+// Harden pre-existing stores: password hashes, TOTP secrets, session digests
+// and audit trails are owner-only (writeFileSync's `mode` applies only on
+// create, so files from older builds stay 0644 without this pass).
+(function hardenDataPerms() {
+  try {
+    for (const d of [path.dirname(DATA_DIR), DATA_DIR, STATE_DIR]) { try { fs.chmodSync(d, 0o700); } catch (e) { /* not ours */ } }
+    for (const f of fs.readdirSync(DATA_DIR)) {
+      const p = path.join(DATA_DIR, f);
+      try { if (fs.statSync(p).isFile()) fs.chmodSync(p, 0o600); } catch (e) { /* raced */ }
+    }
+    for (const f of fs.readdirSync(STATE_DIR)) { try { fs.chmodSync(path.join(STATE_DIR, f), 0o600); } catch (e) { /* raced */ } }
+  } catch (e) { console.error('[accounts] permission hardening skipped:', e.message); }
+})();
 
 function readJson(file, fallback) {
   try {
@@ -245,12 +319,29 @@ function users() {
   return _users;
 }
 function sessions() {
-  if (_sessions === null) _sessions = readJson(SESSIONS_FILE, { sessions: [] });
+  if (_sessions === null) {
+    _sessions = readJson(SESSIONS_FILE, { sessions: [] });
+    if (!Array.isArray(_sessions.sessions)) _sessions.sessions = [];
+    // One-time security migration: rows written before tokens were hashed at
+    // rest still carry a raw `token`. Those raw tokens may also survive in
+    // backups / local git history, so they are REVOKED (forced re-login), not
+    // re-hashed — re-hashing would keep every leaked copy replayable.
+    const before = _sessions.sessions.length;
+    _sessions.sessions = _sessions.sessions.filter(s => s && typeof s.tokenHash === 'string' && !('token' in s));
+    const dropped = before - _sessions.sessions.length;
+    if (dropped) {
+      try { atomicWrite(SESSIONS_FILE, _sessions); } catch (e) { /* retried on next flush */ }
+      console.log(`[accounts] security: revoked ${dropped} legacy plaintext-token sessions`);
+    }
+  }
   return _sessions;
 }
+/** Session tokens are stored only as sha256 digests (hashed at rest). */
+function hashSessionToken(t) { return crypto.createHash('sha256').update(String(t)).digest('hex'); }
 function atomicWrite(file, obj) {
+  // Stores hold password hashes, TOTP secrets and session digests: owner-only.
   const tmp = `${file}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(obj, null, 1));
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 1), { mode: 0o600 });
   fs.renameSync(tmp, file);
 }
 
@@ -385,8 +476,11 @@ function outboxPush(kind, email, code) {
     const box = readJson(OUTBOX_FILE, { messages: [] });
     box.messages.unshift({ id: crypto.randomUUID(), kind, email, code, at: new Date().toISOString() });
     if (box.messages.length > 200) box.messages.length = 200;
-    fs.writeFileSync(OUTBOX_FILE, JSON.stringify(box, null, 1));
+    fs.writeFileSync(OUTBOX_FILE, JSON.stringify(box, null, 1), { mode: 0o600 });
   } catch (e) { console.error('[accounts] outbox write failed:', e.message); }
+}
+function outboxAll() {
+  return readJson(OUTBOX_FILE, { messages: [] }).messages.map(({ id, kind, email, at }) => ({ id, kind, email, at }));
 }
 export function outboxRead(email, kind) {
   const box = readJson(OUTBOX_FILE, { messages: [] });
@@ -459,32 +553,42 @@ function clearSessionCookie(res) {
 }
 
 // ── Sessions table ops ────────────────────────────────────────────────────
+// Tokens are stored HASHED at rest (sha256): a leaked sessions.json (backup,
+// git history, disk image) cannot be replayed as a cookie. The raw token lives
+// only in the user's HttpOnly cookie and, transiently, as a NON-enumerable
+// `token` property on a freshly created row (so JSON persistence drops it).
+// (session-token hashing lives next to the session store — see hashSessionToken)
 function createSessionRow(user, req) {
   const ua = String(req.headers['user-agent'] || '').slice(0, 180);
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
   const device = isMobile ? 'Mobile Browser' : 'Desktop Browser';
-  return {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const row = {
     id: 's_' + crypto.randomUUID(),
-    token: crypto.randomBytes(32).toString('base64url'),
+    tokenHash: hashSessionToken(token),
     userId: user.id,
     device, ua, ip: req.ip || '',
     createdAt: Date.now(), lastSeen: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   };
+  Object.defineProperty(row, 'token', { value: token, enumerable: false });
+  return row;
 }
 function findSessionByToken(token) {
-  return sessions().sessions.find(s => s.token === token) || null;
+  if (!token) return null;
+  const h = hashSessionToken(token);
+  return sessions().sessions.find(s => s.tokenHash === h) || null;
 }
 function addSessionRow(row) { sessions().sessions.push(row); }
-function removeSessionByToken(token) {
+function removeSessionById(id) {
   const arr = sessions().sessions;
-  const i = arr.findIndex(s => s.token === token);
+  const i = arr.findIndex(s => s.id === id);
   if (i >= 0) arr.splice(i, 1);
 }
 function sessionsForUser(userId) { return sessions().sessions.filter(s => s.userId === userId); }
-function revokeAllForUser(userId) {
+function revokeAllForUser(userId, exceptId = null) {
   const arr = sessions().sessions;
-  for (let i = arr.length - 1; i >= 0; i--) if (arr[i].userId === userId) arr.splice(i, 1);
+  for (let i = arr.length - 1; i >= 0; i--) if (arr[i].userId === userId && arr[i].id !== exceptId) arr.splice(i, 1);
 }
 
 // ── Public shapes ─────────────────────────────────────────────────────────
@@ -527,10 +631,10 @@ export function mountAccountSystem(app) {
       const row = findSessionByToken(token);
       if (row) {
         if (Date.now() > row.expiresAt) {
-          removeSessionByToken(row.token); scheduleFlush();
+          removeSessionById(row.id); scheduleFlush();
         } else {
           const u = users().users.find(x => x.id === row.userId);
-          if (u) {
+          if (u && !u.suspended) {
             req.user = u; req.sessionRow = row;
             row.lastSeen = Date.now();
           }
@@ -543,6 +647,9 @@ export function mountAccountSystem(app) {
   // ── Register ────────────────────────────────────────────────────────────
   router.post('/register', (req, res) => {
     if (rateGate(req, res, 'register', 5, 60000)) return;
+    const ps = getPlatformSettings();
+    if (ps.maintenanceMode) return res.status(503).json({ ok: false, error: 'maintenance' });
+    if (!ps.registrationOpen) return res.status(403).json({ ok: false, error: 'registration_closed' });
     const body = req.body || {};
     const email = normalizeEmail(body.email);
     const username = String(body.username || '').trim();
@@ -583,6 +690,12 @@ export function mountAccountSystem(app) {
     if (!u || !verifyPassword(String(body.password || ''), u.salt, u.hash)) {
       return res.status(401).json({ ok: false, error: 'invalid_credentials' });
     }
+    if (u.suspended) {
+      return res.status(403).json({ ok: false, error: 'account_suspended' });
+    }
+    if (getPlatformSettings().maintenanceMode && !(u.role === 'admin' || u.isAdmin === true)) {
+      return res.status(503).json({ ok: false, error: 'maintenance' });
+    }
     // 2FA second step: account has TOTP enabled → require a live code.
     // No code yet → tell the client to prompt (do NOT create a session).
     if (u.totpSecret) {
@@ -601,7 +714,7 @@ export function mountAccountSystem(app) {
 
   // ── Logout / logout-everywhere ──────────────────────────────────────────
   router.post('/logout', (req, res) => {
-    if (req.sessionRow) { removeSessionByToken(req.sessionRow.token); flushNow(); }
+    if (req.sessionRow) { removeSessionById(req.sessionRow.id); flushNow(); }
     clearSessionCookie(res);
     res.json({ ok: true });
   });
@@ -690,14 +803,11 @@ export function mountAccountSystem(app) {
     if (!passwordOk(next)) return res.status(400).json({ ok: false, error: 'password_weak' });
     const { salt, hash } = hashPassword(next);
     req.user.salt = salt; req.user.hash = hash;
-    // Security parity: invalidate every other device session.
-    const keep = req.sessionRow ? req.sessionRow.token : null;
-    revokeAllForUser(req.user.id);
-    const row = createSessionRow(req.user, req);
-    if (keep) row.token = keep; // keep the current device signed in
-    addSessionRow(row);
+    // Security parity: invalidate every other device session; the current
+    // device stays signed in (its row — and cookie — are kept as-is).
+    const keepId = req.sessionRow ? req.sessionRow.id : null;
+    revokeAllForUser(req.user.id, keepId);
     flushNow();
-    setSessionCookie(res, row.token, SESSION_TTL_MS);
     res.json({ ok: true });
   });
 
@@ -866,7 +976,7 @@ export function mountAccountSystem(app) {
       .map(s => ({
         id: s.id, device: s.device, ua: s.ua, ip: s.ip,
         createdAt: s.createdAt, lastSeen: s.lastSeen,
-        current: s.token === req.sessionRow?.token
+        current: s.id === req.sessionRow?.id
       }));
     res.json({ ok: true, sessions: list });
   });
@@ -875,7 +985,7 @@ export function mountAccountSystem(app) {
     if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
     const row = sessions().sessions.find(s => s.id === req.params.sid && s.userId === req.user.id);
     if (!row) return res.status(404).json({ ok: false, error: 'not_found' });
-    removeSessionByToken(row.token);
+    removeSessionById(row.id);
     flushNow();
     res.json({ ok: true });
   });
@@ -913,30 +1023,32 @@ export function mountAccountSystem(app) {
     res.json({ ok: true, deleted: true });
   });
 
+  // ── Public platform info (announcement banner, registration state) ──────
+  app.get('/api/platform', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, ...publicPlatformInfo() });
+  });
+
   // ── Plans (entitlement matrix + usage) ──────────────────────────────────
   app.get('/api/plans', (req, res) => {
+    const admin = isReqAdmin(req);
+    const mine = req.user ? (req.user.plan || 'basic') : null;
+    const visible = PLAN_ORDER.filter(id => admin || PLANS[id]?.isActive !== false || id === mine);
     res.json({
       ok: true,
-      plans: Object.fromEntries(Object.entries(PLANS).map(([id, p]) => [id, { ...p }])),
-      planOrder: PLAN_ORDER,
+      plans: Object.fromEntries(visible.map(id => [id, { ...PLANS[id] }])),
+      planOrder: visible,
       current: req.user ? (req.user.plan || 'basic') : null,
       usage: req.user ? computeUsage(req.user) : null,
       isAdmin: isReqAdmin(req)
     });
   });
 
-  // ── Admin: Master Key Auth & Promotion ───────────────────────────────────
-  app.post('/api/admin/auth', (req, res) => {
-    const key = req.body?.masterKey || req.headers['x-master-key'];
-    if (!key || String(key).trim() !== MASTER_KEY) {
-      return res.status(401).json({ ok: false, error: 'invalid_master_key' });
-    }
-    if (req.user) {
-      req.user.role = 'admin';
-      req.user.isAdmin = true;
-      flushNow();
-    }
-    res.json({ ok: true, isAdmin: true, masterKeyAccepted: true });
+  // ── Back-office API (auth/session, dashboard, users, audit, system) ────
+  mountAdminApi(app, {
+    users, sessions, flushNow, publicUser, PLANS, PLAN_ORDER, readState, statePath, stateCache,
+    revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, STATE_DIR,
+    defaultPlanId: () => (Object.values(PLANS).find(p => p.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]]).id
   });
 
   // ── Admin: Full Plans Catalog & Management ───────────────────────────────
@@ -944,11 +1056,19 @@ export function mountAccountSystem(app) {
     if (!isReqAdmin(req)) {
       return res.status(403).json({ ok: false, error: 'forbidden_admin_only' });
     }
+    const userCounts = Object.fromEntries(PLAN_ORDER.map(id => [id, 0]));
+    for (const u of users().users) {
+      const pid = PLANS[u.plan] ? u.plan : null;
+      if (pid) userCounts[pid] = (userCounts[pid] || 0) + 1;
+    }
     res.json({
       ok: true,
       plans: PLANS,
       planOrder: PLAN_ORDER,
-      catalog: FEATURES_CATALOG
+      catalog: FEATURES_CATALOG,
+      categories: CATEGORIES,
+      builtin: SEED_PLAN_IDS(),
+      userCounts
     });
   });
 
@@ -965,15 +1085,19 @@ export function mountAccountSystem(app) {
     if (PLANS[id]) {
       return res.status(400).json({ ok: false, error: 'plan_exists', message: 'A plan with this ID already exists' });
     }
+    const vErr = validatePlanInput(raw);
+    if (vErr.length) return res.status(400).json({ ok: false, error: 'validation_failed', errors: vErr });
     const plan = normalizePlan({ ...raw, id });
     if (plan.isDefault) {
       Object.values(PLANS).forEach(p => { p.isDefault = false; });
     }
+    plan.order = PLAN_ORDER.length;
     PLANS[id] = plan;
     if (!PLAN_ORDER.includes(id)) {
       PLAN_ORDER.push(id);
     }
     savePlansStore();
+    audit(req, 'plan.create', id, { nameEn: plan.nameEn });
     res.json({ ok: true, plan, planOrder: PLAN_ORDER });
   });
 
@@ -988,6 +1112,14 @@ export function mountAccountSystem(app) {
     }
     const existing = PLANS[id];
     const raw = req.body || {};
+    const vErr = validatePlanInput(raw, { partial: true });
+    if (vErr.length) return res.status(400).json({ ok: false, error: 'validation_failed', errors: vErr });
+    if (existing.isDefault && raw.isDefault === false) {
+      return res.status(400).json({ ok: false, error: 'cannot_unset_default', message: 'Mark another plan as default instead' });
+    }
+    if ((existing.isDefault || raw.isDefault === true) && raw.isActive === false) {
+      return res.status(400).json({ ok: false, error: 'default_must_be_active', message: 'The default plan must stay active' });
+    }
     const updated = normalizePlan({
       ...existing,
       ...raw,
@@ -998,8 +1130,16 @@ export function mountAccountSystem(app) {
     if (updated.isDefault) {
       Object.values(PLANS).forEach(p => { p.isDefault = (p.id === id); });
     }
+    const changed = [];
+    for (const k of ['nameEn', 'nameFa', 'priceUSD', 'priceYearlyUSD', 'badge', 'badgeFa', 'color', 'isActive', 'isDefault', 'descriptionEn', 'descriptionFa']) {
+      if (JSON.stringify(existing[k]) !== JSON.stringify(updated[k])) changed.push(k);
+    }
+    for (const f of FEATURES_CATALOG) {
+      if (existing.features?.[f.id] !== updated.features[f.id]) changed.push(f.id);
+    }
     PLANS[id] = updated;
     savePlansStore();
+    if (changed.length) audit(req, 'plan.update', id, { fields: changed.slice(0, 40) });
     res.json({ ok: true, plan: updated, planOrder: PLAN_ORDER });
   });
 
@@ -1017,6 +1157,11 @@ export function mountAccountSystem(app) {
     }
     if (PLANS[id].isDefault) {
       return res.status(400).json({ ok: false, error: 'cannot_delete_default_plan', message: 'Set another plan as default before deleting this one' });
+    }
+    // Built-in tiers are re-seeded by loadPlans() on every boot, so deleting one
+    // would silently come back after a restart. Deactivate them instead.
+    if (SEED_PLAN_IDS().includes(id)) {
+      return res.status(400).json({ ok: false, error: 'cannot_delete_builtin_plan', message: 'Built-in plans cannot be deleted; deactivate it instead' });
     }
 
     // Find fallback default plan
@@ -1040,7 +1185,9 @@ export function mountAccountSystem(app) {
     delete PLANS[id];
     const orderIdx = PLAN_ORDER.indexOf(id);
     if (orderIdx >= 0) PLAN_ORDER.splice(orderIdx, 1);
+    PLAN_ORDER.forEach((pid, i) => { if (PLANS[pid]) PLANS[pid].order = i; });
     savePlansStore();
+    audit(req, 'plan.delete', id, { fallbackPlan: fallbackId, migratedUsers: migratedCount });
 
     res.json({ ok: true, deleted: id, fallbackPlan: fallbackId, migratedUsers: migratedCount, planOrder: PLAN_ORDER });
   });
@@ -1064,6 +1211,7 @@ export function mountAccountSystem(app) {
       if (PLANS[id]) PLANS[id].order = idx;
     });
     savePlansStore();
+    audit(req, 'plan.reorder', null, { order: [...PLAN_ORDER] });
     res.json({ ok: true, planOrder: PLAN_ORDER });
   });
 
@@ -1082,18 +1230,22 @@ export function mountAccountSystem(app) {
     if (PLANS[targetId]) {
       return res.status(400).json({ ok: false, error: 'plan_exists' });
     }
+    const cErr = validatePlanInput({ ...(nameEn !== undefined ? { nameEn } : {}), ...(nameFa !== undefined ? { nameFa } : {}) }, { partial: true });
+    if (cErr.length) return res.status(400).json({ ok: false, error: 'validation_failed', errors: cErr });
     const cloned = normalizePlan({
       ...src,
       id: targetId,
       nameEn: nameEn || `${src.nameEn} (Copy)`,
       nameFa: nameFa || `${src.nameFa} (کپی)`,
       isDefault: false,
+      isActive: false,
       order: PLAN_ORDER.length,
       features: { ...src.features }
     });
     PLANS[targetId] = cloned;
     PLAN_ORDER.push(targetId);
     savePlansStore();
+    audit(req, 'plan.clone', targetId, { source: sourceId });
     res.json({ ok: true, plan: cloned, planOrder: PLAN_ORDER });
   });
 
@@ -1108,7 +1260,15 @@ export function mountAccountSystem(app) {
       PLANS[id] = normalizePlan(raw);
       PLAN_ORDER.push(id);
     }
+    // Users on removed custom tiers would otherwise point at a plan that no longer exists.
+    const fallback = (Object.values(PLANS).find(p => p.isDefault) || PLANS.basic).id;
+    let migrated = 0;
+    for (const u of users().users) {
+      if (!PLANS[u.plan || 'basic']) { u.plan = fallback; u.planSince = Date.now(); migrated++; }
+    }
+    if (migrated) flushNow();
     savePlansStore();
+    audit(req, 'plan.reset', null, { migratedUsers: migrated });
     res.json({ ok: true, plans: PLANS, planOrder: PLAN_ORDER });
   });
 

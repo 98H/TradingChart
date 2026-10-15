@@ -3178,3 +3178,26 @@ body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right
 
 /* Strategy equity curve labels: HTML over a stretched SVG (text never distorts) */
 .eq-lbl { position: absolute; font-size: 9px; line-height: 12px; color: #94a3b8; font-family: var(--font-mono); background: rgba(15,18,26,0.7); padding: 0 3px; border-radius: 2px; pointer-events: none; white-space: nowrap; direction: ltr; unicode-bidi: isolate; }
+
+/* ── Global platform announcement (admin console → Settings) ───────────── */
+#tc-platform-banner {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  min-height: 36px; padding: 6px 8px 6px 14px; box-sizing: border-box; max-width: 100vw;
+  font-size: 13px; line-height: 1.6; color: #e6edf7;
+  background: #0f2a4a; border-bottom: 1px solid #1f4f86; z-index: 101;
+}
+#tc-platform-banner[dir="rtl"] { padding: 6px 14px 6px 8px; }
+#tc-platform-banner[data-level="warning"] { background: #3a2a08; border-bottom-color: #8a6414; color: #ffe2a8; }
+#tc-platform-banner[data-level="success"] { background: #07352a; border-bottom-color: #0f7a5c; color: #b8ffe9; }
+#tc-platform-banner .tc-pb-ico { flex-shrink: 0; font-size: 14px; font-weight: 700; }
+#tc-platform-banner .tc-pb-text { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; text-wrap: pretty; }
+#tc-platform-banner .tc-pb-close {
+  flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px;
+  border: none; border-radius: 8px; background: transparent; color: inherit; opacity: .8; cursor: pointer;
+}
+#tc-platform-banner .tc-pb-close:hover { opacity: 1; background: rgba(255, 255, 255, .08); }
+#tc-platform-banner .tc-pb-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+@media (max-width: 768px), (pointer: coarse) {
+  #tc-platform-banner { font-size: 12.5px; }
+  #tc-platform-banner .tc-pb-close { width: 44px; height: 44px; margin-block: -6px; }
+}

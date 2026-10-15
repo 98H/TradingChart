@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 
 /**
  * Vela ships hard-coded English month/weekday arrays for the time axis and the
@@ -27,7 +28,15 @@ export default defineConfig({
   build: {
     outDir: '../dist',
     emptyOutDir: true,
-    target: 'esnext'
+    target: 'esnext',
+    rollupOptions: {
+      // Two entry points: the trading app and the standalone back-office console
+      // (the console never loads the chart engine bundle).
+      input: {
+        main: fileURLToPath(new URL('./client/index.html', import.meta.url)),
+        admin: fileURLToPath(new URL('./client/admin/index.html', import.meta.url))
+      }
+    }
   },
   server: {
     port: 5173

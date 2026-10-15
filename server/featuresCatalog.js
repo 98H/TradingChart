@@ -13,8 +13,8 @@ export const FEATURES_CATALOG = [
     nameEn: 'Charts per tab',
     nameFa: 'چارت در هر تب',
     descEn: 'Maximum number of simultaneous chart cells in a multi-grid layout',
-    descFa: 'حداکثر تعداد چارت‌های همزمان در شبکه چندتایی (Multi-Chart)',
-    default: 1, min: 1, max: 16, step: 1, unitEn: 'charts', unitFa: 'چارت'
+    descFa: 'حداکثر تعداد چارت‌های هم‌زمان در شبکه چندچارتی',
+    default: 1, min: 1, max: 16, step: 1, unitEn: 'charts', unitFa: 'چارت', allowUnlimited: false
   },
   {
     id: 'savedLayouts',
@@ -37,7 +37,7 @@ export const FEATURES_CATALOG = [
     nameEn: 'Indicators per chart',
     nameFa: 'اندیکاتور در هر چارت',
     descEn: 'Max active indicators applied simultaneously to a single chart cell',
-    descFa: 'حداکثر تعداد اندیکاتورهای فعال همزمان روی یک چارت',
+    descFa: 'حداکثر تعداد اندیکاتورهای فعال هم‌زمان روی یک چارت',
     default: 2, min: 1, max: 100, step: 1, unitEn: 'indicators', unitFa: 'اندیکاتور'
   },
   {
@@ -74,7 +74,7 @@ export const FEATURES_CATALOG = [
     nameFa: 'کندل‌های تاریخی',
     descEn: 'Maximum historical OHLCV candles returned and rendered per timeframe',
     descFa: 'حداکثر عمق کندل‌های تاریخی قابل بارگذاری در هر تایم‌فریم',
-    default: 10000, min: 1000, max: 100000, step: 1000, unitEn: 'bars', unitFa: 'کندل'
+    default: 10000, min: 1000, max: 100000, step: 1000, unitEn: 'bars', unitFa: 'کندل', allowUnlimited: false
   },
   {
     id: 'barReplayMinuteDays',
@@ -109,7 +109,7 @@ export const FEATURES_CATALOG = [
     categoryNameEn: 'Chart & Layouts',
     categoryNameFa: 'چارت و چیدمان‌ها',
     nameEn: 'Tick-level intervals',
-    nameFa: 'تایم‌فریم‌های تیک (Tick)',
+    nameFa: 'تایم‌فریم‌های تیکی',
     descEn: 'Trade-by-trade raw tick resolution charting',
     descFa: 'تحلیل چارت با وضوح داده تیک‌به‌تیک معاملات خام',
     default: false
@@ -145,9 +145,9 @@ export const FEATURES_CATALOG = [
     categoryNameEn: 'Chart & Layouts',
     categoryNameFa: 'چارت و چیدمان‌ها',
     nameEn: 'Multi-timeframe analysis',
-    nameFa: 'تحلیل چند‌تایم‌فریم همزمان',
+    nameFa: 'تحلیل چند‌تایم‌فریم هم‌زمان',
     descEn: 'Multi-timeframe overlays and indicator sync across timeframes',
-    descFa: 'هم‌پوشانی و تحلیل همزمان داده‌های تایم‌فریم‌های بالاتر روی چارت',
+    descFa: 'هم‌پوشانی و تحلیل هم‌زمان داده‌های تایم‌فریم‌های بالاتر روی چارت',
     default: false
   },
   {
@@ -281,7 +281,7 @@ export const FEATURES_CATALOG = [
     nameEn: 'Multi-condition compound alerts',
     nameFa: 'هشدارهای ترکیبی و چند‌شرطی',
     descEn: 'Trigger alerts only when multiple indicators and price conditions align',
-    descFa: 'فعال‌سازی هشدار تنها در صورت تحقق همزمان چند شرط تکنیکال مختلف',
+    descFa: 'فعال‌سازی هشدار تنها در صورت تحقق هم‌زمان چند شرط تکنیکال مختلف',
     default: false
   },
 
@@ -320,7 +320,7 @@ export const FEATURES_CATALOG = [
     nameFa: 'رنگ‌های پرچم دیده‌بان',
     descEn: 'Number of distinct colored symbol flags available (1 to 7)',
     descFa: 'تعداد رنگ‌های متمایز پرچم برای دسته‌بندی بصری نمادها (۱ تا ۷)',
-    default: 1, min: 1, max: 7, step: 1, unitEn: 'colors', unitFa: 'رنگ'
+    default: 1, min: 1, max: 7, step: 1, unitEn: 'colors', unitFa: 'رنگ', allowUnlimited: false
   },
   {
     id: 'screenerAutoRefreshSec',
@@ -332,7 +332,7 @@ export const FEATURES_CATALOG = [
     nameFa: 'سرعت تازه‌سازی اسکرینر (ثانیه)',
     descEn: 'Auto-refresh polling interval in seconds for the technical screener',
     descFa: 'فاصله زمانی به‌روزرسانی خودکار جدول اسکرینر تکنیکال',
-    default: 60, min: 5, max: 120, step: 5, unitEn: 'sec', unitFa: 'ثانیه'
+    default: 60, min: 5, max: 120, step: 5, unitEn: 'sec', unitFa: 'ثانیه', allowUnlimited: false
   },
   {
     id: 'aiScreenerReq',
@@ -393,7 +393,7 @@ export const FEATURES_CATALOG = [
     nameEn: 'Paper trading accounts',
     nameFa: 'حساب‌های معاملاتی آزمایشی',
     descEn: 'Number of independent paper trading simulator accounts',
-    descFa: 'حداکثر تعداد حساب‌های آزمایشی مستقل معاملات کاغذی (Paper Trading)',
+    descFa: 'حداکثر تعداد حساب‌های آزمایشی مستقل معاملات کاغذی',
     default: 1, min: 1, max: 20, step: 1, unitEn: 'accounts', unitFa: 'حساب'
   },
   {
@@ -405,7 +405,7 @@ export const FEATURES_CATALOG = [
     nameEn: 'Max open positions per account',
     nameFa: 'پوزیشن‌های باز در هر حساب',
     descEn: 'Simultaneous open orders and holdings allowed per paper account',
-    descFa: 'سقف پوزیشن‌های باز همزمان در هر حساب معاملاتی',
+    descFa: 'سقف پوزیشن‌های باز هم‌زمان در هر حساب معاملاتی',
     default: 20, min: 10, max: 500, step: 10, unitEn: 'positions', unitFa: 'پوزیشن'
   },
   {
@@ -427,7 +427,7 @@ export const FEATURES_CATALOG = [
     categoryNameEn: 'Trading & Simulators',
     categoryNameFa: 'معاملات و شبیه‌سازها',
     nameEn: 'Level 2 Depth of Market (DOM)',
-    nameFa: 'عمق بازار پیشرفته (DOM لول ۲)',
+    nameFa: 'عمق بازار پیشرفته (DOM سطح ۲)',
     descEn: 'Interactive Level 2 orderbook ladder with volume imbalances and one-click execution',
     descFa: 'نردبان عمق دفتر سفارشات لول ۲ با نمایش عدم تعادل حجم و اجرای سریع سفارش',
     default: true
@@ -480,7 +480,7 @@ export const FEATURES_CATALOG = [
     nameFa: 'سقف زمان اجرای اسکریپت پاین (ثانیه)',
     descEn: 'Maximum script execution runtime before timeout protection',
     descFa: 'حداکثر زمان مجاز پردازش اسکریپت‌های پاین تا پیشگیری از قفل شدن',
-    default: 20, min: 5, max: 300, step: 5, unitEn: 'sec', unitFa: 'ثانیه'
+    default: 20, min: 5, max: 300, step: 5, unitEn: 'sec', unitFa: 'ثانیه', allowUnlimited: false
   },
   {
     id: 'deepBacktest',
@@ -551,9 +551,9 @@ export const FEATURES_CATALOG = [
     categoryNameEn: 'Platform & Social',
     categoryNameFa: 'پلتفرم و شبکه‌های اجتماعی',
     nameEn: 'Simultaneous market subscriptions',
-    nameFa: 'اشتراک‌های فعال همزمان بازار',
+    nameFa: 'اشتراک‌های فعال هم‌زمان بازار',
     descEn: 'Concurrent live price WebSocket subscription channels allowed',
-    descFa: 'تعداد کانال‌های اتصال همزمان دریافت نرخ زنده بازار از طریق سوکت',
+    descFa: 'تعداد کانال‌های اتصال هم‌زمان دریافت نرخ زنده بازار از طریق سوکت',
     default: 2, min: 1, max: 500, step: 1, unitEn: 'subs', unitFa: 'اشتراک'
   },
   {

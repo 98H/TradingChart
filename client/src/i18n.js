@@ -897,6 +897,7 @@ export function setLanguage(lang) {
     localizeMoreDrawer();
     autoLocalizeUI();
   }
+  try { window.dispatchEvent(new CustomEvent('tc:languagechange', { detail: { lang } })); } catch (e) { /* no DOM */ }
 }
 
 export function getLanguage() {

@@ -41,6 +41,7 @@ import { ChartStylePicker } from './chartStylePicker.js';
 import { CanvasContextMenu } from './canvasContextMenu.js';
 import { SoundEngine } from './soundEngine.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer, toPersianDigits } from './i18n.js';
+import { initPlatformBanner, relocalizePlatformBanner } from './platformBanner.js';
 import { INDICATORS_FA } from './indicatorsFa.js';
 
 // Canonical Vela timeframe ids are minute counts ('15', '60', '240') or
@@ -113,6 +114,8 @@ class TradingChartApp {
     // and renders the header auth zone. Guest mode proceeds unchanged.
     this.auth = new AuthManager(this);
     try { await this.auth.init(); } catch (e) { console.warn('[Auth] boot failed, continuing as guest:', e); }
+    // Admin-controlled global announcement (back-office → Settings).
+    initPlatformBanner();
 
     // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
     this.chartManager = new ChartManager({
@@ -1160,10 +1163,11 @@ class TradingChartApp {
 
     // 9. Global TradingView Keyboard Shortcuts Engine & Universal Modal Dismiss
     window.addEventListener('keydown', (e) => {
-      // Global shortcut for Plans Admin Studio: Ctrl+Shift+P or Alt+P
-      if (((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) || (e.altKey && (e.key === 'p' || e.key === 'P'))) {
+      // Back-office console shortcut (Ctrl/⌘+Shift+A) — admins only; everyone
+      // else keeps the keystroke (no hidden admin surface for regular users).
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A') && this.auth?.isAdmin?.()) {
         e.preventDefault();
-        this.auth?.openPlanAdminStudio?.();
+        this.auth.openPlanAdminStudio('dashboard');
         return;
       }
       if (e.key === 'Escape') {
@@ -1298,7 +1302,16 @@ class TradingChartApp {
   }
 
   updateTopbarSourceBadge(symbol) {
-    const sym = String(symbol || '').toUpperCase();
+    // Remember the symbol so a language switch can re-render the badge in place.
+    if (symbol !== undefined) this._srcBadgeSym = symbol;
+    if (!this._srcBadgeLangHook) {
+      this._srcBadgeLangHook = true;
+      window.addEventListener('tc:languagechange', () => this.updateTopbarSourceBadge());
+    }
+    const sym = String(this._srcBadgeSym || '').toUpperCase();
+    // Feed names (BINANCE, TSETMC, NOBITEX…) are brands; route tags are words → localized.
+    const fa = getLanguage() === 'fa';
+    const L = (en, faText) => (fa ? faText : en);
     const lbl = document.querySelector('#topbar-source-label');
     const rte = document.querySelector('#topbar-source-route');
     if (!lbl || !rte) return;
@@ -1312,31 +1325,31 @@ class TradingChartApp {
 
     if (TSE_SYMS.includes(sym)) {
       lbl.innerText = 'TSETMC';
-      rte.innerText = 'BOURSE';
+      rte.innerText = L('BOURSE', 'بورس');
       lbl.style.color = '#34d399';
     } else if (GOLD_SYMS.includes(sym)) {
-      lbl.innerText = 'TEHRAN BAZAAR';
-      rte.innerText = 'LIVE';
+      lbl.innerText = L('TEHRAN BAZAAR', 'بازار تهران');
+      rte.innerText = L('LIVE', 'زنده');
       lbl.style.color = '#fbbf24';
     } else if (FX_IR_SYMS.includes(sym)) {
-      lbl.innerText = sym.includes('USDT') ? 'NOBITEX' : 'TEHRAN FX';
-      rte.innerText = 'LIVE';
+      lbl.innerText = sym.includes('USDT') ? 'NOBITEX' : L('TEHRAN FX', 'ارز تهران');
+      rte.innerText = L('LIVE', 'زنده');
       lbl.style.color = '#38bdf8';
     } else if (FOREX_SYMS.includes(sym)) {
       lbl.innerText = 'FX_IDC';
-      rte.innerText = 'BRIDGE';
+      rte.innerText = L('BRIDGE', 'پل داده');
       lbl.style.color = '#60a5fa';
     } else if (COMMODITY_SYMS.includes(sym)) {
       lbl.innerText = 'NYMEX/TV';
-      rte.innerText = 'COMMODITY';
+      rte.innerText = L('COMMODITY', 'کالا');
       lbl.style.color = '#f87171';
     } else if (EQUITY_SYMS.includes(sym)) {
       lbl.innerText = 'NASDAQ';
-      rte.innerText = 'EQUITY';
+      rte.innerText = L('EQUITY', 'سهام');
       lbl.style.color = '#c084fc';
     } else {
       lbl.innerText = 'BINANCE';
-      rte.innerText = 'REALTIME';
+      rte.innerText = L('REALTIME', 'لحظه‌ای');
       lbl.style.color = '#00F2B0';
     }
   }
@@ -1770,6 +1783,7 @@ class TradingChartApp {
     } catch (e) { /* storage unavailable — session-only */ }
     // Re-render every surface that builds HTML strings lazily so the new
     // language applies immediately and completely (desktop + mobile).
+    relocalizePlatformBanner();
     this.chartStylePicker?.updateButtonUI?.();
     this.renderWorkspaces?.();
     this.marketNewsSide?.render?.();

@@ -145,6 +145,10 @@ export class DepthOfMarketView {
     `;
 
     this.bindEvents();
+    // Re-hydrate from the last snapshot: render() runs on language switches and re-mounts,
+    // and polling is visibility-gated, so without this the ladder stays blank until the next
+    // on-screen poll.
+    if (this.data) { this.updateLadder(); this.updateSourceBadge(); }
   }
 
   bindEvents() {

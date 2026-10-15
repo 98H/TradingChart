@@ -33,6 +33,17 @@ mountAccountSystem(app);
 
 // Serve static frontend files from client / dist
 const distPath = path.resolve(__dirname, '../dist');
+
+// Back-office console: separate page + hardened headers (no framing, no
+// indexing, no referrer leakage). Its API lives under /api/admin/*.
+app.get(/^\/admin(\/.*)?$/, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.resolve(distPath, 'admin', 'index.html'));
+});
 // Immutable long-cache for content-hashed assets; revalidate HTML each load.
 app.use('/assets', express.static(path.join(distPath, 'assets'), { immutable: true, maxAge: '30d' }));
 app.use(express.static(distPath, { setHeaders(res, filePath) { if (filePath.endsWith('.html') || filePath === distPath) res.setHeader('Cache-Control', 'no-cache'); } }));
