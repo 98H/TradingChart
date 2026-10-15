@@ -1,0 +1,62 @@
+{
+ "suite": "qa_crusade_desktop",
+ "ts": "2026-09-29T02:39:48.901Z",
+ "results": [
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_01_headers_and_controls",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_02_all_drawings_activation",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_03_timeframe_matrix_and_custom",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_04_chart_styles_all",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_05_indicators_modal_and_settings",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_06_bottom_panel_all_13_views",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_07_modals_roundtrip_audit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_desktop",
+   "viewport": "desktop",
+   "test": "D_SURFACE_08_persian_rtl_complete_sweep",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

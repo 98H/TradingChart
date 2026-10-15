@@ -1,0 +1,90 @@
+{
+ "suite": "accounts_cycle12_plans_admin",
+ "ts": "2026-10-12T17:46:46.679Z",
+ "results": [
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "01_setup_user_and_initial_plans",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "02_master_key_gate_rejection_and_unlock",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "03_admin_studio_structure_and_tabs",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "04_create_custom_unlimited_plan",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "05_granular_feature_gate_enforcement",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "06_clone_plan_and_independent_mutation",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "07_reorder_plans_and_verify_rank",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "08_delete_plan_and_safety_constraints",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "09_public_plans_modal_with_custom_plans",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "desktop",
+   "test": "10_persian_rtl_and_zwnj_verification",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "mobile",
+   "test": "m01_mobile_plan_admin_modal_fit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle12_plans_admin",
+   "viewport": "mobile",
+   "test": "m02_mobile_public_plans_modal_fit",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

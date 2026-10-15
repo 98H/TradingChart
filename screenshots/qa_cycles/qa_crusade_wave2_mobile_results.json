@@ -1,0 +1,20 @@
+{
+ "suite": "qa_crusade_wave2_mobile",
+ "ts": "2026-09-29T02:43:03.432Z",
+ "results": [
+  {
+   "suite": "qa_crusade_wave2_mobile",
+   "viewport": "mobile",
+   "test": "M_W2_01_landscape_mode_844x390",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_mobile",
+   "viewport": "mobile",
+   "test": "M_W2_02_tiny_screen_320x844",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+ "suite": "test_mini",
+ "ts": "2026-09-23T02:36:53.273Z",
+ "results": [
+  {
+   "suite": "test_mini",
+   "viewport": "desktop",
+   "test": "t1",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

@@ -1,0 +1,111 @@
+{
+ "suite": "accounts_cycle7",
+ "ts": "2026-10-15T03:01:13.683Z",
+ "results": [
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "01_register_fresh_user",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "02_profile_tab_renders_with_all_fields",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "03_profile_save_roundtrip_persists",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "04_social_gate_rejects_website_on_basic",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "05_social_gate_unlocks_on_premium",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "06_username_policy_limits_and_blocklist",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "07_2fa_full_lifecycle",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "08_2fa_ui_in_security_tab",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "09_histbars_plan_gate",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "10_replay_depth_clamped_for_basic",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "desktop",
+   "test": "11_screener_refresh_follows_plan",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "mobile",
+   "test": "m01_profile_tab_fits_390px",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "mobile",
+   "test": "m02_avatar_picker_touch_targets",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "mobile",
+   "test": "m03_fa_rtl_profile_tab",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle7",
+   "viewport": "mobile",
+   "test": "m04_security_tab_2fa_mobile_fits",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

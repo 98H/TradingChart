@@ -1,0 +1,69 @@
+{
+ "suite": "accounts_cycle11",
+ "ts": "2026-10-15T03:11:13.837Z",
+ "results": [
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "01_setup",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "02_legacy_profile_modal_coexists_with_account",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "03_language_flip_with_open_settings_modal",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "04_verify_banner_flow_from_menu",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "05_plans_modal_mobile_grid_desktop_scroll",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "desktop",
+   "test": "06_concurrent_login_two_tabs_same_user",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "mobile",
+   "test": "m01_guest_menu_fa_mobile_complete",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "mobile",
+   "test": "m02_plans_modal_mobile_fits_and_scrolls",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle11",
+   "viewport": "mobile",
+   "test": "m03_signed_in_menu_fa_has_all_entries",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+ "suite": "qa_crusade_wave2_desktop",
+ "ts": "2026-09-29T02:42:31.556Z",
+ "results": [
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_01_canvas_drawing_and_toolbar",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_02_pine_editor_and_console",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_03_strategy_tester_metrics",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_04_prop_firm_simulator_interactions",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_05_screener_symbol_switch",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave2_desktop",
+   "viewport": "desktop",
+   "test": "D_W2_06_paper_trading_order_and_journal_sync",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

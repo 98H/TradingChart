@@ -1,0 +1,18 @@
+{
+ "suite": "test_d1_6",
+ "ts": "2026-09-26T17:16:51.953Z",
+ "results": [
+  {
+   "suite": "test_d1_6",
+   "viewport": "desktop",
+   "test": "D01_alerts_create_and_remove",
+   "status": "error",
+   "defects": [
+    {
+     "kind": "harness",
+     "text": "Runtime.callFunctionOn timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed."
+    }
+   ]
+  }
+ ]
+}

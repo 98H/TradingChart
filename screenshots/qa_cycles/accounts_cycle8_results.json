@@ -1,0 +1,90 @@
+{
+ "suite": "accounts_cycle8",
+ "ts": "2026-10-15T03:05:58.754Z",
+ "results": [
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "01_guest_menu_shows_value_prop",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "02_full_signup_journey_via_ui",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "03_verify_email_via_outbox_code",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "04_account_menu_shows_verified_badge_and_plan",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "05_all_settings_tabs_render_and_fit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "06_plans_modal_matrix_and_upgrade",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "07_devices_modal_lists_current_session",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "08_signout_roundtrip_restores_guest",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "desktop",
+   "test": "09_cloud_sync_survives_reload",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "mobile",
+   "test": "m01_account_menu_fits_and_anchors",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "mobile",
+   "test": "m02_all_tabs_fit_mobile",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle8",
+   "viewport": "mobile",
+   "test": "m03_fa_full_menu_and_tabs_rtl",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

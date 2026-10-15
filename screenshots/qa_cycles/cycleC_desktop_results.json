@@ -1,6 +1,6 @@
 {
  "suite": "cycleC_desktop",
- "ts": "2026-09-29T02:28:54.777Z",
+ "ts": "2026-10-15T07:51:20.340Z",
  "results": [
   {
    "suite": "cycleC_desktop",
@@ -16,13 +16,13 @@
     "modalClosed": true,
     "savedIds": [
      {
-      "id": "exec-close-1790648769060",
+      "id": "exec-close-1792050518887",
       "side": "sell",
       "price": 110,
       "qty": 1
      },
      {
-      "id": "exec-open-1790648769060",
+      "id": "exec-open-1792050518887",
       "side": "buy",
       "price": 100,
       "qty": 1
@@ -38,7 +38,7 @@
    "defects": [],
    "info": {
     "trackers": {
-     "len": 829,
+     "len": 839,
      "rows": 6,
      "emptyState": false,
      "sample": "Congressional Stock Trades SEC Form 4 Insider Trades Hedge F"
@@ -50,19 +50,19 @@
      "sample": "All Events High Impact 🔥 🇺🇸 USD 🏛️ Central Banks 📈 Infl"
     },
     "screener": {
-     "len": 7823,
+     "len": 7661,
      "rows": 68,
      "emptyState": false,
      "sample": "All Crypto Metals Commodities Forex Equities All Technical R"
     },
     "news": {
-     "len": 2328,
+     "len": 2327,
      "rows": 10,
      "emptyState": false,
      "sample": "Market News & Catalysts Live Feed All Crypto Metals Forex Eq"
     },
     "propsim": {
-     "len": 483,
+     "len": 482,
      "rows": 4,
      "emptyState": false,
      "sample": "FIRM CHALLENGE PRESET FTMO $100k (2-Phase) FTMO $200k (2-Pha"
@@ -76,10 +76,10 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "len": 5049,
+    "len": 5078,
     "bidRows": 12,
     "askRows": 12,
-    "sample": "BTCUSDT DOM L2 Size: − + Mark Price: $82,968.87 Spread: $0.03 (0%) Ord"
+    "sample": "BTCUSDT DOM L2 Live · Binance Size: − + Mark Price: $81,327.535 Spread"
    }
   },
   {

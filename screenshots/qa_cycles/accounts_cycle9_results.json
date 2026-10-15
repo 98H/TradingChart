@@ -1,0 +1,90 @@
+{
+ "suite": "accounts_cycle9",
+ "ts": "2026-10-15T02:33:16.572Z",
+ "results": [
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "01_setup_user",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "02_xss_in_profile_fields_is_neutralized",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "03_rapid_tab_switching_no_stale_state",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "04_escape_closes_modals_not_app",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "05_double_submit_register_guarded",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "06_password_change_invalidates_other_sessions",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "07_remote_session_revoke_kicks_device",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "08_guest_cannot_hit_user_endpoints",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "09_state_size_limit_enforced",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "desktop",
+   "test": "10_plan_downgrade_with_over_limit_state_403",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "mobile",
+   "test": "m01_signup_keyboard_flow",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle9",
+   "viewport": "mobile",
+   "test": "m02_focus_survives_modal_input",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

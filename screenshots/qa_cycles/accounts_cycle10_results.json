@@ -1,0 +1,90 @@
+{
+ "suite": "accounts_cycle10",
+ "ts": "2026-10-15T02:37:37.512Z",
+ "results": [
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "01_setup_user",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "02_session_cookie_security_attributes",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "03_guest_workspace_migrates_on_first_login",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "04_cloud_wins_conflict_409",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "05_sync_toggle_pauses_and_resumes",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "06_email_change_triggers_reverification",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "07_plan_persists_across_logout_login",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "08_profile_roundtrip_via_ui_in_en",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "09_avatar_change_updates_badge_live",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "desktop",
+   "test": "10_logout_all_from_settings_kills_session",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "mobile",
+   "test": "m01_sync_menu_item_toggles",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle10",
+   "viewport": "mobile",
+   "test": "m02_en_mode_all_tabs_fit_mobile",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

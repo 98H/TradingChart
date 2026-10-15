@@ -1,0 +1,41 @@
+{
+ "suite": "qa_crusade_mobile",
+ "ts": "2026-09-29T02:41:02.540Z",
+ "results": [
+  {
+   "suite": "qa_crusade_mobile",
+   "viewport": "mobile",
+   "test": "M_SURFACE_01_viewport_fit_and_no_hscroll",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_mobile",
+   "viewport": "mobile",
+   "test": "M_SURFACE_02_mobile_drawer_and_navigation",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_mobile",
+   "viewport": "mobile",
+   "test": "M_SURFACE_03_mobile_quick_trade_widget",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_mobile",
+   "viewport": "mobile",
+   "test": "M_SURFACE_04_mobile_touch_targets_audit",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_mobile",
+   "viewport": "mobile",
+   "test": "M_SURFACE_05_mobile_persian_rtl_fit",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

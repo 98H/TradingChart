@@ -1,0 +1,48 @@
+{
+ "suite": "accounts_cycle13_plans_ui_deep",
+ "ts": "2026-10-12T17:48:46.544Z",
+ "results": [
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "desktop",
+   "test": "01_open_studio_via_keyboard_shortcut_and_unlock",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "desktop",
+   "test": "02_interactive_create_plan_via_custom_modal",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "desktop",
+   "test": "03_interactive_clone_plan_via_custom_modal",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "desktop",
+   "test": "04_interactive_delete_cloned_plan_via_custom_modal",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "desktop",
+   "test": "05_dirty_state_indicator_and_save_workflow",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "accounts_cycle13_plans_ui_deep",
+   "viewport": "mobile",
+   "test": "m01_mobile_master_detail_navigation",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

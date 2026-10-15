@@ -1,6 +1,6 @@
 {
  "suite": "cycleB_desktop",
- "ts": "2026-09-29T02:23:48.404Z",
+ "ts": "2026-10-15T03:22:52.924Z",
  "results": [
   {
    "suite": "cycleB_desktop",
@@ -12,19 +12,20 @@
     "before": 0,
     "after": 1,
     "eq0": 100000,
-    "eq1": 99168.7964,
+    "eq1": 99188.5712,
     "pos": [
      {
-      "id": "pos-1790648490360",
+      "id": "pos-mv8z1n6sdnfw",
       "symbol": "BTCUSDT",
       "side": "long",
       "qty": 0.1,
-      "entryPrice": 83120.36,
-      "markPrice": 83120.36,
+      "entryPrice": 81117.88,
+      "markPrice": 81115.38,
       "leverage": 10,
-      "margin": 831.2036,
-      "unrealizedPnl": 0,
-      "unrealizedPnlPct": 0
+      "margin": 811.1788,
+      "unrealizedPnl": -0.25,
+      "unrealizedPnlPct": -0.030819345870478864,
+      "openedAt": "2026-10-15T03:20:55.205Z"
      }
     ]
    }
@@ -36,8 +37,8 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "before": 3,
-    "after": 4,
+    "before": 0,
+    "after": 1,
     "rows": 0
    }
   },
@@ -127,9 +128,9 @@
    "info": {
     "count": 12,
     "labels": [
-     "🔔\nAdd Alert at $82,923.80\nAlt+A",
-     "⚡\nBuy Limit at $82,923.80",
-     "⚡\nSell Limit at $82,923.80",
+     "🔔\nAdd Alert at 44,800\nAlt+A",
+     "⚡\nBuy Stop at 44,800",
+     "⚡\nSell Limit at 44,800",
      "📐\nAdd Indicator...\n/",
      "⏱\nChange Timeframe...\n,",
      "➕\nCompare Symbol...\nAlt+C",
@@ -155,9 +156,9 @@
      "l": 43.203125,
      "r": 1396.796875,
      "w": 1353.59375,
-     "h": 579,
-     "t": 160.5,
-     "bot": 739.5
+     "h": 591,
+     "t": 154.5,
+     "bot": 745.5
     }
    }
   },
@@ -200,20 +201,20 @@
    "defects": [],
    "info": {
     "en1": {
-     "len": 881,
+     "len": 868,
      "persian": 0
     },
     "fa1": {
-     "len": 958,
-     "persian": 440
+     "len": 951,
+     "persian": 443
     },
     "en2": {
-     "len": 881,
+     "len": 870,
      "persian": 0
     },
     "fa2": {
-     "len": 958,
-     "persian": 440
+     "len": 951,
+     "persian": 443
     }
    }
   }

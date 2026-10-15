@@ -1,0 +1,34 @@
+{
+ "suite": "qa_crusade_wave3_desktop",
+ "ts": "2026-09-29T02:44:06.030Z",
+ "results": [
+  {
+   "suite": "qa_crusade_wave3_desktop",
+   "viewport": "desktop",
+   "test": "D_W3_01_user_profile_and_plans",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave3_desktop",
+   "viewport": "desktop",
+   "test": "D_W3_02_bar_replay_engine_lifecycle",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave3_desktop",
+   "viewport": "desktop",
+   "test": "D_W3_03_compare_symbol_lifecycle",
+   "status": "pass",
+   "defects": []
+  },
+  {
+   "suite": "qa_crusade_wave3_desktop",
+   "viewport": "desktop",
+   "test": "D_W3_04_command_palette_and_keyboard",
+   "status": "pass",
+   "defects": []
+  }
+ ]
+}

@@ -3,96 +3,96 @@
   "name": "01_guest_boot_badge",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:07:50.196Z"
+  "at": "2026-10-15T02:29:34.270Z"
  },
  {
   "name": "02_signup_flow_full",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:00.955Z"
+  "at": "2026-10-15T02:29:45.613Z"
  },
  {
   "name": "03_email_verification",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:02.358Z"
+  "at": "2026-10-15T02:29:46.850Z"
  },
  {
   "name": "04_session_persists_across_reload",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:06.953Z"
+  "at": "2026-10-15T02:29:51.590Z"
  },
  {
   "name": "05_logout_roundtrip",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:08.217Z"
+  "at": "2026-10-15T02:29:52.568Z"
  },
  {
   "name": "06_login_wrong_password",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:16.740Z"
+  "at": "2026-10-15T02:30:01.143Z"
  },
  {
   "name": "07_login_correct_and_menu",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:17.711Z"
+  "at": "2026-10-15T02:30:03.717Z"
  },
  {
   "name": "08_duplicate_registration_rejected",
   "viewport": "desktop",
   "defects": [],
-  "at": "2026-10-12T18:08:19.589Z"
+  "at": "2026-10-15T02:30:05.951Z"
  },
  {
   "name": "01_guest_boot_badge",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:28.589Z"
+  "at": "2026-10-15T02:30:20.437Z"
  },
  {
   "name": "02_signup_flow_full",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:39.266Z"
+  "at": "2026-10-15T02:30:31.455Z"
  },
  {
   "name": "03_email_verification",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:40.529Z"
+  "at": "2026-10-15T02:30:32.718Z"
  },
  {
   "name": "04_session_persists_across_reload",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:45.122Z"
+  "at": "2026-10-15T02:30:37.438Z"
  },
  {
   "name": "05_logout_roundtrip",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:46.060Z"
+  "at": "2026-10-15T02:30:38.523Z"
  },
  {
   "name": "06_login_wrong_password",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:54.225Z"
+  "at": "2026-10-15T02:30:46.952Z"
  },
  {
   "name": "07_login_correct_and_menu",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:55.079Z"
+  "at": "2026-10-15T02:30:48.207Z"
  },
  {
   "name": "08_duplicate_registration_rejected",
   "viewport": "mobile",
   "defects": [],
-  "at": "2026-10-12T18:08:57.694Z"
+  "at": "2026-10-15T02:30:50.724Z"
  }
 ]
