@@ -531,7 +531,8 @@ async function loadUsers(view) {
   U.data = d;
   host.removeAttribute('aria-busy');
   const exBtn = view.querySelector('#u-export');
-  if (exBtn) { exBtn.disabled = false; exBtn.removeAttribute('title'); const l = exBtn.querySelector('span'); if (l) l.textContent = d.total ? tr(`خروجی CSV (${fmtNum(d.total)})`, `Export CSV (${fmtNum(d.total)})`) : tr('خروجی CSV', 'Export CSV'); }
+  // \u200F (RLM) after "CSV" keeps the count in the Persian run. Without it the digit binds to the Latin run and renders between the words: "CSV (۲) خروجی".
+  if (exBtn) { exBtn.disabled = false; exBtn.removeAttribute('title'); const l = exBtn.querySelector('span'); if (l) l.textContent = d.total ? tr(`خروجی CSV\u200F (${fmtNum(d.total)})`, `Export CSV (${fmtNum(d.total)})`) : tr('خروجی CSV', 'Export CSV'); }
   if (!d.users.length) {
     const filtered = !!(U.q || U.plan !== 'all' || U.status !== 'all' || U.role !== 'all');
     const onlyTests = !filtered && U.type === 'real' && d.testCount > 0;
@@ -548,7 +549,7 @@ async function loadUsers(view) {
     renderBulk(view);
     return;
   }
-  const sortTh = (key, label) => `<th scope="col"><button type="button" class="th-sort" data-sort="${key}" aria-sort="${U.sort === key ? (U.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${label}</button></th>`;
+  const sortTh = (key, label, cls = '') => `<th scope="col"${cls ? ` class="${cls}"` : ''}><button type="button" class="th-sort" data-sort="${key}" aria-sort="${U.sort === key ? (U.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${label}</button></th>`;
   const allSel = d.users.every(u => U.selected.has(u.id));
   host.innerHTML = `
     <div class="table-wrap responsive">
@@ -560,7 +561,7 @@ async function loadUsers(view) {
           <th scope="col">${tr('وضعیت', 'Status')}</th>
           ${sortTh('createdAt', tr('تاریخ عضویت', 'Joined'))}
           ${sortTh('lastSeen', tr('آخرین فعالیت', 'Last active'))}
-          ${sortTh('sessions', tr('نشست‌ها', 'Sessions'))}
+          ${sortTh('sessions', tr('نشست‌ها', 'Sessions'), 'num')}
         </tr></thead>
         <tbody>
           ${d.users.map(u => `
@@ -669,9 +670,18 @@ async function bulk(view, action, plan) {
   if (sel) sel.value = '';
   if (!res) return;
   U.selected.clear();
-  toast(res.skipped
-    ? tr(`${fmtNum(res.done)} مورد انجام شد؛ ${fmtNum(res.skipped)} مورد نیازی به تغییر نداشت یا مجاز نبود.`, `${fmtNum(res.done)} done; ${fmtNum(res.skipped)} unchanged or not allowed.`)
-    : tr(`عملیات روی ${fmtNum(res.done)} کاربر انجام شد.`, `Applied to ${fmtNum(res.done)} ${plural(res.done, 'user')}.`));
+  // Name what happened, in the words of the confirm dialog and the single-user toasts.
+  const k = res.done || 0, nk = fmtNum(k);
+  const doneMsg = {
+    plan: tr(`پلن ${nk} کاربر تغییر کرد`, `Plan changed for ${nk} ${plural(k, 'user')}`),
+    verify: tr(`ایمیل ${nk} کاربر تأیید شد`, `${nk} ${plural(k, 'email')} marked verified`),
+    unsuspend: tr(`تعلیق ${nk} حساب برداشته شد`, `${nk} ${plural(k, 'account')} unsuspended`),
+    suspend: tr(`${nk} حساب تعلیق شد`, `${nk} ${plural(k, 'account')} suspended`),
+    delete: tr(`${nk} حساب حذف شد`, `${nk} ${plural(k, 'account')} deleted`)
+  }[action];
+  const skipped = res.skipped ? tr(`${fmtNum(res.skipped)} مورد نیازی به تغییر نداشت یا مجاز نبود`, `${fmtNum(res.skipped)} unchanged or not allowed`) : '';
+  if (!k) toast(skipped ? tr(`تغییری اعمال نشد؛ ${skipped}.`, `No changes: ${skipped}.`) : tr('تغییری اعمال نشد.', 'No changes were made.'), 'info');
+  else toast(skipped ? `${doneMsg}${tr('؛ ', '; ')}${skipped}.` : `${doneMsg}.`);
   loadUsers(view);
 }
 
@@ -768,7 +778,7 @@ async function openUser(id, onChange) {
           <div class="field"><label for="dr-name">${tr('نام نمایشی', 'Display name')}</label>
             <div style="display:flex;gap:8px"><input class="input input-mixed" id="dr-name" dir="auto" value="${esc(u.displayName || '')}" maxlength="64" /><button type="button" class="btn btn-primary" id="dr-name-save" disabled>${tr('ذخیره', 'Save')}</button></div></div>
           <div class="field"><label for="dr-notes">${tr('یادداشت داخلی (فقط برای مدیران)', 'Internal note (admins only)')}</label>
-            <textarea class="textarea" id="dr-notes" maxlength="1000" placeholder="${tr('مثلاً: پیگیری درخواست بازپرداخت', 'e.g. follow-up on refund request')}">${esc(u.notes || '')}</textarea>
+            <textarea class="textarea" id="dr-notes" dir="auto" maxlength="1000" placeholder="${tr('مثلاً: پیگیری درخواست بازپرداخت', 'e.g. follow-up on refund request')}">${esc(u.notes || '')}</textarea>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="hint" id="dr-notes-count" data-count>${tr(`${fmtNum((u.notes || '').length)} از ${fmtNum(1000)} نویسه`, `${fmtNum((u.notes || '').length)} of ${fmtNum(1000)} characters`)}</span><button type="button" class="btn btn-sm btn-primary" id="dr-notes-save" disabled>${tr('ذخیره یادداشت', 'Save note')}</button></div></div>
           <div><p class="section-title">${tr('مصرف و داده‌ها', 'Usage & data')}</p>
             <div class="stat-mini">
@@ -897,7 +907,7 @@ async function openUser(id, onChange) {
       await confirmDialog({
         title: tr('تعلیق حساب کاربری', 'Suspend account'),
         body: `<p style="margin:0">${tr('کاربر بلافاصله از همه دستگاه‌ها خارج می‌شود و تا رفع تعلیق نمی‌تواند وارد شود. داده‌های حساب حفظ می‌شود.', 'The user is signed out everywhere and cannot sign in until unsuspended. Account data is kept.')}</p>
-          <div class="field"><label for="sus-reason">${tr('دلیل تعلیق (اختیاری، فقط برای مدیران)', 'Reason (optional, admins only)')}</label><input id="sus-reason" class="input" maxlength="200" /></div>`,
+          <div class="field"><label for="sus-reason">${tr('دلیل تعلیق (اختیاری، فقط برای مدیران)', 'Reason (optional, admins only)')}</label><input id="sus-reason" class="input" dir="auto" maxlength="200" /></div>`,
         danger: true, confirmText: tr('تعلیق حساب', 'Suspend'),
         onConfirm: async (dlg) => { const r = await patch({ suspended: true, suspendReason: dlg.querySelector('#sus-reason').value }, tr('حساب کاربر تعلیق شد.', 'Account suspended.')); d.user = r.user; d.sessions = []; paint(d); return true; }
       });

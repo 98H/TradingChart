@@ -103,6 +103,8 @@ async function tap(page, sel, opts = {}) {
 }
 
 // Persistent controls (header, drawer head/foot, bottom nav, save/bulk bars) covered by a visible toast.
+// Evidence shots must show settled toasts: mid-animation the text behind a toast bleeds through it.
+const settleToasts = (page) => page.waitForFunction(() => [...document.querySelectorAll('.toasts .toast')].every(t => t.getAnimations().every(a => a.playState !== 'running')), { timeout: 2000 }).catch(() => {});
 async function controlsUnderToast(page) {
   return page.evaluate(() => {
     if (!document.querySelector('.toasts .toast')) return [];
@@ -487,6 +489,17 @@ async function confirmCurrentDialog(page) {
           const rows = document.querySelectorAll(window.innerWidth <= 860 ? '.mlist .mitem' : '#u-list tbody tr');
           return rows.length === 3;
         }, { timeout: 12000 }, RUN_ID);
+        // dir=auto flips the input's logical sides for a query in the other script: the icon-side padding must
+        // follow the icon (page direction), or the text runs under the magnifier on the other side.
+        {
+          const pad = await page.evaluate(() => {
+            const i = document.querySelector('#u-q'), s = getComputedStyle(i);
+            const ic = i.parentElement.querySelector('svg').getBoundingClientRect(), r = i.getBoundingClientRect();
+            const iconRight = (ic.left + ic.right) / 2 > (r.left + r.right) / 2;
+            return { iconSide: parseFloat(iconRight ? s.paddingRight : s.paddingLeft), otherSide: parseFloat(iconRight ? s.paddingLeft : s.paddingRight) };
+          });
+          if (pad.iconSide < 30 || pad.otherSide > 16) defects.push({ kind: 'search_padding', text: `search field with a Latin query: icon-side padding ${pad.iconSide}px, other side ${pad.otherSide}px` });
+        }
 
         const foundCount = await page.evaluate(() => {
           return document.querySelectorAll(window.innerWidth <= 860 ? '.mlist .mitem' : '#u-list tbody tr').length;
@@ -665,11 +678,22 @@ async function confirmCurrentDialog(page) {
         }, noteText);
         await page.waitForFunction(() => !document.querySelector('#dr-notes-save').disabled, { timeout: 5000 });
         await tap(page, '#dr-notes-save');
-        await page.waitForSelector('.toasts .toast', { visible: true, timeout: 6000 }).catch(() => {});
+        // Wait for THIS action's toast: the previous one ('Plan changed.') can still be on screen.
+        await page.waitForFunction(() => [...document.querySelectorAll('.toasts .toast')].some(t => /یادداشت ذخیره شد|Note saved/.test(t.textContent)), { timeout: 8000 }).catch(() => {});
         {
           const hid = await controlsUnderToast(page);
           if (hid.length) defects.push({ kind: 'toast_covers_controls', text: `after saving notes: toast covers ${hid.join(', ')}` });
+          const ts = await page.$$eval('.toasts .toast', els => els.map(e => e.textContent.trim()));
+          if (ts.length !== 1 || !/یادداشت ذخیره شد|Note saved/.test(ts[0])) defects.push({ kind: 'toast_stale_or_wrong', text: `after saving notes expected one 'Note saved' toast, got ${JSON.stringify(ts)}` });
+          const straddle = await page.evaluate(() => {
+            const t = document.querySelector('.toasts .toast'), d = document.querySelector('.drawer');
+            if (!t || !d) return false;
+            const a = t.getBoundingClientRect(), b = d.getBoundingClientRect();
+            return !((a.left >= b.left - 1 && a.right <= b.right + 1) || a.right <= b.left + 1 || a.left >= b.right - 1);
+          });
+          if (straddle) defects.push({ kind: 'toast_straddles_drawer', text: 'after saving notes: toast straddles the drawer edge' });
         }
+        await settleToasts(page);
         await page.screenshot({ path: path.join(EVID_DIR, `toast_drawer_${VP}_${LANG}.png`) }).catch(() => {});
         await page.waitForFunction(() => document.querySelector('#dr-notes-save').disabled, { timeout: 8000 });
 
@@ -931,7 +955,12 @@ async function confirmCurrentDialog(page) {
         // Run bulk action: verify email
         await tap(page, '#u-bulk button[data-bulk="verify"]');
         await confirmCurrentDialog(page);
-        await page.waitForSelector('.toasts .toast', { visible: true, timeout: 6000 }).catch(() => {});
+        await page.waitForFunction(() => [...document.querySelectorAll('.toasts .toast')].some(t => /ایمیل ۲ کاربر تأیید شد|2 emails marked verified/.test(t.textContent)), { timeout: 8000 }).catch(() => {});
+        {
+          const ts = await page.$$eval('.toasts .toast', els => els.map(e => e.textContent.trim()));
+          if (ts.length !== 1 || !/ایمیل ۲ کاربر تأیید شد|2 emails marked verified/.test(ts[0])) defects.push({ kind: 'toast_stale_or_wrong', text: `after bulk verify expected one '2 emails marked verified' toast, got ${JSON.stringify(ts)}` });
+        }
+        await settleToasts(page);
         await page.screenshot({ path: path.join(EVID_DIR, `toast_list_${VP}_${LANG}.png`) }).catch(() => {});
 
         // API check: must reflect verified for both users

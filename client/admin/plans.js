@@ -322,7 +322,7 @@ function editorHtml() {
         <section class="pf-sec">
           <div class="pf-sec-head"><h3>${tr('امکانات و سقف‌های مصرف', 'Capabilities & quotas')}</h3><p id="pf-fsum"></p></div>
           <div class="toolbar">
-            <label class="search"><span class="sr-only">${tr('جستجو در امکانات', 'Search features')}</span>${icon('search')}<input class="input" id="pf-q" type="search" value="${esc(S.q)}" placeholder="${tr('جستجو در امکانات این پلن', 'Search this plan’s features')}" autocomplete="off" /></label>
+            <label class="search"><span class="sr-only">${tr('جستجو در امکانات', 'Search features')}</span>${icon('search')}<input class="input" id="pf-q" type="search" dir="auto" value="${esc(S.q)}" placeholder="${tr('جستجو در امکانات این پلن', 'Search this plan’s features')}" autocomplete="off" /></label>
             <div class="seg" role="group" aria-label="${tr('فیلتر امکانات', 'Feature filter')}">
               <button type="button" data-fmode="all" aria-pressed="${!S.onlyChanged}">${tr('همه', 'All')}</button>
               <button type="button" data-fmode="changed" aria-pressed="${S.onlyChanged}">${tr('فقط تغییرکرده‌ها', 'Changed only')}</button>

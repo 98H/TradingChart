@@ -223,7 +223,19 @@ function placeToasts() {
     const v = `${Math.ceil(end)}px`;
     if (host.style.getPropertyValue('--toast-end') !== v) host.style.setProperty('--toast-end', v);
     if (host.style.bottom) host.style.bottom = '';
+    if (host.style.insetInlineStart) host.style.insetInlineStart = '';
   } else {
+    // An open drawer owns the inline-end side. Centre the stack over the free area beside it so it never
+    // straddles the drawer edge; when that area is narrower than the stack, centre it over the drawer.
+    const dr = shown(document.querySelector('.drawer'));
+    let start = '';
+    if (dr) {
+      const rtl = document.documentElement.dir === 'rtl';
+      const free = rtl ? vw - dr.right : dr.left;
+      const c = free >= host.offsetWidth + 24 ? (rtl ? dr.right + free / 2 : free / 2) : dr.left + dr.width / 2;
+      start = `${Math.round(rtl ? vw - c : c)}px`;
+    }
+    if (host.style.insetInlineStart !== start) host.style.insetInlineStart = start;
     const hr = host.getBoundingClientRect();
     let lift = TOAST_BASE;
     for (const el of document.querySelectorAll('.sticky-save, #u-bulk .bulkbar, .drawer-foot')) {
@@ -250,6 +262,9 @@ export function toast(msg, type = 'success', ms = 4200) {
   el.innerHTML = `${icon(type === 'error' ? 'alert' : type === 'info' ? 'info' : 'check')}<div></div><button type="button" class="toast-x" aria-label="${tr('بستن پیام', 'Dismiss')}">${icon('close')}</button>`;
   el.querySelector('div').textContent = msg;
   el.querySelector('.toast-x').addEventListener('click', () => el.remove());
+  // Each toast reports the latest action. Older successes and infos go, so a stale message never sits
+  // next to a newer result; errors stay until they time out or are dismissed.
+  for (const old of [...host.children]) if (!old.classList.contains('error')) old.remove();
   host.appendChild(el);
   placeToasts();
   if (!toastRaf) toastRaf = requestAnimationFrame(placeToasts);

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# scripts/qa/run_regression.sh <outdir> <suite[:arg]>...   (launch detached: nohup bash run_regression.sh ... >/dev/null 2>&1 &)
+# scripts/qa/run_regression.sh <outdir> <suite[:arg]>...   (detached: nohup bash scripts/qa/run_regression.sh ... >/dev/null 2>&1 &)
 # Runs suites sequentially; each run holds the shared QA lock only while it executes.
 # Per suite: <outdir>/<tag>.log and <outdir>/<tag>.exit ("<exit> <secs>"); progress: <outdir>/progress.log
 set -u
-LOCK=/root/.hermes/cache/scratch/tc-qa.lock
+LOCK=/run/lock/tc-qa.lock
 OUT=${1:?usage: run_regression.sh <outdir> <suite[:arg]>...}; shift
 mkdir -p "$OUT"; cd /root/TradingChart || exit 2
 for spec in "$@"; do

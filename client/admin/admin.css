@@ -108,8 +108,12 @@ html[dir="ltr"] .select { background-position: right 12px center; }
 .search { position: relative; flex: 1 1 220px; min-width: 0; }
 .search svg { position: absolute; inset-inline-start: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--dim); pointer-events: none; }
 .search .input { padding-inline-start: 36px; }
+/* The icon sits at the PAGE's inline-start, but dir=auto flips the input's own logical sides for text in the
+   other script (Latin query in the Persian UI): pin the icon-side padding to the page direction. */
+html[dir="rtl"] .search .input { padding-right: 36px; padding-left: 12px; }
+html[dir="ltr"] .search .input { padding-left: 36px; padding-right: 12px; }
 /* empty dir=auto inputs resolve to LTR, pinning an RTL placeholder to the wrong edge */
-html[dir="rtl"] .input[dir="auto"]:placeholder-shown { direction: rtl; text-align: right; }
+html[dir="rtl"] .input[dir="auto"]:placeholder-shown, html[dir="rtl"] .textarea[dir="auto"]:placeholder-shown { direction: rtl; text-align: right; }
 
 /* switch */
 .switch { position: relative; display: inline-flex; width: 44px; height: 26px; flex-shrink: 0; }
@@ -127,6 +131,8 @@ html[dir="rtl"] .switch input:checked + .track::after { transform: translateX(-1
 /* 44×44 hit area around a visually small checkbox (mobile lists, table rows) */
 .check-hit { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; margin: -13px; cursor: pointer; border-radius: 10px; flex-shrink: 0; }
 .check-hit:hover { background: var(--hover); }
+/* in a table cell a block grid has no text strut, so the checkbox sits on the row's centre */
+.tbl th > .check-hit, .tbl td > .check-hit { display: grid; }
 
 /* ── Layout ──────────────────────────────────────────── */
 .app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
@@ -168,7 +174,7 @@ html[dir="rtl"] .switch input:checked + .track::after { transform: translateX(-1
 .only-narrow { display: none; }
 .content { padding: 24px; display: flex; flex-direction: column; gap: 18px; max-width: 1400px; width: 100%; }
 
-.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .page-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* filter rows: equal columns (no ragged flex-wrap widths) */
@@ -249,6 +255,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tbl tbody tr.selected { background: var(--accent-soft); }
 .tbl tbody tr:last-child td { border-bottom: none; }
 .tbl .num { text-align: end; font-variant-numeric: tabular-nums; }
+.tbl th.num .th-sort { margin-inline-start: auto; } .tbl th.num { text-align: end; }
+/* edge cells line up with the card's 18px inset (card-head, card-body, filters, pager) */
+.tbl th:first-child, .tbl td:first-child { padding-inline-start: 18px; }
+.tbl th:last-child, .tbl td:last-child { padding-inline-end: 18px; }
 .th-sort { background: none; border: none; padding: 0; color: inherit; font: inherit; display: inline-flex; align-items: center; gap: 4px; }
 .th-sort[aria-sort="ascending"]::after { content: '▲'; font-size: 9px; color: var(--accent); }
 .th-sort[aria-sort="descending"]::after { content: '▼'; font-size: 9px; color: var(--accent); }
@@ -289,8 +299,8 @@ html[dir="rtl"] .user-meta span { text-align: right; }
 @media (max-width: 860px) { #u-bulk { bottom: calc(66px + env(safe-area-inset-bottom)); } }
 
 /* pagination */
-.pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
-.pager .toolbar { gap: 6px; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.pager .toolbar { gap: 10px; }
 
 /* empty / loading / error */
 .empty { padding: 42px 20px; text-align: center; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
