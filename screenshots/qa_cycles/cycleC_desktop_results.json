@@ -1,6 +1,6 @@
 {
  "suite": "cycleC_desktop",
- "ts": "2026-10-15T07:51:20.340Z",
+ "ts": "2026-10-16T00:22:41.760Z",
  "results": [
   {
    "suite": "cycleC_desktop",
@@ -16,13 +16,13 @@
     "modalClosed": true,
     "savedIds": [
      {
-      "id": "exec-close-1792050518887",
+      "id": "exec-close-1792110006491",
       "side": "sell",
       "price": 110,
       "qty": 1
      },
      {
-      "id": "exec-open-1792050518887",
+      "id": "exec-open-1792110006491",
       "side": "buy",
       "price": 100,
       "qty": 1
@@ -44,19 +44,19 @@
      "sample": "Congressional Stock Trades SEC Form 4 Insider Trades Hedge F"
     },
     "calendar": {
-     "len": 1058,
+     "len": 1073,
      "rows": 10,
      "emptyState": false,
      "sample": "All Events High Impact 🔥 🇺🇸 USD 🏛️ Central Banks 📈 Infl"
     },
     "screener": {
-     "len": 7661,
+     "len": 7663,
      "rows": 68,
      "emptyState": false,
      "sample": "All Crypto Metals Commodities Forex Equities All Technical R"
     },
     "news": {
-     "len": 2327,
+     "len": 2325,
      "rows": 10,
      "emptyState": false,
      "sample": "Market News & Catalysts Live Feed All Crypto Metals Forex Eq"
@@ -79,7 +79,7 @@
     "len": 5078,
     "bidRows": 12,
     "askRows": 12,
-    "sample": "BTCUSDT DOM L2 Live · Binance Size: − + Mark Price: $81,327.535 Spread"
+    "sample": "BTCUSDT DOM L2 Live · Binance Size: − + Mark Price: $82,321.695 Spread"
    }
   },
   {
