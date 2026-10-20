@@ -229,6 +229,16 @@ async function assertNoHOverflow(page, sectionName) {
       allExpectedPlansRendered,
       `catalog=[${plansBefore.planOrder.join(',')}], rendered=[${matrixPlans.join(',')}]`);
 
+    // Phones: plan columns overflow, so the card shows an edge fade until the last column is scrolled into view.
+    if (VP === 'mobile') {
+      const moreAtStart = await page.$eval('.mx-card', e => e.dataset.more).catch(() => null);
+      await page.$eval('.mx-wrap', w => { w.scrollLeft = (getComputedStyle(w).direction === 'rtl' ? -1 : 1) * w.scrollWidth; });
+      await new Promise(r => setTimeout(r, 300));
+      const moreAtEnd = await page.$eval('.mx-card', e => e.dataset.more).catch(() => null);
+      await check('Scenario 7', 'Matrix shows an edge fade while plan columns are off-screen, and drops it at the end',
+        moreAtStart === 'true' && moreAtEnd === 'false', `start=${moreAtStart}, end=${moreAtEnd}`);
+    }
+
     // ── SCENARIO 8: Settings (Unsaved changes behavior) ─────────────────────
     console.log('\n--- Scenario 8: Settings ---');
     const settingsBeforeRaw = await (await fetch(`${BASE}/api/admin/settings`, { headers: { 'x-master-key': KEY } })).text();
@@ -257,6 +267,11 @@ async function assertNoHOverflow(page, sectionName) {
     await check('Scenario 8 (a)', 'Announcement switch state label flips between Off/On on toggle',
       isFlipping,
       `initial="${initSwitchLabel}", toggled="${flippedSwitchLabel}", restored="${restoredSwitchLabel}"`);
+
+    const regLbl = await page.$eval('#s-reg-state', e => e.textContent.trim()).catch(() => '');
+    const maintLbl = await page.$eval('#s-maint-state', e => e.textContent.trim()).catch(() => '');
+    await check('Scenario 8 (a)', 'Registration and maintenance switches also show their On/Off state',
+      !!regLbl && !!maintLbl, `registration="${regLbl}", maintenance="${maintLbl}"`);
 
     // (b) Announcement textarea counters: 'N of 280 characters' / 'N از ۲۸۰ نویسه' (Persian digits)
     const faCounterInit = await page.$eval('#s-ann-fa-c', e => e.textContent.trim());
@@ -461,6 +476,10 @@ async function assertNoHOverflow(page, sectionName) {
     const kpiFit = await page.evaluate(() => [...document.querySelectorAll('.kpis .kpi .kpi-value')].map(v => ({ t: v.textContent.trim().slice(0, 40), sw: v.scrollWidth, cw: v.clientWidth })));
     const kpiOver = kpiFit.filter(k => k.sw > k.cw + 1);
     await check('Scenario 10', 'Every system KPI value fits inside its card', kpiFit.length > 0 && kpiOver.length === 0, JSON.stringify(kpiOver.length ? kpiOver : { n: kpiFit.length }));
+    // The 1 / 5 / 15 label and its three values read in the page direction.
+    const loadDir = await page.$eval('.load-avg', e => getComputedStyle(e).direction).catch(() => null);
+    await check('Scenario 10', 'CPU load values follow the page direction, like their 1 / 5 / 15 label',
+      loadDir === (LANG === 'fa' ? 'rtl' : 'ltr'), `direction=${loadDir}`);
 
     // Assert Node version, uptime, memory visible
     const kpisText = await page.$eval('#sys-body .kpis', el => el.textContent);

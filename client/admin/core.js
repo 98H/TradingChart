@@ -78,9 +78,10 @@ export function fmtDuration(sec) {
   const s = Math.max(0, Math.round(sec));
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
   const parts = [];
-  if (d) parts.push(`${fmtNum(d)} ${tr('روز', d === 1 ? 'day' : 'days')}`);
-  if (h) parts.push(`${fmtNum(h)} ${tr('ساعت', h === 1 ? 'hour' : 'hours')}`);
-  if (!d && (m || !parts.length)) parts.push(`${fmtNum(m)} ${tr('دقیقه', m === 1 ? 'minute' : 'minutes')}`);
+  // number and unit never split across lines (no lone "hours" under a narrow KPI value)
+  if (d) parts.push(`${fmtNum(d)}\u00A0${tr('روز', d === 1 ? 'day' : 'days')}`);
+  if (h) parts.push(`${fmtNum(h)}\u00A0${tr('ساعت', h === 1 ? 'hour' : 'hours')}`);
+  if (!d && (m || !parts.length)) parts.push(`${fmtNum(m)}\u00A0${tr('دقیقه', m === 1 ? 'minute' : 'minutes')}`);
   return parts.join(tr(' و ', ', '));
 }
 

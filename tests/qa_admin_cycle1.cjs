@@ -216,6 +216,17 @@ async function confirmCurrentDialog(page) {
         await page.waitForSelector('#view', { timeout: 15000 });
         await page.waitForFunction(() => !document.querySelector('#gate-form'), { timeout: 8000 });
 
+        // Login toast stays inside the phone header band (a two-line message spilled over the page subtitle).
+        if (isMobile) {
+          await page.waitForSelector('.toasts .toast', { visible: true, timeout: 6000 }).catch(() => {});
+          await settleToasts(page);
+          const spill = await page.evaluate(() => {
+            const t = document.querySelector('.toasts .toast'), h = document.querySelector('.topbar');
+            return t && h ? Math.round(t.getBoundingClientRect().bottom - h.getBoundingClientRect().bottom) : null;
+          });
+          if (spill !== null && spill > 0) defects.push({ kind: 'toast_spills_header', text: `login toast extends ${spill}px below the header` });
+        }
+
         // Fresh API check: session must be granted
         const sessRight = await page.evaluate(async () => {
           const r = await fetch('/api/admin/session');

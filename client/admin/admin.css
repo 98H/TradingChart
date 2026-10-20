@@ -203,19 +203,21 @@ html[dir="rtl"] .switch input:checked + .track::after { transform: translateX(-1
 .kpi-label svg { width: 15px; height: 15px; color: var(--dim); flex-shrink: 0; margin-top: 2.5px; }
 .kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
 .kpi-unit { font-size: .5em; font-weight: 600; color: var(--dim); margin-inline: 3px; }
+/* a prefix currency sign (English "$") sits raised beside the digits instead of hanging on their baseline */
+.kpi-cur { vertical-align: .55em; margin-inline: 0 2px; }
 .kpi-sub { font-size: 12px; color: var(--dim); }
 .nw { white-space: nowrap; }
 html[dir="rtl"] .mirror-rtl { transform: scaleX(-1); }
 .input::placeholder, .textarea::placeholder { color: var(--dim); opacity: 1; }
 /* balanced wrapping: no orphaned last word in short copy */
-.alert, .kpi-sub, .kpi-label, .empty span, .chart-empty span, .page-head p, .setting-row .txt span, .hint { text-wrap: pretty; }
+.alert, .kpi-sub, .kpi-label, .empty span, .chart-empty span, .page-head p, .setting-row .txt span, .hint, .pf-sec-head p, .pv-desc { text-wrap: pretty; }
 /* inline text link (button semantics, link looks) */
 .link-btn { background: none; border: none; padding: 0; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: inherit; }
 .link-btn:hover { text-decoration-thickness: 2px; }
 .link-btn { position: relative; }
 @media (max-width: 860px), (pointer: coarse) {
   /* 44px-tall hit area around an inline link without moving the text */
-  .link-btn { display: inline-block; min-height: 44px; margin-block: -11px; padding-inline: 4px; line-height: 44px; vertical-align: baseline; }
+  .link-btn { display: inline-block; min-height: 44px; margin-block: -11px; padding-inline: 4px; margin-inline: -4px; line-height: 44px; vertical-align: baseline; }
 }
 .link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 /* card-head "see all" links: accent text + direction arrow */
@@ -508,7 +510,7 @@ table.matrix { min-width: 720px; }
 .matrix th, .matrix td { text-align: center; }
 .matrix thead th { position: sticky; top: 0; z-index: 2; vertical-align: bottom; padding: 10px 8px; }
 .matrix tbody th[scope="row"] { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--card); text-align: start; font-weight: 600; color: var(--text); white-space: normal; min-width: 200px; max-width: 260px; }
-.matrix thead th:first-child { inset-inline-start: 0; z-index: 3; text-align: start; }
+.matrix thead th:first-child { inset-inline-start: 0; z-index: 3; text-align: start; padding-bottom: 16px; }
 .mx-name { display: block; font-size: 12.5px; }
 .mx-unit { display: block; font-size: 11px; color: var(--dim); font-weight: 500; }
 .mx-cat th { background: var(--bg-2) !important; text-align: start !important; padding: 10px 12px; color: var(--accent); }
@@ -520,6 +522,13 @@ table.matrix { min-width: 720px; }
 .mx-plan-price { font-size: 11.5px; color: var(--dim); font-weight: 600; }
 .mx-yes svg { width: 16px; height: 16px; color: var(--accent); }
 .mx-no { color: var(--dim); }
+/* Horizontal-scroll affordance: a fade on the inline-end edge while more columns sit off-screen (set by plans.js). */
+.mx-card { position: relative; overflow: hidden; }
+.mx-card::after { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-end: 0; width: 56px; pointer-events: none; opacity: 0; transition: opacity .15s; background: linear-gradient(to left, var(--card) 12%, transparent); }
+html[dir="rtl"] .mx-card::after { background: linear-gradient(to right, var(--card) 12%, transparent); }
+.mx-card[data-more="true"]::after { opacity: 1; }
+/* the "last changed" time stays on one line with its date */
+.save-when bdi { white-space: nowrap; }
 
 /* ── Settings ────────────────────────────────────────── */
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -612,6 +621,12 @@ table.matrix { min-width: 720px; }
   .pv-wrap { max-width: none; }
   .quota-input { flex-wrap: wrap; }
   .quota-input .input { flex: 1 1 120px; }
+  /* two-part KPI sub-lines and the settings save time take their own lines instead of wrapping around " · " */
+  .sub-part, .save-when { display: block; }
+  .sub-dot, .save-dot { display: none; }
+  /* stacked setting rows: label + switch on the trailing edge, like the announcement switch in its card head;
+     the switch stays put when its On/Off label changes width */
+  .setting-row .head-switch { align-self: flex-end; }
 }
 @media (max-width: 380px) {
   .kpis { grid-template-columns: minmax(0, 1fr); }
@@ -646,6 +661,7 @@ table.matrix { min-width: 720px; }
 .head-switch { display: inline-flex; align-items: center; gap: 10px; }
 .switch-state { font-size: 12.5px; font-weight: 600; color: var(--muted); }
 .head-switch[data-on="true"] .switch-state { color: var(--accent); }
+.head-switch[data-on="true"][data-tone="warn"] .switch-state { color: var(--warn); }
 /* Off-state switch keeps a >= 3:1 outline against cards (WCAG 1.4.11) */
 .switch .track { box-shadow: inset 0 0 0 1.5px #64748b; }
 .switch input:checked + .track { box-shadow: none; }

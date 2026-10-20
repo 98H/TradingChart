@@ -126,7 +126,8 @@ function renderGate(errorCode = null) {
       app.session = await api('/api/admin/session');
       input.value = '';
       renderShell(); route();
-      toast(tr('با موفقیت وارد پنل مدیریت شدید.', 'Signed in to the admin console.'));
+      // Short enough for one line in the phone header band (a 2-line toast spills over the page subtitle).
+      toast(tr('وارد پنل مدیریت شدید.', 'Signed in.'));
     } catch (ex) {
       err.textContent = errMsg(ex);
       err.hidden = false; input.setAttribute('aria-invalid', 'true');
@@ -247,7 +248,7 @@ function errorBlock(e, retryId) {
 /** KPI money: the amount at value size, the currency unit smaller (no bidi split). */
 function moneyHtml(n) {
   const s = esc(fmtMoney(n));
-  return isFa() ? s.replace(/ دلار$/, ' <small class="kpi-unit">دلار</small>') : s.replace(/^\$/, '<small class="kpi-unit">$</small>');
+  return isFa() ? s.replace(/ دلار$/, ' <small class="kpi-unit">دلار</small>') : s.replace(/^\$/, '<small class="kpi-unit kpi-cur">$</small>');
 }
 /** Card-head "see all" link with a direction-aware arrow. */
 const moreBtn = (go, label) => `<button type="button" class="btn btn-sm btn-ghost more-btn" data-go="${go}"><span>${label}</span>${icon(isFa() ? 'back' : 'forward')}</button>`;
@@ -285,11 +286,11 @@ async function renderDashboard(view) {
   const planUsers = d.planDist.reduce((a, b) => a + b.count, 0);
   const totalPlanUsers = planUsers || 1;
   const chartHtml = signTotal
-    ? `<div class="bars" role="img" aria-label="${tr(`نمودار ثبت‌نام روزانه؛ مجموع ${fmtNum(signTotal)} ثبت‌نام در ۳۰ روز، بیشینه ${fmtNum(peak)} در یک روز`, `Daily sign-ups chart: ${fmtNum(signTotal)} ${plural(signTotal, 'sign-up')} in 30 days, peak ${fmtNum(peak)} per day`)}">
+    ? `<div class="bars" role="img" aria-label="${tr(`نمودار ثبت‌نام روزانه؛ مجموع ${fmtNum(signTotal)} ثبت‌نام در ۳۰\u00A0روز، بیشینه ${fmtNum(peak)} در یک روز`, `Daily sign-ups chart: ${fmtNum(signTotal)} ${plural(signTotal, 'sign-up')} in 30\u00A0days, peak ${fmtNum(peak)} per day`)}">
         ${d.signups.map(s => `<div class="bar ${s.count ? '' : 'zero'}" style="height:${Math.max(2, (s.count / scale) * 100)}%" title="${esc(fmtDay(s.day))}: ${fmtNum(s.count)}"></div>`).join('')}
       </div>
       <div class="bars-axis"><span>${esc(fmtDay(d.signups[0].day))}</span><span>${esc(fmtDay(d.signups[14].day))}</span><span>${esc(fmtDay(d.signups[29].day))}</span></div>`
-    : `<div class="chart-empty">${icon('chart')}<strong>${tr('در ۳۰ روز اخیر ثبت‌نامی انجام نشده است', 'No sign-ups in the last 30 days')}</strong><span>${app.dashType === 'real' && d.testCount ? tr('حساب‌های آزمایشی در این نما شمرده نمی‌شوند.', 'Test accounts are not counted in this view.') : tr('با ثبت‌نام اولین کاربر، روند روزانه اینجا نمایش داده می‌شود.', 'The daily trend appears here once users sign up.')}</span></div>`;
+    : `<div class="chart-empty">${icon('chart')}<strong>${tr('در ۳۰\u00A0روز اخیر ثبت‌نامی انجام نشده است', 'No sign-ups in the last 30\u00A0days')}</strong><span>${app.dashType === 'real' && d.testCount ? tr('حساب‌های آزمایشی در این نما شمرده نمی‌شوند.', 'Test accounts are not counted in this view.') : tr('با ثبت‌نام اولین کاربر، روند روزانه اینجا نمایش داده می‌شود.', 'The daily trend appears here once users sign up.')}</span></div>`;
   const scopeNote = app.dashType === 'real' && d.testCount
     ? `<div class="alert alert-info">${icon('flask')}<div>${k.users === 0 ? tr('هنوز هیچ کاربر واقعی ثبت‌نام نکرده است. ', 'No real users have signed up yet. ') : ''}${tr(
       `${fmtNum(d.testCount)} حساب آزمایشی (دامنه‌های تست) از این آمار کنار گذاشته شده‌اند. فهرست دامنه‌ها در <button type="button" class="link-btn" data-go="settings">تنظیمات</button> قابل ویرایش است.`,
@@ -299,16 +300,16 @@ async function renderDashboard(view) {
     <div class="grid" style="gap:14px">
       ${scopeNote}
       <div class="grid kpis">
-        ${kpi('users', tr('کل کاربران', 'Total users'), fmtNum(k.users), tr(`${fmtNum(k.new7)} ثبت‌نام در ۷ روز اخیر`, `${fmtNum(k.new7)} ${plural(k.new7, 'sign-up')} in the last 7 days`))}
-        ${kpi('activity', tr('کاربران فعال <span class="nw">(۲۴ ساعت)</span>', 'Active users <span class="nw">(24h)</span>'), fmtNum(k.active24), tr(`${fmtNum(k.active7)} کاربر فعال در ۷ روز اخیر`, `${fmtNum(k.active7)} active in the last 7 days`))}
-        ${kpi('money', tr('درآمد ماهانه اشتراک‌ها', 'Monthly recurring revenue'), moneyHtml(k.mrr), tr(`${fmtNum(k.paid)} اشتراک پولی فعال`, `${fmtNum(k.paid)} active paid subscriptions`))}
-        ${kpi('chart', tr('ثبت‌نام ۳۰ روز اخیر', 'Sign-ups (30 days)'), fmtNum(k.new30),
-          growth === null ? tr('بدون داده برای مقایسه با ۳۰ روز قبل', 'No prior 30 days to compare')
-            : `<span class="${growth >= 0 ? 'delta-up' : 'delta-down'}">${growth >= 0 ? '▲' : '▼'} ${fmtPct(Math.abs(growth))}</span> ${tr('نسبت به ۳۰ روز قبل', 'vs previous 30 days')}`)}
+        ${kpi('users', tr('کل کاربران', 'Total users'), fmtNum(k.users), tr(`${fmtNum(k.new7)} ثبت‌نام در ۷\u00A0روز اخیر`, `${fmtNum(k.new7)} ${plural(k.new7, 'sign-up')} in the last 7\u00A0days`))}
+        ${kpi('activity', tr('کاربران فعال <span class="nw">(۲۴ ساعت)</span>', 'Active users <span class="nw">(24h)</span>'), fmtNum(k.active24), tr(`${fmtNum(k.active7)} کاربر فعال در ۷\u00A0روز اخیر`, `${fmtNum(k.active7)} active in the last 7\u00A0days`))}
+        ${kpi('money', tr('درآمد ماهانه اشتراک‌ها', 'Monthly revenue'), moneyHtml(k.mrr), tr(`${fmtNum(k.paid)} اشتراک پولی فعال`, `${fmtNum(k.paid)} active paid subscriptions`))}
+        ${kpi('chart', tr('ثبت‌نام ۳۰\u00A0روز اخیر', 'Sign-ups (30\u00A0days)'), fmtNum(k.new30),
+          growth === null ? tr('بدون داده برای مقایسه با ۳۰\u00A0روز قبل', 'No prior 30\u00A0days to compare')
+            : `<span class="${growth >= 0 ? 'delta-up' : 'delta-down'}">${growth >= 0 ? '▲' : '▼'} ${fmtPct(Math.abs(growth))}</span> ${tr('نسبت به ۳۰\u00A0روز قبل', 'vs previous 30\u00A0days')}`)}
       </div>
       <div class="grid cols-2">
         <section class="card">
-          <div class="card-head"><h2>${tr('روند ثبت‌نام روزانه (۳۰ روز)', 'Daily sign-ups (30 days)')}</h2>${signTotal ? `<span class="badge b-gray">${tr(`بیشینه روزانه: ${fmtNum(peak)}`, `Daily peak: ${fmtNum(peak)}`)}</span>` : ''}</div>
+          <div class="card-head"><h2>${tr('روند ثبت‌نام روزانه (۳۰\u00A0روز)', 'Daily sign-ups (30\u00A0days)')}</h2>${signTotal ? `<span class="badge b-gray">${tr(`بیشینه روزانه: ${fmtNum(peak)}`, `Daily peak: ${fmtNum(peak)}`)}</span>` : ''}</div>
           <div class="card-body">
             ${chartHtml}
           </div>
@@ -1042,9 +1043,9 @@ async function renderSettings(view) {
         <div class="card-head"><h2>${tr('دسترسی پلتفرم', 'Platform access')}</h2></div>
         <div class="card-body" style="padding-top:4px;padding-bottom:4px">
           <div class="setting-row"><div class="txt"><strong>${tr('ثبت‌نام کاربر جدید', 'New user registration')}</strong><span>${tr('در صورت غیرفعال‌بودن، فرم ثبت‌نام با پیام «ثبت‌نام بسته است» پاسخ می‌دهد. کاربران فعلی همچنان وارد می‌شوند.', 'When off, sign-up is rejected with a “registration closed” message. Existing users can still sign in.')}</span></div>
-            <label class="switch"><input type="checkbox" id="s-reg" ${draft.registrationOpen ? 'checked' : ''} aria-label="${tr('ثبت‌نام کاربر جدید', 'New user registration')}" /><span class="track"></span></label></div>
+            <span class="head-switch"><span class="switch-state" id="s-reg-state" aria-hidden="true"></span><label class="switch"><input type="checkbox" id="s-reg" ${draft.registrationOpen ? 'checked' : ''} aria-label="${tr('ثبت‌نام کاربر جدید', 'New user registration')}" /><span class="track"></span></label></span></div>
           <div class="setting-row"><div class="txt"><strong>${tr('حالت نگهداری', 'Maintenance mode')}</strong><span>${tr('ورود و ثبت‌نام کاربران عادی موقتاً متوقف می‌شود؛ مدیران همچنان وارد می‌شوند. نشست‌های فعال قطع نمی‌شوند.', 'Sign-in and sign-up are paused for regular users; administrators can still sign in. Active sessions are not interrupted.')}</span></div>
-            <label class="switch"><input type="checkbox" id="s-maint" ${draft.maintenanceMode ? 'checked' : ''} aria-label="${tr('حالت نگهداری', 'Maintenance mode')}" /><span class="track"></span></label></div>
+            <span class="head-switch" data-tone="warn"><span class="switch-state" id="s-maint-state" aria-hidden="true"></span><label class="switch"><input type="checkbox" id="s-maint" ${draft.maintenanceMode ? 'checked' : ''} aria-label="${tr('حالت نگهداری', 'Maintenance mode')}" /><span class="track"></span></label></span></div>
         </div>
       </section>
       <section class="card">
@@ -1085,9 +1086,14 @@ async function renderSettings(view) {
     saveBtn.disabled = !dirty; discardBtn.disabled = !dirty;
     st.innerHTML = dirty
       ? `<span class="dirty-dot"></span> ${tr('تغییرات ذخیره‌نشده', 'Unsaved changes')}`
-      : `<span class="save-ok">${icon('check')}${tr('همه تغییرات ذخیره شده است', 'All changes saved')}</span>${s.updatedAt ? `<span class="save-when"> · ${tr('آخرین تغییر:', 'Last changed:')} <bdi>${esc(fmtDate(s.updatedAt))}</bdi></span>` : ''}`;
+      : `<span class="save-ok">${icon('check')}${tr('همه تغییرات ذخیره شده است', 'All changes saved')}</span>${s.updatedAt ? `<span class="save-when"><span class="save-dot" aria-hidden="true"> · </span>${tr('آخرین تغییر:', 'Last changed:')} <bdi>${esc(fmtDate(s.updatedAt))}</bdi></span>` : ''}`;
     st.closest('.sticky-save')?.setAttribute('data-clean', String(!dirty));
     annState.textContent = draft.announcementEnabled ? tr('فعال', 'On') : tr('غیرفعال', 'Off');
+    for (const [id, on] of [['s-reg', draft.registrationOpen], ['s-maint', draft.maintenanceMode]]) {
+      const lbl = body.querySelector(`#${id}-state`);
+      lbl.textContent = on ? tr('فعال', 'On') : tr('غیرفعال', 'Off');
+      lbl.parentElement.setAttribute('data-on', String(Boolean(on)));
+    }
     body.querySelector('#s-ann-wrap')?.setAttribute('data-on', String(Boolean(draft.announcementEnabled)));
     counts();
   };
@@ -1147,14 +1153,14 @@ async function renderSystem(view) {
   if (app.section !== 'system' || !view.isConnected) return;
   const sv = d.server, sto = d.storage;
   const memUsed = 1 - sv.memFreeMB / sv.memTotalMB;
-  const kpi = (label, value, sub) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value" style="font-size:20px">${value}</div><div class="kpi-sub">${sub}</div></div>`;
+  const kpi = (label, value, sub) => `<div class="card kpi"><div class="kpi-label"><span>${label}</span></div><div class="kpi-value" style="font-size:20px">${value}</div><div class="kpi-sub">${sub}</div></div>`;
   view.querySelector('#sys-body').innerHTML = `
     <div class="grid" style="gap:14px">
       <div class="grid kpis">
-        ${kpi(tr('مدت فعالیت سرویس', 'Service uptime'), esc(fmtDuration(sv.uptimeSec)), `${tr('راه‌اندازی:', 'Started:')} ${esc(fmtDate(sv.bootAt))}`)}
-        ${kpi(tr('حافظه سرویس', 'Service memory'), `${fmtNum(sv.rssMB)} ${tr('مگابایت', 'MB')}`, `${tr(`هیپ: ${fmtNum(sv.heapMB)} مگابایت`, `Heap: ${fmtNum(sv.heapMB)} MB`)} · <span class="ltr">Node ${esc(sv.node)}</span>`)}
-        ${kpi(tr('بار پردازنده (۱/۵/۱۵ دقیقه)', 'CPU load (1/5/15 min)'), `<span class="ltr load-avg">${sv.load.map(x => `<span>${fmtNum(x, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`).join('<span class="sep" aria-hidden="true">/</span>')}</span>`, tr(`${fmtNum(sv.cpus)} هسته پردازشی`, `${fmtNum(sv.cpus)} CPU cores`))}
-        ${kpi(tr('حافظه سرور (درحال استفاده)', 'Server memory (in use)'), fmtPct(memUsed), tr(`${fmtNum(sv.memFreeMB)} مگابایت آزاد از ${fmtNum(sv.memTotalMB)} مگابایت`, `${fmtNum(sv.memFreeMB)} MB free of ${fmtNum(sv.memTotalMB)} MB`))}
+        ${kpi(tr('مدت فعالیت سرویس', 'Service uptime'), esc(fmtDuration(sv.uptimeSec)), `${tr('راه‌اندازی:', 'Started:')} <span class="nw">${esc(fmtDate(sv.bootAt))}</span>`)}
+        ${kpi(tr('حافظه سرویس', 'Service memory'), `${fmtNum(sv.rssMB)}\u00A0${tr('مگابایت', 'MB')}`, `<span class="sub-part">${tr(`هیپ: ${fmtNum(sv.heapMB)}\u00A0مگابایت`, `Heap: ${fmtNum(sv.heapMB)}\u00A0MB`)}</span><span class="sub-dot" aria-hidden="true"> · </span><span class="sub-part"><span class="ltr">Node ${esc(sv.node)}</span></span>`)}
+        ${kpi(tr('بار پردازنده <span class="nw">(۱ / ۵ / ۱۵ دقیقه)</span>', 'CPU load <span class="nw">(1 / 5 / 15 min)</span>'), `<span class="${isFa() ? '' : 'ltr '}load-avg">${sv.load.map(x => `<span>${fmtNum(x, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`).join('<span class="sep" aria-hidden="true">/</span>')}</span>`, tr(`${fmtNum(sv.cpus)} هسته پردازشی`, `${fmtNum(sv.cpus)} CPU cores`))}
+        ${kpi(tr('حافظه سرور (درحال استفاده)', 'Server memory (in use)'), fmtPct(memUsed), tr(`${fmtNum(sv.memFreeMB)}\u00A0مگابایت آزاد از ${fmtNum(sv.memTotalMB)}\u00A0مگابایت`, `${fmtNum(sv.memFreeMB)}\u00A0MB free of ${fmtNum(sv.memTotalMB)}\u00A0MB`))}
       </div>
       <div class="grid cols-even">
         <section class="card"><div class="card-head"><h2>${tr('ذخیره‌سازی داده‌ها', 'Data storage')}</h2></div>

@@ -874,7 +874,7 @@ function matrixHtml() {
   }).join('');
   return `
     ${plansDirty() ? `<div class="alert alert-warn">${icon('info')}<div>${tr('این جدول مقادیر ذخیره‌شده را نشان می‌دهد؛ تغییرات ذخیره‌نشده پلن جاری در آن لحاظ نشده است.', 'This table shows saved values; unsaved changes to the current plan are not included.')}</div></div>` : ''}
-    <section class="card">
+    <section class="card mx-card">
       <div class="table-wrap mx-wrap">
         <table class="tbl matrix">
           <thead><tr><th scope="col">${tr('امکان', 'Feature')}</th>${planOrder.map((id) => {
@@ -887,6 +887,16 @@ function matrixHtml() {
     </section>`;
 }
 function wireMatrix() {
+  // Fade on the inline-end edge while more plan columns are off-screen (scrollLeft is negative in RTL).
+  const wrap = V.querySelector('.mx-wrap'), card = V.querySelector('.mx-card');
+  const edge = () => {
+    if (!wrap?.isConnected || !card) { window.removeEventListener('resize', edge); return; } // view repainted
+    const rest = wrap.scrollWidth - wrap.clientWidth - Math.abs(wrap.scrollLeft);
+    card.dataset.more = String(rest > 2);
+  };
+  wrap?.addEventListener('scroll', edge, { passive: true });
+  window.addEventListener('resize', edge, { passive: true });
+  edge();
   V.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', async () => {
     const id = b.dataset.open;
     if (id !== S.sel && !(await confirmLeavePlans())) return;
