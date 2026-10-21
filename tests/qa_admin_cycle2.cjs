@@ -232,6 +232,15 @@ async function assertNoHOverflow(page, sectionName) {
     // Phones: plan columns overflow, so the card shows an edge fade until the last column is scrolled into view.
     if (VP === 'mobile') {
       const moreAtStart = await page.$eval('.mx-card', e => e.dataset.more).catch(() => null);
+      // The scroll chevron must be on the first screen (a vertically centred cue sat below the fold on phones).
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const cue = await page.evaluate(() => {
+        const c = document.querySelector('.mx-card'); if (!c) return null;
+        const st = getComputedStyle(c, '::before');
+        return { op: Number(st.opacity), top: Math.round(c.getBoundingClientRect().top + parseFloat(st.top)), vh: innerHeight };
+      });
+      await check('Scenario 7', 'Matrix scroll chevron is visible on the first screen',
+        !!cue && cue.op > 0.5 && cue.top > 0 && cue.top < cue.vh, JSON.stringify(cue));
       await page.$eval('.mx-wrap', w => { w.scrollLeft = (getComputedStyle(w).direction === 'rtl' ? -1 : 1) * w.scrollWidth; });
       await new Promise(r => setTimeout(r, 300));
       const moreAtEnd = await page.$eval('.mx-card', e => e.dataset.more).catch(() => null);
@@ -270,6 +279,16 @@ async function assertNoHOverflow(page, sectionName) {
 
     const regLbl = await page.$eval('#s-reg-state', e => e.textContent.trim()).catch(() => '');
     const maintLbl = await page.$eval('#s-maint-state', e => e.textContent.trim()).catch(() => '');
+    // Phones: every settings switch sits on its title's line, like the announcement switch in its card head.
+    if (VP === 'mobile') {
+      const offTitle = await page.evaluate(() => [['#s-reg', '.setting-row strong'], ['#s-maint', '.setting-row strong'], ['#s-ann', '.card-head h2']].map(([sw, t]) => {
+        const s = document.querySelector(sw)?.closest('.switch'); const h = s?.closest('.setting-row, .card-head')?.querySelector(t.split(' ').pop());
+        if (!s || !h) return `${sw}: missing`;
+        const a = s.getBoundingClientRect(), b = h.getBoundingClientRect();
+        return Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) > 14 ? `${sw}: ${Math.round((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2)}px off its title` : null;
+      }).filter(Boolean));
+      await check('Scenario 8 (a)', 'On phones every settings switch sits on the same line as its title', offTitle.length === 0, JSON.stringify(offTitle));
+    }
     await check('Scenario 8 (a)', 'Registration and maintenance switches also show their On/Off state',
       !!regLbl && !!maintLbl, `registration="${regLbl}", maintenance="${maintLbl}"`);
 

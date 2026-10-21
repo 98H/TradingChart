@@ -524,9 +524,15 @@ table.matrix { min-width: 720px; }
 .mx-no { color: var(--dim); }
 /* Horizontal-scroll affordance: a fade on the inline-end edge while more columns sit off-screen (set by plans.js). */
 .mx-card { position: relative; overflow: hidden; }
-.mx-card::after { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-end: 0; width: 56px; pointer-events: none; opacity: 0; transition: opacity .15s; background: linear-gradient(to left, var(--card) 12%, transparent); }
-html[dir="rtl"] .mx-card::after { background: linear-gradient(to right, var(--card) 12%, transparent); }
+.mx-card::after { content: ''; position: absolute; top: 0; bottom: 0; inset-inline-end: 0; width: 72px; pointer-events: none; opacity: 0; transition: opacity .15s; background: linear-gradient(to left, var(--card) 30%, transparent); }
+html[dir="rtl"] .mx-card::after { background: linear-gradient(to right, var(--card) 30%, transparent); }
 .mx-card[data-more="true"]::after { opacity: 1; }
+/* chevron cue on the faded edge, at the header row (on phones the card is as tall as the whole table, so a
+   vertically centred cue sat below the first screen), pointing to where the hidden columns are. border-inline-end
+   is logical: the corner is top-right in LTR (rotate 45deg points right) and top-left in RTL (rotate -45deg points left). */
+.mx-card::before { content: ''; position: absolute; top: 30px; inset-inline-end: 12px; width: 11px; height: 11px; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .15s; border-top: 2.5px solid var(--accent); border-inline-end: 2.5px solid var(--accent); transform: rotate(45deg); }
+html[dir="rtl"] .mx-card::before { transform: rotate(-45deg); }
+.mx-card[data-more="true"]::before { opacity: .9; }
 /* the "last changed" time stays on one line with its date */
 .save-when bdi { white-space: nowrap; }
 
@@ -610,6 +616,13 @@ html[dir="rtl"] .mx-card::after { background: linear-gradient(to right, var(--ca
   .page-head .toolbar { width: 100%; }
   .page-head .toolbar > .btn { flex: 0 0 auto; }
   .setting-row { flex-direction: column; align-items: stretch; }
+  /* Phones: the two access switches sit on their title's line (inline-end), exactly like the announcement
+     switch in its card head, instead of on a row of their own below the description. */
+  .setting-row:has(> .head-switch) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 2px; align-items: center; }
+  .setting-row:has(> .head-switch) > .txt { display: contents; }
+  .setting-row:has(> .head-switch) > .txt > strong { grid-column: 1; grid-row: 1; }
+  .setting-row:has(> .head-switch) > .head-switch { grid-column: 2; grid-row: 1; }
+  .setting-row:has(> .head-switch) > .txt > span { grid-column: 1 / -1; grid-row: 2; }
   .dialog-foot .btn { flex: 1 1 auto; }
   .drawer-foot .btn { flex: 1 1 auto; }
   .pe-head .toolbar { width: 100%; }
@@ -624,8 +637,7 @@ html[dir="rtl"] .mx-card::after { background: linear-gradient(to right, var(--ca
   /* two-part KPI sub-lines and the settings save time take their own lines instead of wrapping around " · " */
   .sub-part, .save-when { display: block; }
   .sub-dot, .save-dot { display: none; }
-  /* stacked setting rows: label + switch on the trailing edge, like the announcement switch in its card head;
-     the switch stays put when its On/Off label changes width */
+  /* stacked setting rows without an inline switch label keep the switch on the trailing edge */
   .setting-row .head-switch { align-self: flex-end; }
 }
 @media (max-width: 380px) {
