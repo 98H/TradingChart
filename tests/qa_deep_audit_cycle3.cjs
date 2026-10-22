@@ -65,7 +65,7 @@ async function runCycle3() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, isMobile: false });
 
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2500);
 
@@ -208,7 +208,7 @@ async function runCycle3() {
     const mobPage = await browser.newPage();
     await mobPage.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 
-    await mobPage.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await mobPage.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await mobPage.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2500);
 

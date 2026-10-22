@@ -68,7 +68,7 @@ async function runExhaustiveCycle13() {
     // STEP 1: Desktop Initial Mount & Canvas Verification
     // -------------------------------------------------------------------------
     console.log('\n--- 1. INITIAL MOUNT & DESKTOP BASELINE ---');
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
     await sleep(2500);
 
     const initialCanvasCount = await page.evaluate(() => document.querySelectorAll('canvas').length);

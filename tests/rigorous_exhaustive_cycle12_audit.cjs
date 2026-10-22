@@ -64,7 +64,7 @@ async function runExhaustiveCycle12() {
 
   try {
     console.log('\n--- PHASE 1: DESKTOP APP INITIALIZATION & BASELINE ---');
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
     await sleep(2500);
 
     // Verify main canvas exists

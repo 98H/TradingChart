@@ -71,7 +71,7 @@ async function runAudit() {
     });
 
     console.log('  Navigating to http://127.0.0.1:8088 ...');
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 15000 });
     await settle(2500);
 
@@ -740,7 +740,7 @@ async function runAudit() {
       }
     });
 
-    await mPage.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await mPage.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await mPage.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 15000 });
     await settle(2500);
 

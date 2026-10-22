@@ -1,0 +1,14 @@
+[Unit]
+Description=Chartivia HTTPS tunnel (Cloudflare) for chartivia.com
+After=network-online.target tradingchart.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate tunnel --config /etc/cloudflared/chartivia.yml run
+Restart=always
+RestartSec=5
+MemoryMax=150M
+
+[Install]
+WantedBy=multi-user.target

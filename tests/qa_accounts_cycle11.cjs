@@ -130,7 +130,7 @@ const tests = {
       await authLogin(ctx.page, EMAIL);
       const page2 = await ctx.browser.newPage();
       await page2.setViewport(ctx.viewport);
-      await page2.goto(BASE, { waitUntil: 'domcontentloaded' });
+      await page2.goto(BASE + '/chart', { waitUntil: 'domcontentloaded' });
       await page2.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
       await new Promise(r => setTimeout(r, 3000));
       const bUser = await page2.evaluate(() => window.__TRADING_APP__?.auth?.user?.username || null);

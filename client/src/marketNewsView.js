@@ -53,11 +53,11 @@ export class MarketNewsView {
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span class="pulse-dot" style="background: #38bdf8;"></span>
-              <span style="font-weight: 800; color: #fff; font-size: 13px; ${isInDock ? 'display: none;' : ''}">${isFa ? 'اخبار زنده و کاتالیزورهای بازار' : 'Market News & Catalysts'}</span>
+              <span style="font-weight: 800; color: #fff; font-size: 13px; ${isInDock ? 'display: none;' : ''}">${isFa ? 'اخبار و کاتالیزورهای بازار' : 'Market News & Catalysts'}</span>
               <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); ${!isInDock ? 'display: none;' : ''}">${isFa ? 'کاتالیزورهای بازار' : 'Macro Catalysts'}</span>
             </div>
             <span id="news-count-badge" style="font-size: 10px; color: #38bdf8; background: rgba(56,189,248,0.12); padding: 2px 8px; border-radius: 4px; font-weight: 700; border: 1px solid rgba(56,189,248,0.25);">
-              ${isFa ? 'فید زنده' : 'Live Feed'}
+              ${isFa ? 'نمونه نمایشی' : 'Demo sample'}
             </span>
           </div>
 

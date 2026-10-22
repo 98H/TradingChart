@@ -12,6 +12,7 @@ import {
   listAdminSessions, revokeAdminSessionById
 } from './adminAuth.js';
 import { getPlatformSettings, updatePlatformSettings, isTestEmail } from './platformSettings.js';
+import { mailEnabled, mailStatus } from './mailer.js';
 
 const DAY = 86400000;
 const BOOT_AT = Date.now();
@@ -101,7 +102,7 @@ export function mountAdminApi(app, d) {
     const ls = lastSeenMap();
     const planDist = {};
     for (const id of d.PLAN_ORDER) planDist[id] = 0;
-    let mrr = 0, verified = 0, twofa = 0, suspended = 0, admins = 0, paid = 0;
+    let mrr = 0, verified = 0, twofa = 0, suspended = 0, admins = 0, paid = 0, planRequests = 0;
     let new24 = 0, new7 = 0, new30 = 0, prev30 = 0, active24 = 0, active7 = 0;
     const days = 30;
     const signups = Array.from({ length: days }, (_, i) => {
@@ -117,6 +118,7 @@ export function mountAdminApi(app, d) {
       if (u.emailVerified) verified++;
       if (u.totpSecret) twofa++;
       if (u.suspended) suspended++;
+      if (u.planRequest && d.PLANS[u.planRequest.plan]) planRequests++;
       if (u.role === 'admin' || u.isAdmin === true) admins++;
       const age = now - (u.createdAt || 0);
       if (age < DAY) new24++;
@@ -136,7 +138,7 @@ export function mountAdminApi(app, d) {
       ok: true, generatedAt: now, type, testCount, totalAll: everyone.length,
       kpi: {
         users: all.length, new24, new7, new30, prev30, active24, active7, activeSessions, adminSessions: listAdminSessions().length,
-        verified, twofa, suspended, admins, paid, mrr: Math.round(mrr * 100) / 100,
+        verified, twofa, suspended, admins, paid, planRequests, mrr: Math.round(mrr * 100) / 100,
         plans: d.PLAN_ORDER.length
       },
       planDist: d.PLAN_ORDER.map(id => ({ id, nameEn: d.PLANS[id]?.nameEn || id, nameFa: d.PLANS[id]?.nameFa || id, color: d.PLANS[id]?.color || '#00F2B0', count: planDist[id] || 0, priceUSD: d.PLANS[id]?.priceUSD || 0 })),
@@ -158,6 +160,7 @@ export function mountAdminApi(app, d) {
       if (q.status === 'unverified' && u.emailVerified) return false;
       if (q.status === 'verified' && !u.emailVerified) return false;
       if (q.status === 'twofa' && !u.totpSecret) return false;
+      if (q.status === 'plan_request' && !(u.planRequest && d.PLANS[u.planRequest.plan])) return false;
       return true;
     }).map(u => adminRow(u, ls));
     const sort = ['createdAt', 'lastSeen', 'username', 'email', 'plan', 'sessions'].includes(q.sort) ? q.sort : 'createdAt';
@@ -231,7 +234,9 @@ export function mountAdminApi(app, d) {
       const pid = String(b.plan);
       if (!d.PLANS[pid]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
       if (pid !== u.plan) { changes.plan = [u.plan, pid]; u.plan = pid; u.planSince = Date.now(); }
+      if (u.planRequest && u.planRequest.plan === pid) u.planRequest = null;
     }
+    if (b.planRequest === null && u.planRequest) { changes.planRequest = [u.planRequest.plan, null]; u.planRequest = null; }
     if (b.role !== undefined) {
       const role = b.role === 'admin' ? 'admin' : 'user';
       const cur = (u.role === 'admin' || u.isAdmin === true) ? 'admin' : 'user';
@@ -316,8 +321,10 @@ export function mountAdminApi(app, d) {
     if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
     u.resetCode = d.sixDigitCode(); u.resetExpiresAt = Date.now() + 15 * 60000;
     d.outboxPush('reset', u.email, u.resetCode); d.flushNow();
-    audit(req, 'user.send_reset', u.id, { username: u.username });
-    res.json({ ok: true });
+    const mailed = mailEnabled();
+    audit(req, 'user.send_reset', u.id, { username: u.username, via: mailed ? 'email' : 'admin' });
+    // Without SMTP the administrator relays the code to the verified owner.
+    res.json({ ok: true, mailed, code: mailed ? undefined : u.resetCode, expiresAt: u.resetExpiresAt });
   });
 
   function deleteUser(u) {
@@ -354,7 +361,7 @@ export function mountAdminApi(app, d) {
       if (isSelf(req, u) && (action === 'suspend' || action === 'delete')) { skipped++; continue; }
       if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); d.revokeAllForUser(u.id); }
       else if (action === 'unsuspend') { if (!u.suspended) { skipped++; continue; } u.suspended = false; u.suspendedAt = null; u.suspendReason = ''; }
-      else if (action === 'plan') { if (u.plan === plan) { skipped++; continue; } u.plan = plan; u.planSince = Date.now(); }
+      else if (action === 'plan') { if (u.plan === plan) { skipped++; continue; } u.plan = plan; u.planSince = Date.now(); if (u.planRequest?.plan === plan) u.planRequest = null; }
       else if (action === 'verify') { if (u.emailVerified) { skipped++; continue; } u.emailVerified = true; u.verifyCode = null; }
       else if (action === 'delete') deleteUser(u);
       done++;
@@ -438,7 +445,8 @@ export function mountAdminApi(app, d) {
         sessions: d.sessions().sessions.filter(s => s.expiresAt > now).length,
         stateFiles, stateBytes: stateBytesTotal
       },
-      outbox: d.outboxAll().slice(0, 30)
+      outbox: d.outboxAll().slice(0, 30),
+      mail: mailStatus()
     });
   });
 }

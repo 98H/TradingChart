@@ -3201,3 +3201,17 @@ body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right
   #tc-platform-banner { font-size: 12.5px; }
   #tc-platform-banner .tc-pb-close { width: 44px; height: 44px; margin-block: -6px; }
 }
+
+/* Account menu rows: hover/focus (replaces inline on* handlers so the CSP needs no unsafe-inline scripts) */
+.tc-menu-item:hover, .tc-menu-item:focus-visible { background: var(--bg-card-hover, #1b243b); outline: none; }
+
+/* Chartivia brand mark (top-left). The word hides on narrow screens; the icon stays. */
+.brand-mark { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: #fff; flex-shrink: 0; padding: 0 4px; min-height: 36px; }
+.brand-mark img { display: block; border-radius: 6px; }
+.brand-mark .brand-name { font-weight: 800; font-size: 14px; letter-spacing: 0.2px; font-family: var(--font-sans, Inter, sans-serif); direction: ltr; unicode-bidi: isolate; }
+@media (max-width: 1600px) { .brand-mark .brand-name { display: none; } }
+@media (max-width: 480px) { .brand-mark { display: none; } }
+
+/* Demo-data feeds: route tag in amber so it never reads as a live feed */
+.is-demo-feed #topbar-source-route { background: rgba(251,191,36,0.18) !important; color: #fbbf24; }
+.is-demo-feed .source-pulse-dot { background: #fbbf24 !important; box-shadow: none !important; }

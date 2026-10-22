@@ -38,8 +38,9 @@ export class ChartManager {
       // 2. Instantiate Vela WebGL2 Multi-Chart Workspace with full native capabilities
       this.workspace = new VelaWorkspace(this.mountId, {
         layout: '1', // Single chart default, allows dynamic setLayout ('2h', '2v', '4')
-        symbol: 'universal:BTCUSDT',
-        timeframe: '60',
+        // Boot on the app's resolved market (deep link → profile default → BTCUSDT/1h)
+        symbol: `universal:${this.app?.currentSymbol || 'BTCUSDT'}`,
+        timeframe: String(this.app?.currentTimeframe || '60'),
         bars: 2000, // TradingView-grade history depth (≈83 days 1h / ≈3y daily)
         live: true,
         watermark: true,
@@ -70,7 +71,7 @@ export class ChartManager {
           drawings: false
         },
         providers: {
-          universal: () => new UniversalMarketProvider('universal', 'TradingChart Multi-Asset'),
+          universal: () => new UniversalMarketProvider('universal', 'Chartivia Multi-Asset'),
           binance: () => new UniversalMarketProvider('binance', 'Binance Proxied Market Feed'),
           hyperliquid: () => new UniversalMarketProvider('hyperliquid', 'Hyperliquid DEX Feed')
         },

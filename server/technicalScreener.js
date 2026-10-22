@@ -43,7 +43,6 @@ function computeSMA(closes, period) {
 }
 
 let screenerCache = [];
-let isRefreshing = false;
 
 async function computeSingleSymbol(sym) {
   try {
@@ -121,18 +120,23 @@ async function computeSingleSymbol(sym) {
   }
 }
 
-export async function refreshScreenerCache() {
-  if (isRefreshing) return screenerCache;
-  isRefreshing = true;
-  try {
-    const results = await Promise.all(SYMBOL_CATALOG.map(sym => computeSingleSymbol(sym)));
-    screenerCache = results;
-  } catch (e) {
-    console.error('[Screener] Refresh error:', e);
-  } finally {
-    isRefreshing = false;
-  }
-  return screenerCache;
+// Concurrent callers share ONE in-flight refresh (a caller arriving during the
+// boot refresh used to get the still-empty cache and render an empty screener).
+let inflight = null;
+export function refreshScreenerCache() {
+  if (inflight) return inflight;
+  inflight = (async () => {
+    try {
+      const results = await Promise.all(SYMBOL_CATALOG.map(sym => computeSingleSymbol(sym)));
+      screenerCache = results;
+    } catch (e) {
+      console.error('[Screener] Refresh error:', e.message);
+    } finally {
+      inflight = null;
+    }
+    return screenerCache;
+  })();
+  return inflight;
 }
 
 // Demand-driven refresh: recompute every 8s only while someone has asked for

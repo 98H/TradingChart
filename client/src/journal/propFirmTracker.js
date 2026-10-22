@@ -149,7 +149,7 @@ export class PropFirmTracker {
         payoutsRequested: 0,
         payoutsReceived: 0,
         startDate: new Date().toISOString().slice(0, 10),
-        notes: 'Created via TradingChart Journal.'
+        notes: 'Created via Chartivia Journal.'
       };
 
       const existing = this.store.getPropFirms();

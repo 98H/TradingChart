@@ -41,7 +41,7 @@ async function runJournalDeepAudit() {
   }
 
   try {
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
     await new Promise(r => setTimeout(r, 2000));
 
     // ── TEST 1: Switch to Journal Workspace ──────────────────────────

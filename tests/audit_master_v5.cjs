@@ -39,7 +39,7 @@ async function run() {
 
   // 1. Initial Load
   console.log('1. Loading TradingChart at http://127.0.0.1:8088...');
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_desktop_main_clean.png') });
 

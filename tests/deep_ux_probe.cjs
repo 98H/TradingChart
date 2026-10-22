@@ -33,7 +33,7 @@ async function runAudit() {
     // CYCLE 1: DESKTOP AUDIT (1440x900)
     // ==========================================
     await page.setViewport({ width: 1440, height: 900 });
-    await page.goto(BASE, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'networkidle2', timeout: 60000 });
     await new Promise(r => setTimeout(r, 3000));
 
     console.log('--- 1. Desktop Initial Shell Audit ---');

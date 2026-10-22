@@ -112,7 +112,7 @@ async function launch(viewportName = 'desktop') {
 }
 
 async function boot(ctx, { lang = null, settle = 3500 } = {}) {
-  await ctx.page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await ctx.page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, settle));
   await ctx.page.evaluate((l) => {
     const app = window.__TRADING_APP__;
@@ -206,7 +206,7 @@ const INPAGE = {
     // in the app): LuxAlgo, PineTS, Vela, TradingChart, TradingView, Nexus.
     // Proper nouns that never translate: person names (Nancy Pelosi), stock
     // tickers (NVDA/AAPL/MSFT), news outlets (Nikkei Asia), company names.
-    const allowRe = new RegExp(allow || 'BTC|ETH|SOL|BNB|USDT|USD|XAU|EUR|USDJPY|RSI|SMA|EMA|MACD|ATR|BB|VWAP|Pine|WebGL|Sharpe|Monte|R:R|pine|v5|v6|JSON|CSV|PNG|SVG|OHLC|TP|SL|EV|Q|SB|SP|ES|NQ|DXY|GBP|JPY|AUD|CAD|CHF|NZD|SEC|EDGAR|FOMC|CPI|NFP|GDP|FINRA|13F|Live|ID|UTC|GMT|LuxAlgo|PineTS|Vela|TradingChart|TradingView|Nexus|Nikkei|Reuters|Bloomberg|CNBC|FT\\b|WSJ|Barron|MarketWatch|CoinDesk|CoinTelegraph|Pelosi|Tuberville|Goldman|Mullin|Gottheimer|NVDA|AAPL|MSFT|TSLA|AMZN|GOOG|META|NFLX|USOIL|UKOIL|NATGAS|NDX|DJI|SPX|XAG|Common Stock|Inc\\.|Corporation|Corp\\.|\\(D-[A-Z]{2}\\)|\\(R-[A-Z]{2}\\)', 'i');
+    const allowRe = new RegExp(allow || 'BTC|ETH|SOL|BNB|USDT|USD|XAU|EUR|USDJPY|RSI|SMA|EMA|MACD|ATR|BB|VWAP|Pine|WebGL|Sharpe|Monte|R:R|pine|v5|v6|JSON|CSV|PNG|SVG|OHLC|TP|SL|EV|Q|SB|SP|ES|NQ|DXY|GBP|JPY|AUD|CAD|CHF|NZD|SEC|EDGAR|FOMC|CPI|NFP|GDP|FINRA|13F|Live|ID|UTC|GMT|LuxAlgo|PineTS|Vela|TradingChart|Chartivia|TradingView|Nexus|Nikkei|Reuters|Bloomberg|CNBC|FT\\b|WSJ|Barron|MarketWatch|CoinDesk|CoinTelegraph|Pelosi|Tuberville|Goldman|Mullin|Gottheimer|NVDA|AAPL|MSFT|TSLA|AMZN|GOOG|META|NFLX|USOIL|UKOIL|NATGAS|NDX|DJI|SPX|XAG|Common Stock|Inc\\.|Corporation|Corp\\.|\\(D-[A-Z]{2}\\)|\\(R-[A-Z]{2}\\)', 'i');
     const out = [];
     const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let n;
@@ -351,7 +351,7 @@ async function runSuite(suiteName, tests, opts = {}) {
         page.on('console', m => ctx.logs.push({ type: m.type(), text: m.text(), loc: m.location() }));
         page.on('pageerror', e => ctx.logs.push({ type: 'pageerror', text: e.toString() }));
         page.on('requestfailed', r => ctx.logs.push({ type: 'requestfailed', text: r.url(), err: (r.failure() || {}).errorText }));
-        await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 45000 });
         // Wait for the app to boot: chart canvas appears once the SPA mounts.
         // networkidle2 is unreliable here — the data feed keeps sockets busy.
         await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});

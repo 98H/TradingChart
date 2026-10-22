@@ -67,7 +67,7 @@ async function runLayoutAudit() {
     });
 
     console.log('▶ STEP 1: Booting initial session (Desktop 1440x900)...');
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2500);
 

@@ -1,0 +1,14 @@
+# Cloudflare named tunnel for chartivia.com → local Chartivia server.
+# Install:  cloudflared tunnel login && cloudflared tunnel create chartivia
+#           cloudflared tunnel route dns chartivia chartivia.com
+#           cloudflared tunnel route dns chartivia www.chartivia.com
+# Then copy this file to /etc/cloudflared/chartivia.yml (fill in the tunnel id)
+# and enable deploy/chartivia-tunnel.service.
+tunnel: <TUNNEL_ID>
+credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
+ingress:
+  - hostname: chartivia.com
+    service: http://127.0.0.1:8088
+  - hostname: www.chartivia.com
+    service: http://127.0.0.1:8088
+  - service: http_status:404

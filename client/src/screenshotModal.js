@@ -107,7 +107,7 @@ export class ScreenshotModal {
             <div style="font-size: 11px; color: var(--text-dim);">
               <span style="font-weight: 800; color: #fff;">${sym}</span> · <span style="color: var(--accent-cyan); font-weight: 700;">${tf}</span> · <span class="num-ltr">$${Number(lastPrice).toLocaleString()}</span>
             </div>
-            <span style="font-size: 10px; color: var(--text-dim);">TradingChart LuxAlgo WebGL2 Engine</span>
+            <span style="font-size: 10px; color: var(--text-dim);">Chartivia · chartivia.com</span>
           </div>
 
           <!-- Action buttons -->
@@ -146,7 +146,7 @@ export class ScreenshotModal {
     // 1. Download
     modal.querySelector('#btn-dl-screenshot')?.addEventListener('click', () => {
       const a = document.createElement('a');
-      a.download = `TradingChart_${sym}_${Date.now()}.png`;
+      a.download = `Chartivia_${sym}_${Date.now()}.png`;
       a.href = imageSrc || this.captureCompositeCanvas();
       a.click();
       this.app?.showToast?.(isFa ? 'تصویر با موفقیت ذخیره شد' : 'Chart image downloaded successfully', 'success');
@@ -154,7 +154,7 @@ export class ScreenshotModal {
 
     // 2. Copy Link
     modal.querySelector('#btn-copy-screenshot-link')?.addEventListener('click', async () => {
-      const shareUrl = `${window.location.origin}/?symbol=${sym}&tf=${tf}&snap=true`;
+      const shareUrl = `${window.location.origin}/chart?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(tf)}`;
       try {
         await navigator.clipboard.writeText(shareUrl);
         this.app?.showToast?.(isFa ? 'لینک اشتراک‌گذاری کپی شد' : 'Share link copied to clipboard', 'success');
@@ -169,15 +169,21 @@ export class ScreenshotModal {
       if (!src) { this.app?.showToast?.(isFa ? 'تصویری برای چاپ یافت نشد' : 'No image to print', 'error'); return; }
       const win = window.open('', '_blank', 'width=900,height=650');
       if (!win) { this.app?.showToast?.(isFa ? 'پنجره چاپ مسدود شد' : 'Print window blocked', 'error'); return; }
-      win.document.write(`<!doctype html><html><head><title>TradingChart ${sym} ${tf}</title><style>body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;padding:16px;font-family:sans-serif}h1{font-size:15px;margin:0 0 10px}img{max-width:100%;border:1px solid #ddd}</style></head><body><h1>TradingChart — ${sym} · ${tf}</h1><img src="${src}" onload="setTimeout(()=>window.print(),150)"/></body></html>`);
+      win.document.write(`<!doctype html><html><head><title>Chartivia ${sym} ${tf}</title><style>body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;padding:16px;font-family:sans-serif}h1{font-size:15px;margin:0 0 10px}img{max-width:100%;border:1px solid #ddd}</style></head><body><h1>TradingChart — ${sym} · ${tf}</h1><img id="tc-print-img" src="${src}"/></body></html>`);
       win.document.close();
+      // Trigger print from here: the popup inherits this page's CSP, so an
+      // inline onload handler would be blocked.
+      const printWhenReady = () => { try { win.focus(); win.print(); } catch (e) { /* closed */ } };
+      const img = win.document.getElementById('tc-print-img');
+      if (img && !img.complete) img.addEventListener('load', () => setTimeout(printWhenReady, 150), { once: true });
+      else setTimeout(printWhenReady, 150);
       this.app?.showToast?.(isFa ? 'پنجره چاپ باز شد' : 'Print preview opened', 'success');
     });
 
     // Embed — copy a responsive iframe snippet for this exact symbol/timeframe
     modal.querySelector('#btn-embed-code')?.addEventListener('click', async () => {
-      const url = `${window.location.origin}/?symbol=${sym}&tf=${tf}`;
-      const embed = `<iframe src="${url}" width="100%" height="520" frameborder="0" allowtransparency="true" scrolling="no" style="border-radius:8px;" title="TradingChart ${sym}"></iframe>`;
+      const url = `${window.location.origin}/chart?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(tf)}`;
+      const embed = `<iframe src="${url}" width="100%" height="520" frameborder="0" allowtransparency="true" scrolling="no" style="border-radius:8px;" title="Chartivia ${sym}"></iframe>`;
       try {
         await navigator.clipboard.writeText(embed);
         this.app?.showToast?.(isFa ? 'کد جاسازی کپی شد' : 'Embed code copied to clipboard', 'success');
@@ -188,7 +194,7 @@ export class ScreenshotModal {
 
     // Copy Social Text
     modal.querySelector('#btn-copy-social-text')?.addEventListener('click', async () => {
-      const text = `📊 #TradingChart Analysis for #${sym}\nTimeframe: ${tf}m\nCurrent Price: $${lastPrice}\nAnalysis: LuxAlgo Signals & SMC Confluence active.\nShared via TradingChart Terminal 🚀`;
+      const text = `📊 #Chartivia Analysis for #${sym}\nTimeframe: ${tf}m\nCurrent Price: $${lastPrice}\nAnalysis: LuxAlgo Signals & SMC Confluence active.\nShared via Chartivia 🚀`;
       try {
         await navigator.clipboard.writeText(text);
         this.app?.showToast?.(isFa ? 'متن تحلیل کپی شد' : 'Analysis post text copied to clipboard', 'success');

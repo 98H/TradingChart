@@ -23,7 +23,7 @@ export function setLang(lang) {
   try { localStorage.setItem(LANG_KEY, state.lang); } catch (e) { /* session-only */ }
   document.documentElement.lang = state.lang;
   document.documentElement.dir = state.lang === 'fa' ? 'rtl' : 'ltr';
-  document.title = isFa() ? 'پنل مدیریت تریدینگ‌چارت' : 'TradingChart Admin Console';
+  document.title = isFa() ? 'پنل مدیریت چارتیویا' : 'Chartivia Admin Console';
 }
 
 /** Pick the string for the current language: tr('فارسی', 'English') */
@@ -280,7 +280,7 @@ export function toast(msg, type = 'success', ms = 4200) {
  * result (or null on cancel). onConfirm(dialogEl) may throw to show an error
  * inline and keep the dialog open; return false to keep it open silently.
  */
-export function openDialog({ title, body, confirmText, cancelText, danger = false, iconName = danger ? 'alert' : 'info', onConfirm, confirmDisabled = false, onOpen }) {
+export function openDialog({ title, body, confirmText, cancelText, danger = false, iconName = danger ? 'alert' : 'info', onConfirm, confirmDisabled = false, onOpen, noCancel = false }) {
   return new Promise((resolve) => {
     const prevFocus = document.activeElement;
     const wrap = document.createElement('div');
@@ -294,7 +294,7 @@ export function openDialog({ title, body, confirmText, cancelText, danger = fals
         </div>
         <div class="dialog-body">${body || ''}<div class="alert alert-danger" data-dlg-err hidden></div></div>
         <div class="dialog-foot">
-          <button type="button" class="btn" data-dlg-cancel>${esc(cancelText || tr('انصراف', 'Cancel'))}</button>
+          ${noCancel ? '' : `<button type="button" class="btn" data-dlg-cancel>${esc(cancelText || tr('انصراف', 'Cancel'))}</button>`}
           <button type="button" class="btn ${danger ? 'btn-danger-solid' : 'btn-primary'}" data-dlg-ok ${confirmDisabled ? 'disabled' : ''}>${esc(confirmText || tr('تأیید', 'Confirm'))}</button>
         </div>
       </div>`;
@@ -338,7 +338,7 @@ export function openDialog({ title, body, confirmText, cancelText, danger = fals
     };
     document.addEventListener('keydown', onKey, true);
     wrap.addEventListener('mousedown', (e) => { if (e.target === wrap && !busy) close(null); });
-    wrap.querySelector('[data-dlg-cancel]').addEventListener('click', () => { if (!busy) close(null); });
+    wrap.querySelector('[data-dlg-cancel]')?.addEventListener('click', () => { if (!busy) close(null); });
     okBtn.addEventListener('click', confirm);
     onOpen?.(dlg, okBtn);
     setTimeout(() => (dlg.querySelector('input, select, textarea') || okBtn).focus(), 30);

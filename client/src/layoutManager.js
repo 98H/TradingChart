@@ -248,7 +248,7 @@ export class LayoutManager {
             });
             this.applyAllSyncOptions();
             this.bindWorkspaceCellListeners();
-            this.syncAppToActiveCell();
+            Promise.resolve(this.syncAppToActiveCell()).catch(() => {}).then(() => setTimeout(() => this.app?.applyDeepLink?.(), 300));
           } else if (attempts++ < 60) {
             setTimeout(pollAndRestore, 100);
           }

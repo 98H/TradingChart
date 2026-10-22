@@ -31,6 +31,7 @@ export class MarketTrackersView {
 
     this.container.innerHTML = `
       <div style="display: flex; height: 100%; flex-direction: column; overflow: hidden;">
+        <div class="demo-data-note" role="note" style="padding: 6px 12px; font-size: 10.5px; line-height: 1.6; color: #fbbf24; background: rgba(251,191,36,0.08); border-bottom: 1px solid rgba(251,191,36,0.2);">${isFa ? 'داده نمونه برای نمایش قابلیت‌ها؛ برای تصمیم معاملاتی به اسناد رسمی مراجعه کنید.' : 'Sample data to demonstrate the feature; consult the official filings before trading decisions.'}</div>
         <!-- Subtabs -->
         <div class="trackers-subtabs" style="min-height: 36px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 4px; padding: 0 12px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none;">
           <button class="subtab-btn ${this.activeSubTab === 'congress' ? 'active' : ''}" data-sub="congress" style="background: transparent; border: none; font-size: 11px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; color: ${this.activeSubTab === 'congress' ? 'var(--accent-cyan)' : 'var(--text-dim)'}; padding: 6px 12px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 6px;" aria-label="Congressional Stock Trades">
@@ -51,7 +52,7 @@ export class MarketTrackersView {
         <!-- Body Area -->
         <div id="tracker-body-area" style="flex: 1; overflow-y: auto; padding: 12px;">
           <div style="color: var(--text-dim); font-size: 12px; padding: 16px; text-align: center;">
-            ${isFa ? 'در حال بارگذاری گزارش‌های رسمی شفافیت وال‌استریت...' : 'Loading verified government disclosures...'}
+            ${isFa ? 'در حال بارگذاری گزارش‌ها…' : 'Loading disclosures…'}
           </div>
         </div>
       </div>
@@ -115,7 +116,7 @@ export class MarketTrackersView {
                 <td><span style="color: ${r.txType.includes('Purchase') ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 700;">${isFa ? (r.txType.includes('Purchase') ? 'خرید (Purchase)' : 'فروش (Sale)') : r.txType}</span></td>
                 <td class="num-ltr">${r.txDate}</td>
                 <td class="num-ltr" style="font-weight: 700;">${r.amount}</td>
-                <td><a href="${r.sourceUrl}" target="_blank" style="color: var(--accent-cyan); text-decoration: none; font-size: 11px;">${isFa ? 'مشاهده سند رسمی ↗' : 'View Disclosure PDF ↗'}</a></td>
+                <td><a href="${r.sourceUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan); text-decoration: none; font-size: 11px;">${isFa ? 'مشاهده سند رسمی ↗' : 'View Disclosure PDF ↗'}</a></td>
               </tr>
             `).join('')}
           </tbody>

@@ -80,7 +80,7 @@ async function runAudit() {
       }
     });
 
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2500);
 
@@ -493,7 +493,7 @@ async function runAudit() {
     const faPage = await browser.newPage();
     await faPage.setViewport({ width: 1440, height: 900, isMobile: false });
 
-    await faPage.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await faPage.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await faPage.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2000);
 
@@ -609,7 +609,7 @@ async function runAudit() {
     const mobPage = await browser.newPage();
     await mobPage.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-    await mobPage.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await mobPage.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 35000 });
     await mobPage.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(2500);
 

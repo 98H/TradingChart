@@ -69,6 +69,14 @@ class TradingChartApp {
       if (prof.defaultAsset) this.currentSymbol = prof.defaultAsset.replace(/^.*:/, '').toUpperCase();
       if (prof.defaultTimeframe) this.currentTimeframe = normalizeTf(prof.defaultTimeframe);
     } catch (e) {}
+    // TradingView-style deep links: /chart?symbol=BINANCE:BTCUSDT&interval=60
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const qs = (q.get('symbol') || '').replace(/^[A-Za-z0-9_]{1,16}:/, '').toUpperCase();
+      if (/^[A-Z0-9][A-Z0-9_.\-]{0,23}$/.test(qs)) { this.currentSymbol = qs; this.deepLink = { symbol: qs }; }
+      const qi = q.get('interval') || q.get('tf');
+      if (qi && /^[0-9]{1,4}[smhdwSMHDW]?$|^[DWM]$/.test(qi)) { this.currentTimeframe = normalizeTf(qi); this.deepLink = { ...(this.deepLink || {}), interval: this.currentTimeframe }; }
+    } catch (e) {}
     this.activeBars = [];
     this.activeWorkspaceView = 'quant'; // 'quant' or 'journal'
     this.chartManager = null;
@@ -717,6 +725,24 @@ class TradingChartApp {
     this.chartAlertsOverlay?.updateAlerts(this.alertsManager?.alerts, this.currentSymbol, lastBar.close);
   }
 
+  /** A /chart?symbol=…&interval=… link wins over the autosaved layout
+   *  (TradingView behaviour): re-apply it once the restored layout settled. */
+  async applyDeepLink() {
+    const dl = this.deepLink;
+    if (!dl || this._deepLinkApplied) return;
+    this._deepLinkApplied = true;
+    try {
+      // Compare against the ACTIVE CELL (the restored layout may have repointed
+      // it after the constructor seeded currentSymbol/currentTimeframe).
+      const cell = this.chartManager?.workspace?.active;
+      const cellSym = String(cell?.symbol || this.currentSymbol || '').replace(/^.*:/, '').toUpperCase();
+      const cellTf = String(cell?.timeframe || this.currentTimeframe || '');
+      if (dl.symbol && dl.symbol !== cellSym) await this.switchSymbol(dl.symbol);
+      if (dl.interval && String(dl.interval) !== cellTf) await this.setTimeframe(dl.interval);
+      else if (dl.interval) this.currentTimeframe = String(dl.interval);
+    } catch (e) { console.warn('[Chartivia] deep link not applied:', e?.message || e); }
+  }
+
   async setTimeframe(tf) {
     const tfStr = String(tf);
     const prev = this.currentTimeframe;
@@ -1323,34 +1349,27 @@ class TradingChartApp {
     const COMMODITY_SYMS = ['XAUUSD', 'XAGUSD', 'USOIL', 'UKOIL', 'NATGAS'];
     const EQUITY_SYMS = ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'];
 
-    if (TSE_SYMS.includes(sym)) {
-      lbl.innerText = 'TSETMC';
-      rte.innerText = L('BOURSE', 'بورس');
-      lbl.style.color = '#34d399';
-    } else if (GOLD_SYMS.includes(sym)) {
-      lbl.innerText = L('TEHRAN BAZAAR', 'بازار تهران');
-      rte.innerText = L('LIVE', 'زنده');
-      lbl.style.color = '#fbbf24';
-    } else if (FX_IR_SYMS.includes(sym)) {
-      lbl.innerText = sym.includes('USDT') ? 'NOBITEX' : L('TEHRAN FX', 'ارز تهران');
-      rte.innerText = L('LIVE', 'زنده');
-      lbl.style.color = '#38bdf8';
-    } else if (FOREX_SYMS.includes(sym)) {
-      lbl.innerText = 'FX_IDC';
-      rte.innerText = L('BRIDGE', 'پل داده');
-      lbl.style.color = '#60a5fa';
-    } else if (COMMODITY_SYMS.includes(sym)) {
-      lbl.innerText = 'NYMEX/TV';
-      rte.innerText = L('COMMODITY', 'کالا');
-      lbl.style.color = '#f87171';
-    } else if (EQUITY_SYMS.includes(sym)) {
-      lbl.innerText = 'NASDAQ';
-      rte.innerText = L('EQUITY', 'سهام');
-      lbl.style.color = '#c084fc';
-    } else {
+    // Honest provenance: only Binance crypto is a live feed; every other
+    // market is a modelled demo series and is labelled as such.
+    const demo = (name, color) => {
+      lbl.innerText = name;
+      rte.innerText = L('DEMO', 'نمایشی');
+      lbl.style.color = color;
+      rte.parentElement?.setAttribute('title', L('Demo data — for learning and testing, not real prices', 'داده نمایشی — برای آموزش و آزمایش، نه قیمت واقعی'));
+      rte.parentElement?.classList.add('is-demo-feed');
+    };
+    rte.parentElement?.classList.remove('is-demo-feed');
+    if (TSE_SYMS.includes(sym)) demo(L('TEHRAN BOURSE', 'بورس تهران'), '#34d399');
+    else if (GOLD_SYMS.includes(sym)) demo(L('TEHRAN GOLD', 'طلای تهران'), '#fbbf24');
+    else if (FX_IR_SYMS.includes(sym)) demo(L('TEHRAN FX', 'ارز تهران'), '#38bdf8');
+    else if (FOREX_SYMS.includes(sym)) demo('FOREX', '#60a5fa');
+    else if (COMMODITY_SYMS.includes(sym)) demo(L('COMMODITIES', 'کالا'), '#f87171');
+    else if (EQUITY_SYMS.includes(sym)) demo(L('US STOCKS', 'سهام آمریکا'), '#c084fc');
+    else {
       lbl.innerText = 'BINANCE';
-      rte.innerText = L('REALTIME', 'لحظه‌ای');
+      rte.innerText = L('LIVE', 'زنده');
       lbl.style.color = '#00F2B0';
+      rte.parentElement?.setAttribute('title', L('Live market data from Binance', 'داده زنده بازار از بایننس'));
     }
   }
 

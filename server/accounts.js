@@ -10,6 +10,8 @@ import { fileURLToPath } from 'url';
 import { FEATURES_CATALOG, CATEGORIES } from './featuresCatalog.js';
 import { isReqAdmin, audit } from './adminAuth.js';
 import { mountAdminApi } from './adminApi.js';
+import { mountTradeRelay } from './tradeRelayApi.js';
+import { initMailer, mailEnabled, sendCode } from './mailer.js';
 import { getPlatformSettings, publicPlatformInfo } from './platformSettings.js';
 export { isReqAdmin };
 
@@ -478,6 +480,9 @@ function outboxPush(kind, email, code) {
     if (box.messages.length > 200) box.messages.length = 200;
     fs.writeFileSync(OUTBOX_FILE, JSON.stringify(box, null, 1), { mode: 0o600 });
   } catch (e) { console.error('[accounts] outbox write failed:', e.message); }
+  // Deliver by e-mail when SMTP is configured (fire-and-forget; the outbox
+  // copy stays so an administrator can still help if delivery fails).
+  if (mailEnabled()) sendCode(kind, email, code).catch(() => {});
 }
 function outboxAll() {
   return readJson(OUTBOX_FILE, { messages: [] }).messages.map(({ id, kind, email, at }) => ({ id, kind, email, at }));
@@ -544,12 +549,15 @@ function parseCookies(header) {
   }
   return out;
 }
+// `Secure` is added whenever the request arrived over HTTPS (directly or via
+// the loopback reverse proxy / tunnel, see app.set('trust proxy')).
+const secureFlag = res => (res.req && res.req.secure ? '; Secure' : '');
 function setSessionCookie(res, token, maxAgeMs) {
   res.setHeader('Set-Cookie',
-    `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}`);
+    `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${secureFlag(res)}`);
 }
 function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0${secureFlag(res)}`);
 }
 
 // ── Sessions table ops ────────────────────────────────────────────────────
@@ -604,7 +612,8 @@ function publicUser(u) {
     emailVerified: !!u.emailVerified, createdAt: u.createdAt,
     usernameChangesLeft: Math.max(0, USERNAME_CHANGE_LIMIT - (u.usernameChanges || 0)),
     totpEnabled: !!u.totpSecret,
-    timezone: u.timezone || 'UTC', currency: u.currency || 'USD'
+    timezone: u.timezone || 'UTC', currency: u.currency || 'USD',
+    planRequest: u.planRequest && PLANS[u.planRequest.plan] ? { plan: u.planRequest.plan, at: u.planRequest.at } : null
   };
 }
 function computeUsage(u) {
@@ -621,6 +630,7 @@ function computeUsage(u) {
 
 // ── Router mount ──────────────────────────────────────────────────────────
 export function mountAccountSystem(app) {
+  initMailer().then(ok => console.log(`[mailer] ${ok ? 'SMTP delivery enabled' : 'SMTP not configured — codes are delivered by administrators'}`));
   const router = express.Router();
 
   // Attach user + session row to req from the session cookie (null if guest).
@@ -874,7 +884,7 @@ export function mountAccountSystem(app) {
     const secret = base32Encode(crypto.randomBytes(20));
     req.user.pendingTotpSecret = secret;
     flushNow();
-    const issuer = 'TradingChart';
+    const issuer = 'Chartivia';
     const label = encodeURIComponent(`${issuer}:${req.user.username}`);
     res.json({
       ok: true, secret,
@@ -1019,14 +1029,14 @@ export function mountAccountSystem(app) {
     atomicWrite(SESSIONS_FILE, ss);
     // drop cloud state
     try { fs.unlinkSync(statePath(uid)); } catch (e) { /* already gone */ }
-    res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+    clearSessionCookie(res);
     res.json({ ok: true, deleted: true });
   });
 
   // ── Public platform info (announcement banner, registration state) ──────
   app.get('/api/platform', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ ok: true, ...publicPlatformInfo() });
+    res.json({ ok: true, ...publicPlatformInfo(), emailDelivery: mailEnabled() });
   });
 
   // ── Plans (entitlement matrix + usage) ──────────────────────────────────
@@ -1050,6 +1060,8 @@ export function mountAccountSystem(app) {
     revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, STATE_DIR,
     defaultPlanId: () => (Object.values(PLANS).find(p => p.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]]).id
   });
+
+  mountTradeRelay(app, { users, flushNow, PLANS, rateGate });
 
   // ── Admin: Full Plans Catalog & Management ───────────────────────────────
   app.get('/api/admin/plans', (req, res) => {
@@ -1273,17 +1285,39 @@ export function mountAccountSystem(app) {
   });
 
   // Simulated billing (self-hosted product): switch plan instantly.
+  // Self-service plan changes. Until a payment gateway is connected, moving to
+  // a PAID plan is a request that an administrator approves in the console
+  // (no free self-upgrade); switching to a free plan applies at once.
   app.post('/api/user/plan', (req, res) => {
     if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
     const planId = String(req.body?.plan || '');
     if (!PLANS[planId]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
-    if (PLANS[planId].isActive === false && !isReqAdmin(req)) {
+    const admin = isReqAdmin(req);
+    if (PLANS[planId].isActive === false && !admin) {
       return res.status(400).json({ ok: false, error: 'plan_inactive', message: 'This plan is currently inactive.' });
+    }
+    const paid = Number(PLANS[planId].priceUSD || 0) > 0;
+    if (paid && !admin && process.env.TC_BILLING_MODE !== 'simulated') {
+      if (planId === req.user.plan) return res.json({ ok: true, user: publicUser(req.user), entitlements: PLANS[planId] });
+      if (rateGate(req, res, 'plan_request', 10, 60000)) return;
+      req.user.planRequest = { plan: planId, at: Date.now() };
+      flushNow();
+      audit(req, 'user.plan_request', req.user.id, { username: req.user.username, plan: planId });
+      return res.status(202).json({ ok: true, pending: true, user: publicUser(req.user) });
     }
     req.user.plan = planId;
     req.user.planSince = Date.now();
+    req.user.planRequest = null;
     flushNow();
     res.json({ ok: true, user: publicUser(req.user), entitlements: PLANS[planId] });
+  });
+
+  // Withdraw a pending upgrade request.
+  app.delete('/api/user/plan-request', (req, res) => {
+    if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    req.user.planRequest = null;
+    flushNow();
+    res.json({ ok: true, user: publicUser(req.user) });
   });
 
   return { flushNow };

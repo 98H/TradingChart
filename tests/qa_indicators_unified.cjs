@@ -26,7 +26,7 @@ async function verifyUnifiedIndicators() {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 15000 });
     await new Promise(r => setTimeout(r, 2000));
 

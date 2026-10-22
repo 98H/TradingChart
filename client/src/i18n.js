@@ -616,7 +616,7 @@ export const VELA_BRAND_WHITELIST = [
   /^Nexus\s/,
   /^PineTS\b/,
   /^Vela\b/,
-  /^TradingChart\b/,
+  /^(TradingChart|Chartivia)\b/,
   // TradingView is the reference platform this terminal reaches parity with;
   // the brand name stays verbatim in both languages, like the others above.
   /^TradingView\b/

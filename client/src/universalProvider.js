@@ -27,7 +27,7 @@ function getIntervalMs(timeframe) {
 }
 
 export class UniversalMarketProvider {
-  constructor(providerName = 'universal', displayName = 'TradingChart Multi-Asset') {
+  constructor(providerName = 'universal', displayName = 'Chartivia Multi-Asset') {
     this.providerName = providerName;
     this.displayName = displayName;
     this.symbolsCache = null;

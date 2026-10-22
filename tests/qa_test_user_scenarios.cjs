@@ -23,7 +23,7 @@ async function run() {
     await page.setViewport({ width: 1440, height: 900 });
 
     console.log('--- Step 1: Initial Load ---');
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
     await settle(3000);
 

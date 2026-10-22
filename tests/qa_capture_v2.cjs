@@ -24,7 +24,7 @@ async function runQACapture() {
   // 1. Desktop Initial View (1440x900)
   console.log('1. Desktop initial load...');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2500));
   await page.screenshot({ path: path.join(OUT_DIR, '01_desktop_flawless.png') });
 
@@ -63,7 +63,7 @@ async function runQACapture() {
   // 6. Mobile Portrait View (390x844)
   console.log('6. Mobile Initial View (390x844)...');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(OUT_DIR, '06_mobile_chart_with_xaxis.png') });
 

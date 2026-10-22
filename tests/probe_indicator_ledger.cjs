@@ -8,7 +8,7 @@ const CHROME = '/root/.cache/puppeteer/chrome-headless-shell/linux-153.0.8010.36
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
-  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 5000));
   const info = await page.evaluate(() => {
     const ws = window.__TRADING_APP__?.chartManager?.workspace;

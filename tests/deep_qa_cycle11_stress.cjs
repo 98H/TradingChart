@@ -73,7 +73,7 @@ async function runCycle11Audit() {
     // ═════════════════════════════════════════════════════════════════════
     console.log('--- 1. Testing Live Bar Countdown Timer in Scale Controls ---');
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 25000 });
     await sleep(3500);
 
     const countdownText = await page.evaluate(() => {

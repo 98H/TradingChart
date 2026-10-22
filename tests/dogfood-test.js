@@ -50,7 +50,7 @@ async function runDogfoodAudit() {
   // ── 1. Desktop Audit (1440x900) ───────────────────────────────────
   console.log('\n--- 1. Testing Desktop Surface (1440x900) ---');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
   await new Promise(r => setTimeout(r, 4000));
 
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_desktop_initial_load.png'), fullPage: false });
@@ -152,7 +152,7 @@ async function runDogfoodAudit() {
   // ── 7. Mobile Viewport Audit (390x844) ─────────────────────────────
   console.log('\n--- 7. Testing Mobile Surface (390x844) ---');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '12_mobile_portrait_view.png') });
   console.log('Saved: 12_mobile_portrait_view.png');

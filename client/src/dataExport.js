@@ -148,7 +148,7 @@ export class DataExportModal {
     const symbol = this.app?.currentSymbol || 'BTCUSDT';
     const tf = this.app?.currentTimeframe || '60';
     const dateStr = new Date().toISOString().slice(0, 10);
-    const filename = `TradingChart_${symbol}_${tf}m_${dateStr}.${this.exportFormat}`;
+    const filename = `Chartivia_${symbol}_${tf}m_${dateStr}.${this.exportFormat}`;
 
     let blob;
     if (this.exportFormat === 'csv') {

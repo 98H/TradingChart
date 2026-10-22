@@ -45,7 +45,7 @@ async function runRigorousQA() {
 
   // 1. Initial Load & Geometry Audit
   console.log('--- Phase 1: Initial Desktop Load & Canvas Geometry ---');
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await sleep(2000);
 
   const canvasInfo = await page.evaluate(() => {

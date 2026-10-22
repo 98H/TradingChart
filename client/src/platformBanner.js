@@ -62,6 +62,7 @@ async function refresh() {
     if (!r.ok) return;
     const j = await r.json();
     current = j && j.announcement ? j.announcement : null;
+    window.__TC_EMAIL_DELIVERY__ = !!(j && j.emailDelivery);
     render();
   } catch (e) { /* offline: keep whatever is shown */ }
 }

@@ -31,7 +31,7 @@ async function inspectPage() {
     issues.push({ type: 'PageError', detail: err.toString() });
   });
 
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
 
   // --- Cycle A: Desktop EN & FA Inspection ---

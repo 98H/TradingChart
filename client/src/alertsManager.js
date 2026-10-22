@@ -2,6 +2,7 @@
 // Institutional Price Alerts & Trade-Relay Webhook Manager with Full Bilingual Support
 
 import { getLanguage, t, toPersianDigits } from './i18n.js';
+import { showConfirmDialog } from './uiDialog.js';
 
 export class AlertsManager {
   constructor(options = {}) {
@@ -244,6 +245,96 @@ export class AlertsManager {
     if (window.__TRADING_APP__?.showToast) return window.__TRADING_APP__.showToast(msg, type);
   }
 
+  // ── Personal Trade-Relay webhook URL ──────────────────────────────────
+  // Each account has its own secret URL (/api/webhook/<token>); the token is
+  // shown in full only right after it is generated, afterwards masked.
+  webhookState() {
+    if (!this._wh) this._wh = { loaded: false, loading: false, enabled: false, hasToken: false, hint: null, freshToken: null };
+    const auth = this.app?.auth;
+    const uid = auth?.user?.id || null;
+    if (this._whUid !== uid) { this._whUid = uid; Object.assign(this._wh, { loaded: false, freshToken: null }); }
+    if (uid && !this._wh.loaded && !this._wh.loading) {
+      this._wh.loading = true;
+      fetch('/api/user/webhook', { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+        Object.assign(this._wh, { loaded: true, loading: false, enabled: !!d.enabled, hasToken: !!d.hasToken, hint: d.hint || null });
+        this.render();
+      }).catch(() => { this._wh.loading = false; this._wh.loaded = true; });
+    }
+    return this._wh;
+  }
+
+  renderWebhookCard(isFa) {
+    const auth = this.app?.auth;
+    const signedIn = !!auth?.user;
+    const w = this.webhookState();
+    const base = `${window.location.origin}/api/webhook/`;
+    let body;
+    if (!signedIn) {
+      body = `<div style="font-size: 11px; color: var(--text-dim); line-height: 1.7;">${isFa ? 'برای دریافت نشانی اختصاصی وب‌هوک، وارد حساب کاربری خود شوید.' : 'Sign in to get your personal webhook URL.'}</div>`;
+    } else if (w.loaded && !w.enabled) {
+      body = `<div style="font-size: 11px; color: var(--text-dim); line-height: 1.7;">${isFa ? 'هشدار وب‌هوک در پلن‌های Plus و بالاتر در دسترس است.' : 'Webhook alerts are available on Plus and higher plans.'}</div>`;
+    } else {
+      const shown = w.freshToken ? base + w.freshToken : (w.hasToken ? base + '••••••••' + (w.hint || '') : '');
+      body = `
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="webhook-endpoint-input" readonly dir="ltr" value="${shown}" placeholder="${isFa ? 'هنوز نشانی ساخته نشده است' : 'No URL generated yet'}" aria-label="${isFa ? 'نشانی وب‌هوک' : 'Webhook URL'}" style="flex: 1; min-width: 0; min-height: 34px; padding: 6px 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); text-overflow: ellipsis; direction: ltr !important; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px;" />
+            ${w.freshToken ? `<button id="btn-copy-webhook" class="btn-secondary" style="padding: 6px 14px; font-size: 11px; font-weight: 600; min-height: 34px;">${isFa ? 'کپی' : 'Copy'}</button>` : ''}
+            <button id="btn-rotate-webhook" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; font-weight: 600; min-height: 34px; white-space: nowrap;">${w.hasToken ? (isFa ? 'ساخت نشانی جدید' : 'Regenerate') : (isFa ? 'ساخت نشانی' : 'Generate')}</button>
+          </div>
+          <div style="font-size: 10px; color: var(--text-dim); line-height: 1.7; margin-top: 6px;">${w.freshToken
+            ? (isFa ? 'این نشانی را اکنون کپی و محرمانه نگه دارید؛ پس از بستن این صفحه دیگر کامل نمایش داده نمی‌شود.' : 'Copy this URL now and keep it secret; it will not be shown in full again.')
+            : (isFa ? 'نشانی اختصاصی حساب شماست؛ با ساخت نشانی جدید، نشانی قبلی از کار می‌افتد.' : 'This URL is private to your account; regenerating it disables the previous one.')}</div>`;
+    }
+    return `
+        <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">
+            ${isFa ? 'نشانی وب‌هوک رله معاملات (Trade-Relay)' : 'Trade-Relay Webhook URL'}
+          </div>
+          ${body}
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+            <span style="font-size: 10px; font-weight: 600; background: rgba(0, 242, 176, 0.1); color: var(--accent-cyan); border: 1px solid rgba(0, 242, 176, 0.2); padding: 2px 8px; border-radius: 4px;">
+              ${isFa ? '🛡️ سقف ۵۰ هزار دلار' : '🛡️ Max $50k/order'}
+            </span>
+            <span style="font-size: 10px; font-weight: 600; background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); padding: 2px 8px; border-radius: 4px;">
+              ${isFa ? '🔒 قفل افت ۵٪ روزانه' : '🔒 5% Daily Drawdown Lock'}
+            </span>
+            <span style="font-size: 10px; font-weight: 600; background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 4px;">
+              ${isFa ? '🧪 اجرای کاغذی (بدون پول واقعی)' : '🧪 Paper execution (no real money)'}
+            </span>
+          </div>
+        </div>`;
+  }
+
+  bindWebhookCard() {
+    const isFa = getLanguage() === 'fa';
+    const btnCopy = this.container.querySelector('#btn-copy-webhook');
+    btnCopy?.addEventListener('click', async () => {
+      const input = this.container.querySelector('#webhook-endpoint-input');
+      try { await navigator.clipboard.writeText(input.value); btnCopy.innerText = isFa ? 'کپی شد' : 'Copied'; }
+      catch (e) { input.select(); btnCopy.innerText = isFa ? 'دستی کپی کنید' : 'Copy manually'; }
+      setTimeout(() => { if (btnCopy.isConnected) btnCopy.innerText = isFa ? 'کپی' : 'Copy'; }, 2000);
+    });
+    const btnRot = this.container.querySelector('#btn-rotate-webhook');
+    btnRot?.addEventListener('click', async () => {
+      const w = this.webhookState();
+      const run = async () => {
+      try {
+        const r = await fetch('/api/user/webhook/rotate', { method: 'POST', credentials: 'same-origin' });
+        const d = await r.json();
+        if (r.ok && d.ok) { Object.assign(w, { hasToken: true, hint: d.hint, freshToken: d.token }); this.render(); }
+        else { this.showToast(isFa ? 'ساخت نشانی ناموفق بود.' : 'Could not generate the URL.'); btnRot.disabled = false; }
+      } catch (e) { this.showToast(isFa ? 'ساخت نشانی ناموفق بود.' : 'Could not generate the URL.'); btnRot.disabled = false; }
+      };
+      if (!w.hasToken) { btnRot.disabled = true; return run(); }
+      showConfirmDialog({
+        title: isFa ? 'ساخت نشانی جدید وب‌هوک' : 'Regenerate webhook URL',
+        message: isFa ? 'نشانی فعلی از کار می‌افتد و باید نشانی جدید را در سرویس‌هایی که از آن استفاده می‌کنند جایگزین کنید.' : 'The current URL will stop working and must be replaced wherever you use it.',
+        confirmText: isFa ? 'ساخت نشانی جدید' : 'Regenerate',
+        onConfirm: () => { btnRot.disabled = true; run(); }
+      });
+    });
+  }
+
   render() {
     if (!this.container) return;
     const isFa = getLanguage() === 'fa';
@@ -319,30 +410,8 @@ export class AlertsManager {
           </div>
         ` : ''}
 
-        <!-- Webhook Relay Info -->
-        <div style="background: var(--bg-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-          <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">
-            ${isFa ? 'آدرس وب‌هوک رله معاملات (Trade-Relay)' : 'Trade-Relay Webhook URL'}
-          </div>
-          <div style="display: flex; gap: 6px;">
-            <input type="text" id="webhook-endpoint-input" readonly value="${window.location.origin}/api/webhook" style="flex: 1; min-width: 0; padding: 6px 10px; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); text-overflow: ellipsis; direction: ltr !important; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px;" />
-            <button id="btn-copy-webhook" class="btn-secondary" style="padding: 6px 14px; font-size: 11px; font-weight: 600; min-height: 32px;">
-              ${isFa ? 'کپی' : 'Copy'}
-            </button>
-          </div>
-          <!-- Safety Rails Chips -->
-          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-            <span style="font-size: 10px; font-weight: 600; background: rgba(0, 242, 176, 0.1); color: var(--accent-cyan); border: 1px solid rgba(0, 242, 176, 0.2); padding: 2px 8px; border-radius: 4px;">
-              ${isFa ? '🛡️ سقف ۵۰ هزار دلار' : '🛡️ Max $50k/order'}
-            </span>
-            <span style="font-size: 10px; font-weight: 600; background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); padding: 2px 8px; border-radius: 4px;">
-              ${isFa ? '🔒 قفل افت ۵٪ روزانه' : '🔒 5% Daily Drawdown Lock'}
-            </span>
-            <span style="font-size: 10px; font-weight: 600; background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 4px;">
-              ${isFa ? '⚡ ضد سفارش تکراری' : '⚡ Deduplication'}
-            </span>
-          </div>
-        </div>
+        <!-- Webhook Relay Info (personal, secret URL) -->
+        ${this.renderWebhookCard(isFa)}
 
         <!-- Alerts List -->
         <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px;">
@@ -449,14 +518,7 @@ export class AlertsManager {
       }
     });
 
-    const btnCopy = this.container.querySelector('#btn-copy-webhook');
-    btnCopy?.addEventListener('click', () => {
-      const input = this.container.querySelector('#webhook-endpoint-input');
-      navigator.clipboard.writeText(input.value);
-      const isFa = getLanguage() === 'fa';
-      btnCopy.innerText = isFa ? 'کپی شد!' : 'Copied!';
-      setTimeout(() => { btnCopy.innerText = isFa ? 'کپی' : 'Copy'; }, 2000);
-    });
+    this.bindWebhookCard();
 
     this.container.querySelectorAll('.toggle-alert-btn').forEach(btn => {
       btn.addEventListener('click', () => {

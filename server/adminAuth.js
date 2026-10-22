@@ -112,10 +112,10 @@ export function revokeAdminSessionById(id) {
   return true;
 }
 export function setAdminCookie(res, token) {
-  appendSetCookie(res, `${ADMIN_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${Math.floor(ADMIN_SESSION_TTL_MS / 1000)}`);
+  appendSetCookie(res, `${ADMIN_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${Math.floor(ADMIN_SESSION_TTL_MS / 1000)}${res.req && res.req.secure ? '; Secure' : ''}`);
 }
 export function clearAdminCookie(res) {
-  appendSetCookie(res, `${ADMIN_COOKIE}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`);
+  appendSetCookie(res, `${ADMIN_COOKIE}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${res.req && res.req.secure ? '; Secure' : ''}`);
 }
 function appendSetCookie(res, v) {
   const prev = res.getHeader('Set-Cookie');

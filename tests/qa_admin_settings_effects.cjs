@@ -44,7 +44,7 @@ async function settings(ck, body) {
     const EN1 = 'Scheduled maintenance tonight at 23:00.';
     await settings(ck, { announcementEnabled: true, announcementLevel: 'warning', announcementFa: FA1, announcementEn: EN1 });
     await page.evaluateOnNewDocument(() => { try { localStorage.removeItem('tc_announcement_dismissed'); } catch (e) {} });
-    await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'networkidle2', timeout: 60000 });
     await page.waitForSelector('#tc-platform-banner', { timeout: 20000 }).catch(() => null);
     let b = await page.evaluate(() => { const el = document.getElementById('tc-platform-banner'); if (!el) return null; const r = el.getBoundingClientRect(); const h = document.getElementById('top-app-header').getBoundingClientRect(); return { text: el.querySelector('.tc-pb-text').textContent, level: el.dataset.level, dir: el.getAttribute('dir'), role: el.getAttribute('role'), top: r.top, bottom: r.bottom, headerTop: h.top, w: r.width, vw: innerWidth, close: (() => { const c = el.querySelector('.tc-pb-close').getBoundingClientRect(); return [Math.round(c.width), Math.round(c.height)]; })(), lang: document.documentElement.lang }; });
     check('banner renders in app', b && b.text.length > 0, b ? `${b.lang}: "${b.text}"` : 'missing');
@@ -67,7 +67,7 @@ async function settings(ck, body) {
     // first tab's "clear dismissal" init hook) = a real reload by the user
     const p2 = await ctx.browser.newPage();
     await p2.setViewport(page.viewport());
-    await p2.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await p2.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p2.waitForFunction(() => !!(window.app && window.app.auth), { timeout: 60000 });
     await sleep(3000);
     const stillGone = await p2.evaluate(() => !document.getElementById('tc-platform-banner'));

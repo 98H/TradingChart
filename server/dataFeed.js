@@ -115,7 +115,7 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
 
       const res = await fetch(url.toString(), {
         signal: AbortSignal.timeout(5000),
-        headers: { 'User-Agent': 'TradingChart/1.0' }
+        headers: { 'User-Agent': 'Chartivia/1.0' }
       });
 
       if (res.ok) {
@@ -606,83 +606,45 @@ export async function get24hTicker(symbol) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. DATA SOURCES STATUS & WATERFALL TELEMETRY
 // ─────────────────────────────────────────────────────────────────────────────
-export function getMarketSourceStatus() {
+// Real Binance reachability (cached 30s). Every other feed below is a
+// modelled/demo series and is reported as such — never as "online".
+let binanceProbe = { at: 0, ok: false, ms: null };
+async function probeBinance() {
+  if (Date.now() - binanceProbe.at < 30000) return binanceProbe;
+  const t0 = Date.now();
+  try {
+    const r = await fetch(`${BINANCE_VISION_BASE}/ping`, { signal: AbortSignal.timeout(4000) });
+    binanceProbe = { at: Date.now(), ok: r.ok, ms: Date.now() - t0 };
+  } catch (e) { binanceProbe = { at: Date.now(), ok: false, ms: null }; }
+  return binanceProbe;
+}
+
+export async function getMarketSourceStatus() {
+  const b = await probeBinance();
+  const countCat = (...cats) => SYMBOL_CATALOG.filter(x => cats.includes(x.category)).length;
+  const demo = (id, name, nameFa, protocol, protocolFa, marketsCovered, marketsCoveredFa, tier, activeSymbols) => ({
+    id, name, nameFa, status: 'demo', latencyMs: null, protocol, protocolFa, marketsCovered, marketsCoveredFa, tier, activeSymbols, live: false
+  });
+  const sources = [
+    {
+      id: 'binance_direct', name: 'Binance Market Data API', nameFa: 'داده بازار بایننس',
+      status: b.ok ? 'online' : 'degraded', latencyMs: b.ms, live: true,
+      protocol: 'REST v3 (data-api.binance.vision)', protocolFa: 'REST نسخه ۳ (data-api.binance.vision)',
+      marketsCovered: ['Crypto Spot'], marketsCoveredFa: ['اسپات کریپتو'], tier: 1, activeSymbols: countCat('crypto')
+    },
+    demo('forex_metals', 'Forex, Metals & Commodities', 'فارکس، فلزات و کالاها', 'Modelled demo series', 'سری نمایشی مدل‌سازی‌شده',
+      ['Forex Majors', 'Metals', 'Energy'], ['فارکس ماژور', 'فلزات گرانبها', 'انرژی'], 2, countCat('forex', 'metals', 'commodities')),
+    demo('us_equities', 'US Indices & Equities', 'شاخص‌ها و سهام آمریکا', 'Modelled demo series', 'سری نمایشی مدل‌سازی‌شده',
+      ['US Indices', 'Equities'], ['شاخص‌های آمریکا', 'سهام'], 3, countCat('indices', 'stocks')),
+    demo('tehran_gold', 'Tehran Gold & Currencies', 'طلا، سکه و ارز تهران', 'Modelled demo series', 'سری نمایشی مدل‌سازی‌شده',
+      ['Melted Gold', '18k Gram', 'Coins', 'Free USD', 'USDT'], ['آبشده', 'طلای ۱۸ عیار', 'سکه', 'دلار آزاد', 'تتر'], 4, countCat('iran_gold')),
+    demo('tsetmc_bourse', 'Tehran Stock Exchange', 'بورس و فرابورس تهران', 'Modelled demo series', 'سری نمایشی مدل‌سازی‌شده',
+      ['Iranian Equities', 'ETFs'], ['سهام بورس و فرابورس', 'صندوق‌ها'], 5, countCat('iran_tse'))
+  ];
   return {
     timestamp: new Date().toISOString(),
-    overallStatus: 'all_systems_operational',
-    sources: [
-      {
-        id: 'tv_gateway',
-        name: 'TradingView Primary Gateway',
-        nameFa: 'درگاه اصلی تریدینگ‌ویو',
-        status: 'online',
-        latencyMs: 14,
-        protocol: 'WebSocket Live Datafeed Pipe',
-        protocolFa: 'پایپ‌لاین وب‌سوکت تریدینگ‌ویو (خوراک اصلی چندبازاره)',
-        marketsCovered: ['Forex Majors', 'Metals', 'Global Commodities', 'US Indices', 'Equities'],
-        marketsCoveredFa: ['فارکس ماژور', 'فلزات گرانبها', 'نفت و کامودیتی', 'شاخص‌های بورس آمریکا'],
-        tier: 1,
-        activeSymbols: 27
-      },
-      {
-        id: 'binance_direct',
-        name: 'Binance Vision Direct API',
-        nameFa: 'درگاه مستقیم بایننس ویژن بدون تحریم',
-        status: 'online',
-        latencyMs: 21,
-        protocol: 'REST v3 + WebSocket Multi-Page Stream',
-        protocolFa: 'درگاه REST مستقیم نسخه ۳ بایننس ویژن بدون تحریم',
-        marketsCovered: ['Crypto Spot', 'Crypto Perpetuals'],
-        marketsCoveredFa: ['اسپات کریپتو', 'فیوچرز دائمی'],
-        tier: 2,
-        activeSymbols: 17
-      },
-      {
-        id: 'mt5_bridge',
-        name: 'MetaTrader 5 Bridge Gateway',
-        nameFa: 'بریج ارتباطی متاتریدر ۵',
-        status: 'standby',
-        latencyMs: 8,
-        protocol: 'ZeroMQ / IPC High-Speed Gateway',
-        protocolFa: 'درگاه پرسرعت متاتریدر ۵ مبتنی بر ZeroMQ / IPC',
-        marketsCovered: ['Forex Crosses', 'Precious Metals', 'Crude Oil', 'CFDs'],
-        marketsCoveredFa: ['کراس‌های فارکس', 'فلزات گرانبها', 'نفت خام'],
-        tier: 3,
-        activeSymbols: 15
-      },
-      {
-        id: 'tehran_gold',
-        name: 'Tehran Gold & Currencies Engine',
-        nameFa: 'موتور مظنه طلای آبشده، حباب مسکوکات و ارزهای تهران',
-        status: 'online',
-        latencyMs: 16,
-        protocol: 'Nobitex P2P + Central Bank Physical Specifications Engine',
-        protocolFa: 'موتور محاسباتی بنکداری طلای تهران و P2P نوبیتکس',
-        marketsCovered: ['Melted Gold 17k', '18k Gram', 'Coin Bubbles (Emami/Bahar/Nim/Rob)', 'Free USD', 'Nobitex USDT', 'UAE Dirham'],
-        marketsCoveredFa: ['مظنه آبشده ۱۷ عیار', 'طلای ۱۸ عیار', 'حباب مسکوکات', 'ارز آزاد', 'تتر'],
-        tier: 4,
-        activeSymbols: 10
-      },
-      {
-        id: 'tsetmc_bourse',
-        name: 'TSETMC Tehran Stock Exchange Engine',
-        nameFa: 'موتور بورس و فرابورس ایران (TSETMC)',
-        status: 'online',
-        latencyMs: 24,
-        protocol: 'TSETMC CDN Direct API + Microstructure Tape Stream',
-        protocolFa: 'درگاه CDN اختصاصی بورس تهران همراه استریم تابلوخوانی',
-        marketsCovered: ['Iranian Equities', 'Leveraged ETFs', 'Gold Funds', 'Tape Microstructure & Smart Money'],
-        marketsCoveredFa: ['سهام بورس و فرابورس', 'صندوق‌های اهرمی', 'صندوق‌های طلا', 'تابلوخوانی پول هوشمند'],
-        tier: 5,
-        activeSymbols: 16
-      }
-    ],
-    waterfallHierarchy: [
-      '1. TradingView Primary Gateway (Global Multi-Asset)',
-      '2. Binance Vision Direct API (Crypto Spot/Futures)',
-      '3. MetaTrader 5 Bridge (Forex & Commodities Fallback)',
-      '4. Tehran Gold & Coin Bubble Engine (Iran Gold & FX)',
-      '5. TSETMC Engine (Iran Bourse & Smart Money Tape)'
-    ]
+    overallStatus: b.ok ? 'live_crypto_demo_others' : 'degraded',
+    liveCount: sources.filter(s => s.live && s.status === 'online').length,
+    sources
   };
 }

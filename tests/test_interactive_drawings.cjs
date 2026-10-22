@@ -37,7 +37,7 @@ async function testDrawings() {
   }
 
   try {
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(r => setTimeout(r, 3000));
     await snap('01_draw_init');
 

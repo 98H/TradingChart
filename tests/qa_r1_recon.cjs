@@ -8,7 +8,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (const vp of ['desktop', 'mobile']) {
     const ctx = await launch(vp);
     const { page } = ctx;
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded' });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!window.__TRADING_APP__ && !!document.querySelector('canvas'), { timeout: 30000 }).catch(() => {});
     await sleep(5000);
     for (const lang of ['en', 'fa']) {

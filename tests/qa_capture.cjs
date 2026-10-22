@@ -23,7 +23,7 @@ const puppeteer = require('puppeteer-core');
 
   // --- 1. Mobile Portrait (390x844) ---
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 20000 });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 20000 });
   await new Promise(r => setTimeout(r, 4500));
 
   await page.screenshot({ path: '/root/qa_mobile_luxalgo_main_v3.png' });
@@ -57,7 +57,7 @@ const puppeteer = require('puppeteer-core');
   // --- 4. Desktop View (1440x900) ---
   const desktopPage = await browser.newPage();
   await desktopPage.setViewport({ width: 1440, height: 900 });
-  await desktopPage.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 20000 });
+  await desktopPage.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 20000 });
   await new Promise(r => setTimeout(r, 4500));
   await desktopPage.screenshot({ path: '/root/qa_desktop_luxalgo_v3.png' });
   console.log('Desktop screenshot taken: /root/qa_desktop_luxalgo_v3.png');

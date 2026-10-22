@@ -41,7 +41,7 @@ async function runAllFeaturesTest() {
   // 1. Initial Desktop View (1440x900)
   console.log('\n1. Navigating to http://127.0.0.1:8088...');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
   await page.screenshot({ path: path.join(OUT_DIR, '01_desktop_with_layout_suite.png') });
 
@@ -157,7 +157,7 @@ async function runAllFeaturesTest() {
   // 11. Mobile Viewport (390x844) Audit
   console.log('\n11. Testing Mobile Viewport (390x844)...');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
   await page.screenshot({ path: path.join(OUT_DIR, '13_mobile_initial.png') });
 

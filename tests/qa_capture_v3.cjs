@@ -43,7 +43,7 @@ async function runQACycle() {
   // ----------------------------------------------------
   console.log('\n--- 1. Desktop Initial View (1440x900) ---');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2500));
 
   // Check positions of statusline and quick-trade
@@ -110,7 +110,7 @@ async function runQACycle() {
   // ----------------------------------------------------
   console.log('\n--- 6. Mobile Portrait Initial View (390x844) ---');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2500));
 
   const mobileInitState = await page.evaluate(() => {

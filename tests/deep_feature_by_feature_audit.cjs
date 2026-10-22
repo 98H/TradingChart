@@ -29,7 +29,7 @@ async function run() {
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('pageerror', e => errors.push(e.toString()));
 
-    await page.goto(BASE, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'networkidle2', timeout: 60000 });
     await new Promise(r => setTimeout(r, 2500));
 
     // ==========================================

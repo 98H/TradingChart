@@ -566,12 +566,23 @@ export class AuthManager {
       body: JSON.stringify({ plan: planId })
     });
     const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.pending) {
+      this.user = data.user;
+      return { ok: true, data };
+    }
     if (res.ok && data.ok) {
       this.user = data.user;
       this.entitlements = PLANS[planId] || PLANS.basic;
       this.renderAccountBadge();
       this.app?.onPlanChanged?.(planId);
     }
+    return { ok: res.ok && data.ok, data };
+  }
+
+  async cancelPlanRequest() {
+    const res = await fetch('/api/user/plan-request', { method: 'DELETE', credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) this.user = data.user;
     return { ok: res.ok && data.ok, data };
   }
 
@@ -717,7 +728,7 @@ export class AuthManager {
   }
 
   menuItem(act, label, icon) {
-    return `<div data-act="${act}" role="menuitem" tabindex="0" style="padding: 9px 14px; cursor: pointer; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='var(--bg-card-hover,#1b243b)'" onmouseout="this.style.background='transparent'"><span style="width:18px; text-align:center;">${icon}</span><span>${label}</span></div>`;
+    return `<div data-act="${act}" role="menuitem" tabindex="0" style="padding: 9px 14px; cursor: pointer; display:flex; align-items:center; gap:8px;" class="tc-menu-item"><span style="width:18px; text-align:center;">${icon}</span><span>${label}</span></div>`;
   }
 
   closeAccountMenu() {
@@ -976,7 +987,7 @@ export class AuthManager {
           <button data-close style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px;">✕</button>
         </div>
         <div style="padding:18px; display:flex; flex-direction:column; gap:10px;">
-          <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">${isFa ? 'ایمیل حساب خود را وارد کنید. کد ۶ رقمی بازیابی برایتان ارسال می‌شود.' : 'Enter your account email. A 6-digit reset code will be sent to you.'}</div>
+          <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">${window.__TC_EMAIL_DELIVERY__ ? (isFa ? 'ایمیل حساب خود را وارد کنید. کد ۶ رقمی بازیابی برایتان ارسال می‌شود.' : 'Enter your account email. A 6-digit reset code will be sent to you.') : (isFa ? 'ایمیل حساب خود را وارد کنید و سپس برای دریافت کد ۶ رقمی بازیابی با پشتیبانی چارتیویا تماس بگیرید.' : 'Enter your account email, then contact Chartivia support to receive your 6-digit reset code.')}</div>
           <input id="tc-reset-email" type="email" placeholder="${isFa ? 'you@example.com' : 'you@example.com'}" style="padding:9px 11px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; direction:ltr;" />
           <div id="tc-reset-step2" style="display:none; flex-direction:column; gap:10px;">
             <input id="tc-reset-code" type="text" inputmode="numeric" maxlength="6" placeholder="${isFa ? 'کد ۶ رقمی' : '6-digit code'}" style="padding:9px 11px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:7px; color:#fff; direction:ltr; text-align:center; letter-spacing:4px; font-size:15px;" />
@@ -1005,7 +1016,7 @@ export class AuthManager {
         overlay.querySelector('#tc-reset-step2').style.display = 'flex';
         btn.textContent = isFa ? 'تغییر گذرواژه' : 'Set new password';
         btn.disabled = false;
-        err.textContent = isFa ? 'اگر حساب موجود باشد، کد ارسال شده است.' : 'If the account exists, the code has been sent.';
+        err.textContent = window.__TC_EMAIL_DELIVERY__ ? (isFa ? 'اگر حساب موجود باشد، کد به ایمیل آن ارسال شده است.' : 'If the account exists, the code has been sent to its email.') : (isFa ? 'درخواست ثبت شد؛ کد بازیابی را از پشتیبانی دریافت کنید.' : 'Request recorded; get your reset code from support.');
         err.style.color = '#8b93a7';
         err.style.display = 'block';
       } else {
@@ -1036,7 +1047,7 @@ export class AuthManager {
       <div class="modal-box" style="max-width:360px; width:92vw; background:var(--bg-card,#151c2d); border:1px solid var(--border-subtle); border-radius:14px; overflow:hidden; ${isFa ? 'direction:rtl;' : ''}">
         <div style="padding:14px 18px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); font-weight:800; font-size:14px; color:#fff;">${isFa ? 'تأیید ایمیل' : 'Verify email'}</div>
         <div style="padding:18px; display:flex; flex-direction:column; gap:10px;">
-          <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">${isFa ? `کد ۶ رقمی ارسال‌شده به <span dir="ltr">${escapeHtml(this.user.email)}</span> را وارد کنید.` : `Enter the 6-digit code sent to <span dir="ltr">${escapeHtml(this.user.email)}</span>.`}</div>
+          <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">${window.__TC_EMAIL_DELIVERY__ ? (isFa ? `کد ۶ رقمی ارسال‌شده به <span dir="ltr">${escapeHtml(this.user.email)}</span> را وارد کنید.` : `Enter the 6-digit code sent to <span dir="ltr">${escapeHtml(this.user.email)}</span>.`) : (isFa ? `کد ۶ رقمی تأیید <span dir="ltr">${escapeHtml(this.user.email)}</span> را که از پشتیبانی دریافت کرده‌اید وارد کنید.` : `Enter the 6-digit verification code for <span dir="ltr">${escapeHtml(this.user.email)}</span> that you received from support.`)}</div>
           <input id="tc-verify-code" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" style="padding:10px; text-align:center; letter-spacing:6px; font-size:16px; background:var(--bg-surface,#0c1017); border:1px solid var(--accent-cyan,#00F2B0); border-radius:7px; color:#fff; direction:ltr;" />
           <div id="tc-verify-error" style="display:none; color:#f87171; font-size:11px;"></div>
           <button id="tc-verify-submit" class="btn-primary" style="padding:10px; font-weight:800; border-radius:8px; cursor:pointer;">${isFa ? 'تأیید' : 'Verify'}</button>
@@ -1557,6 +1568,7 @@ export class AuthManager {
     const fmt = (v) => v === UNLIMITED ? '∞' : (typeof v === 'boolean' ? (v ? '✓' : '—') : (isFa ? toPersianDigits(String(v)) : String(v)));
     const plans = PLAN_ORDER.map(id => this.plansMeta[id] || PLANS[id]).filter(Boolean);
     const current = this.plan();
+    const pendingPlan = this.user?.planRequest?.plan || null;
     const grid = plans.map(p => {
       const isCurrent = p.id === current;
       const pColor = p.color || 'var(--accent-cyan,#00F2B0)';
@@ -1568,9 +1580,14 @@ export class AuthManager {
             ${isCurrent ? `<span style="font-size:9px; background:${pColor}; color:#04121e; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${isFa ? 'پلن فعلی' : 'CURRENT'}</span>` : (pBadge ? `<span style="font-size:9px; background:${pColor}22; color:${pColor}; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${escapeHtml(pBadge)}</span>` : '')}
           </div>
           <div style="font-size:16px; font-weight:800; color:${pColor};">${p.priceUSD === 0 ? (isFa ? 'رایگان' : 'Free') : '$' + (isFa ? toPersianDigits(String(p.priceUSD)) : p.priceUSD)}<span style="font-size:10px; color:var(--text-dim); font-weight:400;">${p.priceUSD ? (isFa ? '/ماه' : '/mo') : ''}</span></div>
-          <button data-plan="${p.id}" ${isCurrent ? 'disabled' : ''} class="tc-plan-btn" style="padding:7px; border-radius:7px; font-size:11px; font-weight:800; cursor:${isCurrent ? 'default' : 'pointer'}; border:1px solid ${pColor}; background:${isCurrent ? 'transparent' : pColor}; color:${isCurrent ? pColor : '#04121e'}; opacity:${isCurrent ? '0.5' : '1'};">
-            ${isCurrent ? (isFa ? 'فعال' : 'Active') : (this.planRank(p.id) < this.planRank(current) ? (isFa ? 'سوئیچ' : 'Switch') : (isFa ? 'ارتقا' : 'Upgrade'))}
-          </button>
+          ${(() => {
+            const isReq = pendingPlan === p.id;
+            const off = isCurrent || isReq;
+            const label = isCurrent ? (isFa ? 'فعال' : 'Active')
+              : isReq ? (isFa ? 'در انتظار تأیید' : 'Pending approval')
+              : (this.planRank(p.id) < this.planRank(current) ? (isFa ? 'تغییر به این پلن' : 'Switch') : (p.priceUSD > 0 ? (isFa ? 'درخواست ارتقا' : 'Request upgrade') : (isFa ? 'ارتقا' : 'Upgrade')));
+            return `<button data-plan="${p.id}" ${off ? 'disabled' : ''} class="tc-plan-btn" style="min-height:36px; padding:7px; border-radius:7px; font-size:11px; font-weight:800; cursor:${off ? 'default' : 'pointer'}; border:1px solid ${pColor}; background:${off ? 'transparent' : pColor}; color:${off ? pColor : '#04121e'}; opacity:${isCurrent ? '0.5' : '1'};">${label}</button>`;
+          })()}
         </div>`;
     }).join('');
 
@@ -1598,7 +1615,7 @@ export class AuthManager {
     overlay.innerHTML = `
       <div class="modal-box" style="max-width:860px; width:96vw; max-height:88vh; overflow-y:auto; background:var(--bg-card,#151c2d); border:1px solid var(--border-subtle); border-radius:14px; ${isFa ? 'direction:rtl;' : ''}">
         <div style="padding:14px 18px; background:var(--bg-surface,#0c1017); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;">
-          <span style="font-weight:800; font-size:14px; color:#fff;">${isFa ? 'پلن‌های تریدینگ‌چارت' : 'TradingChart Plans'}</span>
+          <span style="font-weight:800; font-size:14px; color:#fff;">${isFa ? 'پلن‌های چارتیویا' : 'Chartivia Plans'}</span>
           <div style="display:flex; align-items:center; gap:8px;">
             ${this.isAdmin() ? `<button id="tc-plans-open-admin" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:1px solid rgba(0,242,176,0.3); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
               <span>⚙️</span><span>${isFa ? 'مدیریت پلن‌ها' : 'Manage Plans'}</span>
@@ -1610,7 +1627,7 @@ export class AuthManager {
           <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; -webkit-overflow-scrolling:touch;">${grid}</div>
           ${this.usage ? `<div style="font-size:11px; color:var(--text-dim);">${isFa ? `مصرف فعلی: ${toPersianDigits(String(this.usage.layouts))} چیدمان · ${toPersianDigits(String(this.usage.watchlists))} واچ‌لیست · ${toPersianDigits(String(Math.round(this.usage.stateBytes / 1024)))} کیلوبایت فضای ابری` : `Current usage: ${this.usage.layouts} layouts · ${this.usage.watchlists} watchlists · ${Math.round(this.usage.stateBytes / 1024)} KB cloud`}</div>` : ''}
           ${table}
-          <div style="font-size:10px; color:var(--text-dim); line-height:1.6;">${isFa ? 'صورت‌حساب‌دهی در این نسخه شبیه‌سازی‌شده است و با کلیک بلافاصله اعمال می‌شود. سقف هر پلن هم در سرور و هم در رابط کاربری اعمال می‌شود.' : 'Billing is simulated in this build and applies instantly on click. Each plan’s limits are enforced both server-side and in the UI.'}</div>
+          <div style="font-size:10px; color:var(--text-dim); line-height:1.6;">${pendingPlan ? `<div id="tc-plan-pending" style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 11px; margin-bottom:8px; border:1px solid rgba(59,130,246,0.35); background:rgba(59,130,246,0.08); border-radius:8px; color:#cfe0ff; font-size:11.5px;"><span style="flex:1; min-width:180px;">${isFa ? `درخواست ارتقای شما به پلن «${escapeHtml(planNames[pendingPlan] || pendingPlan)}» ثبت شده و پس از تأیید پرداخت توسط پشتیبانی فعال می‌شود.` : `Your upgrade request to “${escapeHtml(planNames[pendingPlan] || pendingPlan)}” is recorded and will be activated once support confirms payment.`}</span><button id="tc-plan-cancel-req" style="min-height:32px; padding:5px 12px; border-radius:7px; border:1px solid var(--border-subtle); background:transparent; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer;">${isFa ? 'لغو درخواست' : 'Withdraw request'}</button></div>` : ''}${isFa ? 'ارتقا به پلن‌های پولی پس از ثبت درخواست و تأیید پرداخت توسط پشتیبانی فعال می‌شود؛ بازگشت به پلن رایگان بلافاصله اعمال می‌شود. سقف هر پلن هم در سرور و هم در رابط کاربری اعمال می‌شود.' : 'Paid plans are activated after you request an upgrade and support confirms payment; switching to the free plan applies instantly. Each plan’s limits are enforced both server-side and in the UI.'}</div>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -1621,15 +1638,28 @@ export class AuthManager {
         this.openPlanAdminStudio('plans');
         return;
       }
+      if (e.target.closest('#tc-plan-cancel-req')) {
+        const r = await this.cancelPlanRequest();
+        const isFa2 = getLanguage() === 'fa';
+        overlay.remove();
+        if (r.ok) { this.app?.showToast?.(isFa2 ? 'درخواست ارتقا لغو شد.' : 'Upgrade request withdrawn.', 'success'); this.openPlansModal(); }
+        else this.app?.showToast?.(isFa2 ? 'لغو درخواست ناموفق بود.' : 'Could not withdraw the request.', 'error');
+        return;
+      }
       const btn = e.target.closest('[data-plan]');
       if (btn && !btn.disabled) {
         const planId = btn.dataset.plan;
+        btn.disabled = true;
         const r = await this.switchPlanWithStateGuard(planId);
         const isFa2 = getLanguage() === 'fa';
-        if (r.ok) {
+        if (r.ok && r.data?.pending) {
+          overlay.remove();
+          this.app?.showToast?.(isFa2 ? `درخواست ارتقا به «${planNames[planId]}» ثبت شد؛ پس از تأیید پرداخت فعال می‌شود.` : `Upgrade to ${planNames[planId]} requested; it activates once payment is confirmed.`, 'success');
+        } else if (r.ok) {
           overlay.remove();
           this.app?.showToast?.(isFa2 ? `پلن شما به «${planNames[planId]}» تغییر کرد.` : `Plan switched to ${planNames[planId]}.`, 'success');
         } else {
+          btn.disabled = false;
           this.app?.showToast?.(isFa2 ? 'تغییر پلن ناموفق بود.' : 'Plan switch failed.', 'error');
         }
       }

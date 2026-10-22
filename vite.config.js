@@ -33,7 +33,8 @@ export default defineConfig({
       // Two entry points: the trading app and the standalone back-office console
       // (the console never loads the chart engine bundle).
       input: {
-        main: fileURLToPath(new URL('./client/index.html', import.meta.url)),
+        landing: fileURLToPath(new URL('./client/index.html', import.meta.url)),
+        main: fileURLToPath(new URL('./client/chart/index.html', import.meta.url)),
         admin: fileURLToPath(new URL('./client/admin/index.html', import.meta.url))
       }
     }

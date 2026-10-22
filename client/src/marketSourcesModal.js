@@ -54,7 +54,9 @@ export class MarketSourcesModal {
     if (!container) return;
 
     const sources = this.data.sources || [];
-    const avgLatency = Math.round(sources.reduce((sum, s) => sum + (s.latencyMs || 15), 0) / Math.max(1, sources.length));
+    const liveSrc = sources.find(s => s.live);
+    const avgLatency = liveSrc && liveSrc.latencyMs != null ? liveSrc.latencyMs : null;
+    const liveOk = !!(liveSrc && liveSrc.status === 'online');
 
     container.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 14px; ${isFa ? 'direction: rtl;' : ''}">
@@ -65,17 +67,17 @@ export class MarketSourcesModal {
             <span class="pulse-dot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan);"></span>
             <div>
               <div style="font-weight: 800; font-size: 13px; color: #fff;">
-                ${isFa ? 'تمامی ۵ درگاه قیمت‌گذاری فعال و پایدار هستند' : 'All 5 Market Data Pipelines Operational'}
+                ${liveOk ? (isFa ? 'داده زنده کریپتو برقرار است؛ سایر بازارها نمایشی‌اند' : 'Live crypto data connected; other markets are demo data') : (isFa ? 'اتصال به داده زنده کریپتو برقرار نیست' : 'Live crypto data is unreachable')}
               </div>
               <div style="font-size: 11px; color: var(--text-dim);">
-                ${isFa ? 'پایپ‌لاین چندلایه واترفال تریدینگ‌چارت با پایش زنده و بدون وقفه' : 'Multi-tier zero-downtime price ingestion & failover waterfall'}
+                ${isFa ? 'قیمت‌های بازارهای نمایشی برای آموزش و آزمایش ابزارها هستند و مبنای معامله واقعی نیستند.' : 'Demo-market prices are for learning and testing tools only, not for real trading decisions.'}
               </div>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="text-align: ${isFa ? 'left' : 'right'};">
               <span style="font-size: 10px; color: var(--text-dim); display: block;">${isFa ? 'میانگین تاخیر' : 'Avg Latency'}</span>
-              <span style="font-size: 14px; font-weight: 800; font-family: var(--font-mono); color: var(--accent-cyan);">${isFa ? toPersianDigits(avgLatency) : avgLatency} ms</span>
+              <span style="font-size: 14px; font-weight: 800; font-family: var(--font-mono); color: var(--accent-cyan);">${avgLatency == null ? '—' : (isFa ? toPersianDigits(avgLatency) : avgLatency) + ' ms'}</span>
             </div>
             <button id="btn-sources-refresh-ping" class="btn-secondary" style="padding: 8px 14px; min-height: 38px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
               ${isFa ? 'تست پینگ' : 'Ping Test'}
@@ -87,8 +89,9 @@ export class MarketSourcesModal {
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${sources.map(s => {
             const isOnline = s.status === 'online';
-            const statusColor = isOnline ? '#00F2B0' : '#fbbf24';
-            const statusLabel = isOnline ? (isFa ? 'برخط و متصل' : 'ONLINE') : (isFa ? 'آماده‌باش (Standby)' : 'STANDBY');
+            const isDemo = s.status === 'demo';
+            const statusColor = isOnline ? '#00F2B0' : isDemo ? '#94a3b8' : '#fbbf24';
+            const statusLabel = isOnline ? (isFa ? 'زنده' : 'LIVE') : isDemo ? (isFa ? 'داده نمایشی' : 'DEMO DATA') : (isFa ? 'اختلال' : 'DEGRADED');
             return `
               <div class="source-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: border-color 0.15s;">
                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
@@ -102,7 +105,7 @@ export class MarketSourcesModal {
                         ${statusLabel}
                       </span>
                       <span style="font-size: 10px; font-family: var(--font-mono); color: var(--accent-cyan);">
-                        ${isFa ? toPersianDigits(s.latencyMs) : s.latencyMs}ms
+                        ${s.latencyMs == null ? '' : (isFa ? toPersianDigits(s.latencyMs) : s.latencyMs) + 'ms'}
                       </span>
                     </div>
                     <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
@@ -116,7 +119,7 @@ export class MarketSourcesModal {
 
                 <div style="text-align: ${isFa ? 'left' : 'right'}; flex-shrink: 0;">
                   <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-                    ${isFa ? `${toPersianDigits(s.activeSymbols)} نماد لایو` : `${s.activeSymbols} Live Tickers`}
+                    ${isFa ? `${toPersianDigits(s.activeSymbols ?? 0)} نماد${s.live ? ' زنده' : ''}` : `${s.activeSymbols ?? 0} ${s.live ? 'live ' : ''}${(s.activeSymbols ?? 0) === 1 ? 'symbol' : 'symbols'}`}
                   </span>
                 </div>
               </div>

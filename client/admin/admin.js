@@ -91,7 +91,7 @@ function renderGate(errorCode = null) {
         </div>
         <button type="submit" class="btn btn-primary" id="gate-submit">${icon('lock')}<span>${tr('ورود به پنل', 'Sign in')}</span></button>
         <div class="gate-foot">
-          <a class="linkbtn" href="/">${icon(isFa() ? 'forward' : 'back')}<span>${tr('بازگشت به تریدینگ‌چارت', 'Back to TradingChart')}</span></a>
+          <a class="linkbtn" href="/chart">${icon(isFa() ? 'forward' : 'back')}<span>${tr('بازگشت به چارتیویا', 'Back to Chartivia')}</span></a>
           <button type="button" class="btn btn-sm lang-btn" id="gate-lang">${icon('globe')}<span class="lang-name" lang="${isFa() ? 'en' : 'fa'}">${tr('English', 'فارسی')}</span></button>
         </div>
       </form>
@@ -153,13 +153,13 @@ function renderShell() {
       <aside class="sidebar" aria-label="${tr('ناوبری پنل', 'Console navigation')}">
         <div class="brand">
           <div class="brand-logo">${icon('shield')}</div>
-          <div><div class="brand-title">${tr('پنل مدیریت', 'Admin Console')}</div><div class="brand-sub">${tr('تریدینگ‌چارت', 'TradingChart')}</div></div>
+          <div><div class="brand-title">${tr('پنل مدیریت', 'Admin Console')}</div><div class="brand-sub">${tr('چارتیویا', 'Chartivia')}</div></div>
         </div>
         <nav class="nav">
           ${nav.map(n => `<a class="nav-item" href="#/${n.id}" data-nav="${n.id}">${icon(n.icon)}<span>${n.label}</span></a>`).join('')}
         </nav>
         <div class="sidebar-foot">
-          <a class="nav-item" href="/" target="_blank" rel="noopener">${icon('external')}<span>${tr('مشاهده پلتفرم', 'Open platform')}</span></a>
+          <a class="nav-item" href="/chart" target="_blank" rel="noopener">${icon('external')}<span>${tr('مشاهده پلتفرم', 'Open platform')}</span></a>
           <button type="button" class="nav-item" data-act="lang">${icon('globe')}<span class="lang-name" lang="${isFa() ? 'en' : 'fa'}">${tr('English', 'فارسی')}</span></button>
           <button type="button" class="nav-item" data-act="logout">${icon('logout', 'mirror-rtl')}<span>${tr('خروج از پنل', 'Sign out')}</span></button>
         </div>
@@ -205,7 +205,7 @@ async function logout() {
   });
   if (!ok) return;
   try { await api('/api/admin/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
-  if (viaRole) { location.href = '/'; return; }
+  if (viaRole) { location.href = '/chart'; return; }
   app.session = null;
   renderGate();
 }
@@ -217,7 +217,7 @@ function route(force = false) {
   const meta = NAV().find(n => n.id === sec);
   const title = root.querySelector('#page-title');
   if (title) title.textContent = meta.label;
-  document.title = `${meta.label} · ${tr('پنل مدیریت تریدینگ‌چارت', 'TradingChart Admin')}`;
+  document.title = `${meta.label} · ${tr('پنل مدیریت چارتیویا', 'Chartivia Admin')}`;
   root.querySelectorAll('[data-nav]').forEach(el => {
     if (el.dataset.nav === sec) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
   });
@@ -296,8 +296,11 @@ async function renderDashboard(view) {
       `${fmtNum(d.testCount)} حساب آزمایشی (دامنه‌های تست) از این آمار کنار گذاشته شده‌اند. فهرست دامنه‌ها در <button type="button" class="link-btn" data-go="settings">تنظیمات</button> قابل ویرایش است.`,
       `${fmtNum(d.testCount)} test ${plural(d.testCount, 'account')} (test email domains) ${plural(d.testCount, 'is', 'are')} excluded from these figures. Edit the domain list in <button type="button" class="link-btn" data-go="settings">Settings</button>.`)}</div></div>` : '';
   const kpi = (ic, label, value, sub = '') => `<div class="card kpi"><div class="kpi-label">${icon(ic)}<span>${label}</span></div><div class="kpi-value">${value}</div><div class="kpi-sub">${sub}</div></div>`;
+  const reqNote = k.planRequests
+    ? `<div class="alert alert-info" id="dash-plan-requests">${icon('money')}<div style="flex:1">${tr(`${fmtNum(k.planRequests)} درخواست ارتقای پلن در انتظار بررسی است.`, `${fmtNum(k.planRequests)} plan upgrade ${plural(k.planRequests, 'request')} awaiting review.`)} <button type="button" class="link-btn" data-preq>${tr('مشاهده درخواست‌ها', 'Review requests')}</button></div></div>` : '';
   body.innerHTML = `
     <div class="grid" style="gap:14px">
+      ${reqNote}
       ${scopeNote}
       <div class="grid kpis">
         ${kpi('users', tr('کل کاربران', 'Total users'), fmtNum(k.users), tr(`${fmtNum(k.new7)} ثبت‌نام در ۷\u00A0روز اخیر`, `${fmtNum(k.new7)} ${plural(k.new7, 'sign-up')} in the last 7\u00A0days`))}
@@ -351,6 +354,7 @@ async function renderDashboard(view) {
       <div class="dim" style="font-size:12px">${tr('به‌روزشده در', 'Updated')} ${esc(fmtDate(d.generatedAt))}</div>
     </div>`;
   body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+  body.querySelector('[data-preq]')?.addEventListener('click', () => { Object.assign(app.users, { status: 'plan_request', type: 'all', page: 1 }); go('users'); });
   body.querySelectorAll('[data-user]').forEach(b => b.addEventListener('click', () => openUser(b.dataset.user)));
 }
 
@@ -373,6 +377,7 @@ function statusBadges(u) {
   if (u.isAdmin) b.push(`<span class="badge b-blue">${tr('مدیر', 'Admin')}</span>`);
   if (!u.emailVerified) b.push(`<span class="badge b-amber">${tr('ایمیل تأییدنشده', 'Unverified')}</span>`);
   if (u.totpEnabled) b.push(`<span class="badge b-green">${tr('دومرحله‌ای', '2FA')}</span>`);
+  if (u.planRequest) b.push(`<span class="badge b-blue">${tr('درخواست ارتقا', 'Upgrade request')}</span>`);
   if (u.isTest) b.push(`<span class="badge b-gray">${tr('آزمایشی', 'Test')}</span>`);
   return b.length ? `<div class="badges">${b.join('')}</div>` : `<span class="badge b-green">${tr('فعال', 'Active')}</span>`;
 }
@@ -386,6 +391,7 @@ const ACTIONS = () => ({
   'user.revoke_session': tr('لغو یک نشست کاربر', 'User session revoked'),
   'user.reset_2fa': tr('غیرفعال‌سازی تأیید دومرحله‌ای', '2FA reset'),
   'user.send_reset': tr('ارسال کد بازیابی گذرواژه', 'Password reset sent'),
+  'user.plan_request': tr('درخواست ارتقای پلن', 'Plan upgrade requested'),
   'users.bulk': tr('عملیات گروهی کاربران', 'Bulk user action'),
   'users.export': tr('خروجی فهرست کاربران', 'Users exported'),
   'plan.create': tr('ایجاد پلن', 'Plan created'),
@@ -488,7 +494,7 @@ async function renderUsers(view) {
           </select>
           <select class="select" id="u-plan" aria-label="${tr('پلن', 'Plan')}"><option value="all">${tr('همه پلن‌ها', 'All plans')}</option>${planOpts}</select>
           <select class="select" id="u-status" aria-label="${tr('وضعیت', 'Status')}">
-            ${[['all', tr('همه وضعیت‌ها', 'All statuses')], ['active', tr('فعال', 'Active')], ['suspended', tr('تعلیق‌شده', 'Suspended')], ['unverified', tr('ایمیل تأییدنشده', 'Unverified email')], ['verified', tr('ایمیل تأییدشده', 'Verified email')], ['twofa', tr('دارای تأیید دومرحله‌ای', '2FA enabled')]].map(([v, l]) => `<option value="${v}" ${U.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+            ${[['all', tr('همه وضعیت‌ها', 'All statuses')], ['active', tr('فعال', 'Active')], ['suspended', tr('تعلیق‌شده', 'Suspended')], ['unverified', tr('ایمیل تأییدنشده', 'Unverified email')], ['verified', tr('ایمیل تأییدشده', 'Verified email')], ['twofa', tr('دارای تأیید دومرحله‌ای', '2FA enabled')], ['plan_request', tr('درخواست ارتقای پلن', 'Plan upgrade requests')]].map(([v, l]) => `<option value="${v}" ${U.status === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
           <select class="select" id="u-role" aria-label="${tr('نقش', 'Role')}">
             ${[['all', tr('همه نقش‌ها', 'All roles')], ['user', tr('کاربر', 'User')], ['admin', tr('مدیر', 'Admin')]].map(([v, l]) => `<option value="${v}" ${U.role === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -757,6 +763,7 @@ async function openUser(id, onChange) {
         <div class="id-lines"><span class="ltr">@${esc(u.username)}</span><span class="ltr">${esc(u.email)}</span></div>
         <div style="margin-top:6px">${statusBadges(u)}</div></div>
       </div>
+      ${u.planRequest ? `<div class="alert alert-info" id="dr-preq">${icon('info')}<div style="flex:1;min-width:0">${tr(`درخواست ارتقا به پلن «${esc(planName(u.planRequest.plan))}» · ${esc(fmtDate(u.planRequest.at))}`, `Requested upgrade to “${esc(planName(u.planRequest.plan))}” · ${esc(fmtDate(u.planRequest.at))}`)}<div class="row-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-primary" id="dr-preq-approve">${tr('تأیید و اعمال پلن', 'Approve & apply')}</button><button type="button" class="btn btn-sm" id="dr-preq-reject">${tr('رد درخواست', 'Decline')}</button></div></div></div>` : ''}
       ${u.suspended ? `<div class="alert alert-danger">${icon('ban')}<div>${tr('این حساب تعلیق شده است', 'This account is suspended')}${u.suspendedAt ? ` · ${esc(fmtDate(u.suspendedAt))}` : ''}${u.suspendReason ? `<br>${tr('دلیل:', 'Reason:')} ${esc(u.suspendReason)}` : ''}</div></div>` : ''}
       ${self ? `<div class="alert alert-info">${icon('info')}<div>${tr('این حساب خودتان است؛ تعلیق، حذف و لغو نقش مدیریتی آن مجاز نیست.', 'This is your own account; suspending, deleting, or demoting it is not allowed.')}</div></div>` : ''}
       <div class="tabs" role="tablist">
@@ -764,6 +771,16 @@ async function openUser(id, onChange) {
       </div>
       <div id="dr-tab"></div>`;
     body.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; paint(d); }));
+    body.querySelector('#dr-preq-approve')?.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try { const r = await patch({ plan: u.planRequest.plan }, tr('درخواست تأیید و پلن اعمال شد.', 'Request approved; plan applied.')); d.user = r.user; changed = true; paint(d); }
+      catch (err) { toast(errMsg(err), 'error'); e.currentTarget.disabled = false; }
+    });
+    body.querySelector('#dr-preq-reject')?.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try { const r = await patch({ planRequest: null }, tr('درخواست ارتقا رد شد.', 'Upgrade request declined.')); d.user = r.user; changed = true; paint(d); }
+      catch (err) { toast(errMsg(err), 'error'); e.currentTarget.disabled = false; }
+    });
     const t = body.querySelector('#dr-tab');
     if (tab === 'overview') {
       t.innerHTML = `
@@ -852,7 +869,19 @@ async function openUser(id, onChange) {
         title: tr('ارسال کد بازیابی گذرواژه', 'Send password reset'),
         body: `<p style="margin:0">${tr(`یک کد بازیابی ۶ رقمی با اعتبار ۱۵ دقیقه به نشانی <span class="ltr">${esc(u.email)}</span> ارسال می‌شود.`, `A 6-digit reset code valid for 15 minutes will be sent to <span class="ltr">${esc(u.email)}</span>.`)}</p>`,
         confirmText: tr('ارسال کد', 'Send code'), iconName: 'mail',
-        onConfirm: async () => { await api(`/api/admin/users/${encodeURIComponent(id)}/send-reset`, { method: 'POST' }); changed = true; toast(tr('کد بازیابی ارسال شد.', 'Reset code sent.')); return true; }
+        onConfirm: async () => {
+          const r = await api(`/api/admin/users/${encodeURIComponent(id)}/send-reset`, { method: 'POST' });
+          changed = true;
+          if (r.mailed) { toast(tr('کد بازیابی ایمیل شد.', 'Reset code e-mailed.')); return true; }
+          setTimeout(() => confirmDialog({
+            title: tr('کد بازیابی گذرواژه', 'Password reset code'),
+            body: `<p style="margin:0 0 10px">${tr('ارسال ایمیل پیکربندی نشده است. این کد را فقط پس از احراز هویت صاحب حساب به او بدهید. اعتبار: ۱۵ دقیقه.', 'E-mail delivery is not configured. Give this code only to the verified account owner. Valid for 15 minutes.')}</p><div class="mono ltr" id="reset-code-value" style="font-size:26px;font-weight:800;letter-spacing:6px;text-align:center;padding:10px;border:1px dashed var(--line);border-radius:10px">${esc(r.code || '')}</div>`,
+            confirmText: tr('متوجه شدم', 'Done'),
+            noCancel: true,
+            onConfirm: async () => true
+          }), 50);
+          return true;
+        }
       }));
       t.querySelector('#dr-2fa').addEventListener('click', () => confirmDialog({
         title: tr('غیرفعال‌سازی تأیید دومرحله‌ای', 'Reset two-factor authentication'),

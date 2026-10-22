@@ -8,7 +8,7 @@ import puppeteer from 'puppeteer-core';
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
-  await page.goto('http://127.0.0.1:8088');
+  await page.goto('http://127.0.0.1:8088/chart');
   await new Promise(r => setTimeout(r, 2500));
 
   const res = await page.evaluate(() => {

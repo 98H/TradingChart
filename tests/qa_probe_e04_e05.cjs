@@ -45,7 +45,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
 
   // E12-320: real 320px header state on a FRESH page
   await ctx.page.setViewport({ width: 320, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  await ctx.page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded' });
+  await ctx.page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded' });
   await ctx.page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 20000 }).catch(() => {});
   await settle(2500);
   const w320 = await ctx.page.evaluate(() => {

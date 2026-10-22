@@ -6,7 +6,7 @@ const code = require('fs').readFileSync(process.argv[4], 'utf8');
 (async () => {
   const ctx = await launch(vpName);
   const { page } = ctx;
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded' });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!window.__TRADING_APP__ && !!document.querySelector('canvas'), { timeout: 30000 }).catch(() => {});
   await sleep(4500);
   await page.evaluate(l => window.__TRADING_APP__.switchLanguage(l), lang);

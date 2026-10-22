@@ -14,7 +14,7 @@ async function explore() {
   page.on('console', msg => consoleLogs.push({ type: msg.type(), text: msg.text() }));
   page.on('pageerror', err => consoleLogs.push({ type: 'pageerror', text: err.toString() }));
 
-  await page.goto('http://127.0.0.1:8088', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
 
   const domInfo = await page.evaluate(() => {

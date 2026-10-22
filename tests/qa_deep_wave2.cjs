@@ -51,7 +51,7 @@ async function runWave2() {
       }
     });
 
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 15000 });
     await settle(2000);
 
@@ -299,7 +299,7 @@ async function runWave2() {
     const nPage = await browser.newPage();
     await nPage.setViewport({ width: 320, height: 640, isMobile: true, hasTouch: true });
 
-    await nPage.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await nPage.goto(BASE + '/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await nPage.waitForFunction(() => !!document.querySelector('canvas'), { timeout: 15000 });
     await settle(2000);
 

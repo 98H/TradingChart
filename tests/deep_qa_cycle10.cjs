@@ -73,7 +73,7 @@ async function runCycle10Audit() {
     // ═════════════════════════════════════════════════════════════════════
     console.log('\n>>> PHASE 1: DESKTOP WORKSPACE AUDIT (1440x900) <<<');
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-    await page.goto('http://127.0.0.1:8088', { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 25000 });
     await sleep(4000);
     await snap('01_desktop_workspace_initial');
 

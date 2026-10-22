@@ -16,7 +16,7 @@ async function test() {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
   const page = await browser.newPage();
-  await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE + '/chart', { waitUntil: 'domcontentloaded' });
   await new Promise(r => setTimeout(r, 2500));
 
   const res = await page.evaluate(async () => {
