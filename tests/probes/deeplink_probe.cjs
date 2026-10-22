@@ -3,6 +3,11 @@ const { launch, BASE } = require('../qa_lib.cjs');
 (async () => {
   const ctx = await launch('desktop'); const page = ctx.page;
   page.on('console', m => { const t = m.text(); if (/deep|Chartivia|timeframe/i.test(t)) console.log('console:', t.slice(0, 200)); });
+  // 1st visit seeds an autosaved layout (BTCUSDT/60), exactly like a returning user
+  await page.goto(`${BASE}/chart`, { waitUntil: 'domcontentloaded' });
+  await new Promise(r => setTimeout(r, 7000));
+  await page.evaluate(() => window.__TRADING_APP__?.layoutManager?.persistCurrentLayout?.());
+  console.log('seeded layout:', await page.evaluate(() => (localStorage.getItem('tradingchart_current_layout') || '').slice(0, 160)));
   await page.goto(`${BASE}/chart?symbol=BINANCE:ETHUSDT&interval=240`, { waitUntil: 'domcontentloaded' });
   for (let i = 0; i < 12; i++) {
     await new Promise(r => setTimeout(r, 1000));

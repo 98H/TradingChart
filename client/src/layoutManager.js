@@ -229,6 +229,16 @@ export class LayoutManager {
       const raw = localStorage.getItem('tradingchart_current_layout');
       if (!raw) return;
       const parsed = JSON.parse(raw);
+      // A /chart?symbol=&interval= link wins over the autosave: rewrite the
+      // primary cell of the state BEFORE it is restored (no restore/link race).
+      const dl = this.app?.deepLink;
+      const cells = parsed?.state?.cells;
+      if (dl && Array.isArray(cells) && cells.length) {
+        const activeIdx = Math.max(0, cells.findIndex(c => c && c.id && c.id === parsed.state.activeCellId));
+        const c = cells[activeIdx] || cells[0];
+        if (dl.symbol) c.symbol = `universal:${dl.symbol}`;
+        if (dl.interval) c.timeframe = String(dl.interval);
+      }
       if (parsed && parsed.layoutId) {
         this.activeLayoutId = parsed.layoutId;
         if (parsed.name) this.activeLayoutName = parsed.name;
