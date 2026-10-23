@@ -1,0 +1,131 @@
+{
+  "defects": 26,
+  "results": [
+    {
+      "page": "/",
+      "viewport": "desktop",
+      "locale": "en",
+      "defects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "desktop",
+      "locale": "en",
+      "defects": 2,
+      "overflow": [],
+      "covered": [
+        "#vela-tool-vela-widget-undo \"Undo\" under div.qt-content \"SELL\n81,678.29\n−\n+\nBTC\nSPREAD\n\"",
+        "a.vela-attribution \"Charting by Vela\" under svg \"\""
+      ],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "desktop",
+      "locale": "fa",
+      "defects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "desktop",
+      "locale": "fa",
+      "defects": 2,
+      "overflow": [],
+      "covered": [
+        "#vela-tool-vela-widget-undo \"واگرد\" under div.qt-content \"فروش\n81,643.51\n−\n+\nBTC\nاسپرد\n$\"",
+        "a.vela-attribution \"Charting by Vela\" under svg \"\""
+      ],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "mobile",
+      "locale": "en",
+      "defects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "mobile",
+      "locale": "en",
+      "defects": 11,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [
+        "#nav-btn-quant \"Quant\" 61x34",
+        "#nav-btn-panels \"Panels\" 79x34",
+        "#btn-mobile-fullscreen \"Toggle Fullscreen\" 36x36",
+        "#btn-mobile-layout \"Layouts\" 36x36",
+        "#btn-toggle-lang \"FA / EN\" 64x38",
+        "#qt-collapsed-trigger \"Trade\" 72x36",
+        "button.vela-ind-fold \"2\" 41x34",
+        "#btn-scale-auto \"Auto\" 46x36",
+        "#btn-scale-log \"Log\" 40x36",
+        "#btn-scale-percent \"%\" 32x36",
+        "#btn-scale-invert \"Inv\" 40x36"
+      ],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "mobile",
+      "locale": "fa",
+      "defects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "mobile",
+      "locale": "fa",
+      "defects": 11,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [
+        "#nav-btn-quant \"کوانت\" 56x34",
+        "#nav-btn-panels \"+ پنل‌ها\" 83x34",
+        "#btn-mobile-fullscreen \"Toggle Fullscreen\" 36x36",
+        "#btn-mobile-layout \"Layouts\" 36x36",
+        "#btn-toggle-lang \"FA / EN\" 64x38",
+        "#qt-collapsed-trigger \"معامله\" 72x36",
+        "button.vela-ind-fold \"2\" 41x34",
+        "#btn-scale-auto \"خودکار\" 50x36",
+        "#btn-scale-log \"لگاریتمی\" 57x36",
+        "#btn-scale-percent \"%\" 32x36",
+        "#btn-scale-invert \"معکوس\" 56x36"
+      ],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    }
+  ]
+}
