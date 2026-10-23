@@ -4,7 +4,9 @@
     "implementer": "hermes chat --oneshot --yolo -Q -m ag/gemini-3.8-flash-high --reasoning ultra --query-file {PROMPT_FILE}",
     "testAuthor": "hermes chat --oneshot --yolo -Q -m ag/gemini-3.8-flash-high --reasoning ultra --query-file {PROMPT_FILE}",
     "reviewer": "hermes chat --oneshot --yolo -Q -m ag/gemini-3.8-flash-high --reasoning high --query-file {PROMPT_FILE}",
-    "timeoutSec": 3600
+    "timeoutSec": 3600,
+    "recon": "hermes chat --oneshot --yolo -Q -m ag/gemini-3.8-flash-high --reasoning high --query-file {PROMPT_FILE}",
+    "docs": "hermes chat --oneshot --yolo -Q -m ag/gemini-3.8-flash-high --reasoning ultra --query-file {PROMPT_FILE}"
   },
   "maxAttempts": 3,
   "acceptanceDir": "tests/acceptance",
@@ -86,5 +88,6 @@
   "hooks": {
     "before_implement": [],
     "after_implement": []
-  }
+  },
+  "reconMaxLines": 220
 }

@@ -1,0 +1,12 @@
+001-chart-workspace-shell	client/src/main.js, chartManager.js, timeframeManager.js, scaleControls.js, chartStylePicker.js, syntheticChartTypes.js, commandPalette.js, shortcutsModal.js, goToDate.js, settingsModal.js, screenshotModal.js, dataExport.js, canvasContextMenu.js, platformBanner.js, uiDialog.js, soundEngine.js, compareModal.js, watchlistManager.js, index.html, style css; topbar, symbol search, watchlist, chart types, settings
+002-multi-chart-layouts	client/src/layoutManager.js, templateManager.js; Layout Studio, grid presets, sync, saved layouts, share links
+003-drawing-tools	client/src/drawingToolsLibrary.js, floatingDrawingToolbar.js, canvasContextMenu.js; drawing tools, toolbar, magnet, lock, hide, templates
+004-indicators-pine-strategy	client/src/indicatorsData.js, indicatorsModal.js, indicatorSettingsModal.js, indicatorsFa.js, pineStudio.js, strategyTester.js, technicalRatingCard.js, technicalScreener.js, server/technicalScreener.js, tests/validate-all-indicators.js
+005-market-data-feed	server/dataFeed.js, symbolCatalog.js, depthFeed.js, client/src/universalProvider.js, depthOfMarket.js, marketSourcesModal.js; WebSocket /ws/live, fallbacks, synthetic feeds
+006-trading-alerts-replay	client/src/paperTrading.js, alertsManager.js, chartAlertsOverlay.js, barReplay.js, server/tradeRelay.js, tradeRelayApi.js; paper trading, quick trade, alerts, bar replay, trade relay
+007-journal-propfirm	client/src/tradeJournal.js, tradeJournalModal.js, journal/ (aiCoach, dailyJournal, importers, journalCharts, core), propFirmSimulator.js
+008-market-intelligence	client/src/marketTrackersView.js, marketNewsView.js, economicCalendar.js, goldBubbleView.js, tseTapeView.js, server/marketTrackers.js, newsFeed.js, economicCalendar.js
+009-accounts-plans-sync	server/accounts.js, mailer.js, featuresCatalog.js, client/src/authManager.js, userProfileModal.js; register, login, reset, sessions, plans, gift subscription, feature gating, settings sync
+010-admin-console	server/adminApi.js, adminAuth.js, platformSettings.js, admin client pages (find admin html/js under client/); users, plans, settings, audit
+011-i18n-rtl-mobile	client/src/i18n.js, i18nEngineFa.js, indicatorsFa.js, mobile CSS and mobile dock/nav in main.js and css; language switch, RTL rules, Persian digits, mobile layout
+012-platform-security-landing	server/index.js, security.js, client/landing/landing.js, landing.css, landing html; headers, rate limits, static serving, SEO, landing page sections, scripts/qa/security_smoke.sh
