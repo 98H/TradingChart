@@ -45,7 +45,7 @@ async function runFullQA() {
 
   // 1. Initial Page Load
   console.log('--- 1. Testing Page Load & WebGL Canvas ---');
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2' });
   await sleep(2000);
 
   const canvasExists = await page.evaluate(() => !!document.querySelector('canvas'));

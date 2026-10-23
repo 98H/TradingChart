@@ -48,7 +48,7 @@ async function runExploratoryQA() {
   });
 
   console.log('\n1. Navigating to http://127.0.0.1:8088...');
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_initial_state.png') });
 
@@ -187,7 +187,7 @@ async function runExploratoryQA() {
   // 9. Test Mobile Viewport (390x844)
   console.log('\n9. Testing Mobile Viewport (390x844)...');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11_mobile_initial.png') });
 

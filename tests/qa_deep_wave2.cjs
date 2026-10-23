@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CHROME = '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome';
-const BASE = 'http://127.0.0.1:8088';
+const BASE = (process.env.SDD_BASE_URL||'http://127.0.0.1:8088');
 const EVID = path.resolve(__dirname, '../screenshots/qa_wave2');
 
 if (!fs.existsSync(EVID)) fs.mkdirSync(EVID, { recursive: true });

@@ -1,7 +1,7 @@
 // tests/qa_recon.cjs — Feature surface reconnaissance
 const puppeteer = require('puppeteer-core');
 const CHROME = '/root/.cache/puppeteer/chrome/linux-153.0.8010.36/chrome-linux64/chrome';
-const URL = 'http://127.0.0.1:8088';
+const URL = (process.env.SDD_BASE_URL||'http://127.0.0.1:8088');
 
 (async () => {
   const browser = await puppeteer.launch({

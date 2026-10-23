@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : '/usr/bin/chromium-browser');
-const BASE = 'http://127.0.0.1:8088';
+const BASE = (process.env.SDD_BASE_URL||'http://127.0.0.1:8088');
 const EVID = path.resolve(__dirname, '../screenshots/qa_cycles');
 
 const VIEWPORTS = {

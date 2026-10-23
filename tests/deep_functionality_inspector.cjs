@@ -15,7 +15,7 @@ async function testDeep() {
   page.on('console', m => logs.push({ type: m.type(), text: m.text() }));
   page.on('pageerror', e => logs.push({ type: 'pageerror', text: e.toString() }));
 
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2500));
 
   const results = {};

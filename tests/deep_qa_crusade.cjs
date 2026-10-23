@@ -40,7 +40,7 @@ async function runCrusade() {
   }
 
   try {
-    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(r => setTimeout(r, 3500));
     await snap('01_crusade_init');
 

@@ -81,5 +81,10 @@
   "serve": "./node_modules/.bin/vite build >/dev/null && PORT=$SDD_PORT node server/index.js",
   "servePort": 18088,
   "serveReadyPath": "/",
-  "serveTimeoutSec": 120
+  "serveTimeoutSec": 120,
+  "parallel": true,
+  "hooks": {
+    "before_implement": [],
+    "after_implement": []
+  }
 }

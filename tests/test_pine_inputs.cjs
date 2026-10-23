@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : '/usr/bin/chromium-browser');
-const BASE = 'http://127.0.0.1:8088';
+const BASE = (process.env.SDD_BASE_URL||'http://127.0.0.1:8088');
 
 async function test() {
   const headlessBase = fs.existsSync('/root/snap/chromium/common') ? '/root/snap/chromium/common/chromium-headless' : '/tmp';

@@ -61,7 +61,7 @@ async function runCycle8Audit() {
 
   try {
     console.log('\n--- 1. Initial Page Load (English Desktop 1440x900) ---');
-    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await sleep(3000);
     await snap('01_desktop_initial_en');
 

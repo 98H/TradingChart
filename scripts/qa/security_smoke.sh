@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/qa/security_smoke.sh — API-level security regression for Chartivia.
 # Usage: bash scripts/qa/security_smoke.sh [base_url]
-B=${1:-http://127.0.0.1:8088}
+B=${1:-${SDD_BASE_URL:-http://127.0.0.1:8088}}
 pass=0; fail=0
 ok(){ echo "✅ $1"; pass=$((pass+1)); }
 ko(){ echo "❌ $1  (got: $2)"; fail=$((fail+1)); }

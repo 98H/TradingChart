@@ -51,7 +51,7 @@ async function runParityDogfood() {
   // 1. Initial Desktop Load (1440x900)
   console.log('\n--- 1. Desktop Initial Load & Clean Architecture ---');
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 4000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_desktop_main_clean.png') });
 
@@ -182,7 +182,7 @@ async function runParityDogfood() {
   // 11. Mobile Viewport Dogfooding (390x844)
   console.log('\n--- 11. Testing Mobile Viewport (390x844) ---');
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '13_mobile_chart_clean.png') });
 

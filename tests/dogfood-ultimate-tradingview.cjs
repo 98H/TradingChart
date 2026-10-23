@@ -59,7 +59,7 @@ async function runUltimateDogfood() {
     // ── 1. Desktop Initial Load (1440x900) ───────────────────────────
     console.log('--- 1. Desktop Initial Load & Chart Canvas Verification ---');
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-    await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(r => setTimeout(r, 4000));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, '01_desktop_main.png') });
 

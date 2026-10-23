@@ -45,7 +45,7 @@ async function runDeepAudit() {
     logDefect('CRITICAL', 'Runtime Exception', 'Uncaught Page Error', err.toString());
   });
 
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2' });
   await sleep(2000);
 
   // ── TEST 1: Full-Page Journal Workspace Switching ────────────────────────

@@ -18,7 +18,7 @@ async function fresh(ctx) {
   page.on('console', m => ctx.logs.push({ type: m.type(), text: m.text() }));
   page.on('pageerror', e => ctx.logs.push({ type: 'pageerror', text: e.toString() }));
   page.on('requestfailed', r => ctx.logs.push({ type: 'requestfailed', text: r.url() + ' ' + ((r.failure() || {}).errorText || '') }));
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForFunction(() => !!window.__TRADING_APP__ && !!document.querySelector('canvas'), { timeout: 30000 }).catch(() => {});
   await sleep(3500);
   await page.evaluate(l => window.__TRADING_APP__.switchLanguage(l), lang);

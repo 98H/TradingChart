@@ -107,7 +107,7 @@ function outboxCode(email) {
   // sanity: the account must exist server-side before dependent tests run
   const e0ok = await (async () => {
     try {
-      const r = await fetch(`http://127.0.0.1:8088/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: USER.email, password: USER.password }) });
+      const r = await fetch(`${process.env.SDD_BASE_URL||'http://127.0.0.1:8088'}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identity: USER.email, password: USER.password }) });
       return r.status;
     } catch (e) { return 0; }
   })();
@@ -126,7 +126,7 @@ function outboxCode(email) {
     for (let i = 0; i < 3; i++) {
       try {
         const r = await Promise.race([
-          fetch('http://127.0.0.1:8088/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: `dupe_${USER.username}@test.io`, username: USER.username, password: 'DupPass123', displayName: 'Dupe' }) }),
+          fetch((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: `dupe_${USER.username}@test.io`, username: USER.username, password: 'DupPass123', displayName: 'Dupe' }) }),
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
         ]);
         return { status: r.status, data: await r.json() };
@@ -139,7 +139,7 @@ function outboxCode(email) {
   // E1: forgot-password E2E — request reset, read code from outbox, reset, login
   // Pre-probe: the request-reset limiter (3/min) may still be engaged from a
   // previous suite run — wait it out before driving the UI.
-  await limiterClear('request_reset', `http://127.0.0.1:8088/api/auth/request-reset`);
+  await limiterClear('request_reset', `${process.env.SDD_BASE_URL||'http://127.0.0.1:8088'}/api/auth/request-reset`);
   await openLogin(page);
   await evalP(page, () => document.querySelector('#tc-auth-forgot')?.click());
   await pollUntil(page, () => ({ ok: !!document.querySelector('#tc-reset-modal') }));

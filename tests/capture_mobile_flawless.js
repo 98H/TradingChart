@@ -12,7 +12,7 @@ fs.mkdirSync(DIR, { recursive: true });
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.goto('http://127.0.0.1:8088/chart', { waitUntil: 'networkidle2' });
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart', { waitUntil: 'networkidle2' });
   await new Promise(r => setTimeout(r, 2000));
 
   // 1. Mobile Initial Screen (Clean top header, no overflow)

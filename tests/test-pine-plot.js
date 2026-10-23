@@ -12,7 +12,7 @@ import puppeteer from 'puppeteer-core';
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
 
-  await page.goto('http://127.0.0.1:8088/chart');
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart');
   await new Promise(r => setTimeout(r, 2500));
 
   const info = await page.evaluate(async () => {

@@ -10,7 +10,7 @@ import puppeteer from 'puppeteer-core';
   await page.setViewport({ width: 1440, height: 900 });
   const logs = [];
   page.on('console', msg => logs.push(msg.text()));
-  await page.goto('http://127.0.0.1:8088/chart');
+  await page.goto((process.env.SDD_BASE_URL||'http://127.0.0.1:8088')+'/chart');
   await new Promise(r => setTimeout(r, 2000));
 
   // Click Add to Chart
