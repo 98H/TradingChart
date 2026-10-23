@@ -1,96 +1,178 @@
 # Module API Contract: Indicators, Pine Editor, Strategy Tester
 
-Client-only feature. No `tc:*` events are emitted or consumed by these modules; integration is by
-constructor callbacks, `window.__TRADING_APP__` and DOM ids.
+Client-side ES module contracts governing the indicators library, settings dialog, Pine Studio, Strategy Tester, technical rating card, and technical screener.
 
-## Exports
+---
 
-### `client/src/indicatorsData.js`
-- `export const INDICATORS_LIBRARY: LibraryIndicator[]` — 114 entries (see data-model.md).
+## 1. `client/src/indicatorsData.js`
 
-### `client/src/indicatorsFa.js`
-- `export const INDICATORS_FA: Record<id, { name, description }>` — consumed by `indicatorsModal.js` and `main.js` toasts.
+Provides the immutable catalogue of pre-built indicators.
 
-### `client/src/indicatorsModal.js`
-- Re-exports `INDICATORS_LIBRARY`.
-- `class IndicatorsModal`
-  - `constructor({ modalEl, onAddIndicator })` — renders immediately into `modalEl`.
-  - `onAddIndicator(item) → undefined | true | { success: boolean, error?, handleId? } | Promise<…>` — success is `undefined`, `true` or `{success:true}`; anything else (or a throw) is shown as "Not added".
-  - `open()` — adds `.open`, clears and focuses search, repopulates. `close()` — removes `.open`; clicking the overlay backdrop also closes.
-  - `render()` — full re-render (called by `app.switchLanguage`). `populateList()` — re-filter.
+- **`INDICATORS_LIBRARY`** (`Array<LibraryIndicator>`):
+  Array of 114 indicator descriptor objects. Each item contains:
+  - `id`: unique string slug.
+  - `name`: English display title.
+  - `category`: `'smc' | 'trend' | 'oscillators' | 'volatility' | 'volume'`.
+  - `description`: English functional summary.
+  - `script`: Pine Script v5 source code (`//@version=5 ...`).
+  - `nativeName`: Optional string specifying Vela native indicator name (present on 30 items).
 
-### `client/src/indicatorSettingsModal.js`
-- `class IndicatorSettingsModal`
-  - `constructor(app)` — creates/reuses `#modal-indicator-settings` (`.modal-overlay`) on `document.body`.
-  - `open(handleId?)` — toast and return if the active chart has no handles; else selects `handleId` or the first `ind-*` handle.
-  - `close()`, `render()`, `applyChanges()`, `formatInputLabel(key, isFa)`.
-  - Requires `app.chartManager.workspace.active.chart.orchestrator.handles`, `app.showToast`, `app.layoutManager.schedulePersist`.
+---
 
-### `client/src/pineStudio.js`
-- `export const PINE_TEMPLATES` — keys `smc_pro`, `supertrend`, `rsi_divergence`, `ma_cross`, `rebalance_shannon`.
-- `class PineStudio`
-  - `constructor({ container, onAddToChart(code), onBacktest(code) })` — renders immediately.
-  - `render()` — rebuilds editor; restores `localStorage.tradingchart_pine_code` or `activeCode`.
-  - `compileAndAdd(source, diagEl)` — `Indicator.from()` validation, then `onAddToChart(sanitized)`.
-  - `runBacktest(source, diagEl)` — validation + `strategy(` check, then `onBacktest(sanitized)`.
+## 2. `client/src/indicatorsFa.js`
 
-### `client/src/strategyTester.js`
-- `class StrategyTester`
-  - `constructor({ container, onExportToPropSim(profile) })` — renders empty state.
-  - `setCandles(bars)` — stores bars; silently re-runs `lastCode` if set and not running.
-  - `async runSimulation(code, bars = this.candles, { silent } = {})` — dynamic `import('pinets')`, `new PineTS(provider, sym, tf, n)`, `engine.run(new Indicator(code))`; sets `results`, renders.
-  - `renderEmpty()`, `renderMessage(html, tone)`, `renderReport()`.
-  - Public state read by `main.js`: `results`, `lastCode`, `candles`, `running`.
-  - Reads `window.__TRADING_APP__.currentSymbol`, `.currentTimeframe`, `.auth.enforce`.
-  - Bar shape in: `{ time, open, high, low, close, volume?, closeTime? }` (ms epoch); mapped to PineTS `{ openTime, …, closeTime }`.
+Dictionary supplying Persian translations for all 114 library indicators.
 
-### `client/src/velaPanels.js`
-- `export function registerAllVelaPanels(app)` — called once from `chartManager.js:35`. Registers 14 icons and 14 side panels: `pine`, `templates`, `workspaces`, `screener`, `watchlist`, `paper`, `dom`, `alerts`, `strategy`, `propsim`, `journal`, `trackers`, `calendar`, `news`
-  (the trailing console log says "13"; panel titles are English and localized by `i18n.js`). Each `mount` delegates to `app.mount<Name>(body)`.
-  This feature owns `pine` → `app.mountPineEditor`, `templates` → `app.mountIndicatorTemplates`, `strategy` → `app.mountStrategyTester`.
+- **`INDICATORS_FA`** (`Record<string, { name: string, description: string }>`):
+  Keyed by `LibraryIndicator.id`. Consumed by `IndicatorsModal`, `IndicatorSettingsModal`, and app toasts.
 
-### `client/src/technicalRatingCard.js`
-- `class TechnicalRatingCard`
-  - `constructor({ container, app?, symbol = 'BTCUSDT' })` — renders and fetches.
-  - `setSymbol(symbol)` — strips `EXCHANGE:` prefix, upper-cases, refetches.
-  - `fetchData()` — `GET /api/tickers?symbols=SYM`, `GET /api/screener?search=SYM`; `calculateGaugeMetrics()`, `updateUI()`.
-  - Mounted by `watchlistManager.js:379` into `#wl-technical-rating-container`.
+---
 
-## App wiring (`client/src/main.js`)
+## 3. `client/src/indicatorsModal.js`
 
-| Call site | Behaviour |
-|-----------|-----------|
-| `:137-167` `IndicatorsModal.onAddIndicator` | `auth.enforce('indicatorsPerChart', chartManager.countActiveIndicators(), …)` → native add (if `nativeName`) → `chartManager.addPineIndicator(script, name)`; toasts. |
-| `:274-302` `initDesktopBottomSuite` | `PineStudio` in `#view-pine`, `StrategyTester` in `#view-strategy`; backtest → `switchBottomView('strategy')` + `runSimulation(code, activeBars)`. No plan gate. |
-| `:434-448` `mountPineEditor(body)` | `feature('pineStudio')` gate → locked placeholder; else new `PineStudio` (not stored). |
-| `:451-468` `mountStrategyTester(body)` | `feature('strategyTester')` gate; mirrors `this.strategyTester.results`; stored as `strategyTesterSide`. |
-| `:717-720` `applyCandles(bars)` | `strategyTester.setCandles(activeBars)` (bottom tester only). |
-| `:1118-1125`, `:1243` | `.vela-widget-indicators`, `.vela-mb-indicators`, `[aria-label="Indicators"]`, `[data-tool="indicators"]` clicks and `/` key open the indicators dialog. |
-| `:1153-1172` | Vela legend settings controls open `indicatorSettingsModal.open(handleId)`. |
-| `:1822,1857,1863-1864` `switchLanguage` | re-renders `indicatorsModal`, `pineStudio`, `pineStudioSide` (never set), `strategyTester(Side).renderReport()`. |
+Manages the Indicators Library modal dialog, live search, and add actions.
 
-`chartManager.addPineIndicator(source, title) → { success, handleId? , error? }` — rewrites `color.cyan`,
-calls `chart.addIndicator(src, { language: 'pine', title })`, schedules persist.
+- **`class IndicatorsModal`**
+  - **`constructor({ modalEl: HTMLElement, onAddIndicator: Function })`**:
+    Initializes modal DOM events and renders the initial indicator list into `modalEl`.
+  - **`onAddIndicator(item: LibraryIndicator): Promise<AddResult> | AddResult`**:
+    Callback triggered on row or button click. Must return `{ success: true, handleId?: string }` (or `undefined | true`) for success; any rejection, error property, or throw renders "✕ Not added" (`✕ افزوده نشد`) and keeps the button disabled for 1.5 s.
+  - **`open(): void`**:
+    Adds `.open` CSS class to modal element, clears `#ind-search-input`, resets category selector to `'all'`, focuses search input, and populates the list.
+  - **`close(): void`**:
+    Removes `.open` class and dismisses dialog.
+  - **`render(): void`**:
+    Performs full DOM template re-render (invoked on language changes).
+  - **`populateList(query?: string, category?: string): void`**:
+    Filters `INDICATORS_LIBRARY` matching search query and category, updating `#ind-items-container` and `#ind-count-label`.
 
-## DOM ids other code and tests rely on
+---
 
-| Id / selector | Owner | Used by |
-|---------------|-------|---------|
-| `#modal-indicators` | `client/chart/index.html:583` | `main.js`, `qa_indicators_unified.cjs` |
-| `#ind-search-input`, `#ind-cat-select`, `#ind-count-label`, `#ind-clear-search`, `#modal-close-ind`, `#ind-items-container` | indicatorsModal | tests |
-| `.ind-card-row` / `.ind-card[data-id]`, `.add-ind-btn[data-id]` | indicatorsModal | tests |
-| `#modal-indicator-settings`, `#ind-select-handle`, `.modal-tab[data-tab]`, `.dynamic-input[data-key]`, `#input-ind-length/-factor/-source`, `#style-ind-upcolor/-downcolor/-linewidth`, `#btn-ind-apply/-cancel/-remove`, `#modal-close-ind-settings` | indicatorSettingsModal | — |
-| `#view-pine`, `#view-strategy` | `client/chart/index.html:312-313` | `main.js` |
-| `#pine-template-select`, `#pine-code-editor`, `#pine-line-gutter`, `#btn-pine-new/-save/-compile/-backtest`, `#pine-diagnostics-pane`, `#pine-diag-content`, `.pine-top-toolbar`, `.pine-split-view` | pineStudio | `main.css:2463-2472`, `qa_lib.cjs:237`, `qa_r1_sweep.cjs:43`, `qa_functional_dogfood.cjs`, `dogfood_cycle9_zero_defect.cjs` |
-| `#strat-net-profit`, `#strat-profit-factor`, `#strat-win-rate`, `#strat-max-drawdown`, `#strat-sharpe`, `#strat-trades-tbody`, `.strat-kpi-card`, `#btn-export-propsim`, `#btn-export-csv` | strategyTester | `qa_functional_dogfood.cjs` |
-| `#trc-price`, `#trc-chg`, `#trc-day-*`, `#trc-52w-*`, `#trc-rating-badge`, `#trc-needle-group`, `#trc-breakdown-summary/-osc/-ma` | technicalRatingCard | — |
+## 4. `client/src/indicatorSettingsModal.js`
 
-Note: ids inside `PineStudio` and `StrategyTester` are duplicated in the document when both the bottom-dock
-and side-panel instances are mounted; `querySelector` scoping is per container, but tests using
-`document.querySelector('#btn-pine-backtest')` hit only the first instance.
+Manages the settings tuning dialog for active chart indicators.
 
-## Server dependencies (owned by other features)
+- **`class IndicatorSettingsModal`**
+  - **`constructor(app: TradingChartApp)`**:
+    Creates or reuses `#modal-indicator-settings` on `document.body` and binds tab and form actions.
+  - **`open(handleId?: string): void`**:
+    Opens settings modal. If active chart has no indicator handles, shows warning toast and exits. Otherwise selects specified `handleId` (or first indicator handle) and renders form.
+  - **`close(): void`**:
+    Dismisses modal dialog.
+  - **`render(): void`**:
+    Builds tabs (`inputs`, `style`), indicator handle switcher dropdown, dynamic typed input fields, and action buttons.
+  - **`applyChanges(): void`**:
+    Extracts form values, applies inputs and style properties to indicator handle and orchestrator, schedules layout persistence via `layoutManager.schedulePersist()`, shows toast, and closes modal.
+  - **`formatInputLabel(key: string, isFa: boolean): string`**:
+    Converts camelCase / snake_case input keys to human-readable English or Persian parameter labels.
 
-- `GET /api/candles?symbol&timeframe&limit` (bars for `activeBars`), `GET /api/tickers?symbols`, `GET /api/screener?search` (`server/index.js:85-177`).
-- `GET /api/plans` (entitlements used by `auth.enforce/feature`).
-- CSP `script-src 'self' 'unsafe-eval'` (`server/security.js:12-14`) — required by PineTS runtime compilation.
+---
+
+## 5. `client/src/pineStudio.js`
+
+In-browser Pine Script v5/v6 code editor, templates, and compilation console.
+
+- **`PINE_TEMPLATES`** (`Record<string, PineTemplate>`):
+  Starter scripts: `smc_pro`, `supertrend`, `rsi_divergence`, `ma_cross`, `rebalance_shannon`.
+- **`class PineStudio`**
+  - **`constructor({ container: HTMLElement, onAddToChart: Function, onBacktest: Function })`**:
+    Mounts editor interface into `container`.
+  - **`render(): void`**:
+    Builds top toolbar, template selector, line gutter, code editor textarea, action buttons, and diagnostics console. Restores saved code from `localStorage.tradingchart_pine_code` if available.
+  - **`compileAndAdd(source: string, diagEl: HTMLElement): void`**:
+    Rewrites `color.cyan`, validates script via `pinets.Indicator.from()`. If valid, updates diagnostics with declaration type and input count, then invokes `onAddToChart(sanitized)`. If invalid, renders HTML-escaped compilation error in red.
+  - **`runBacktest(source: string, diagEl: HTMLElement): void`**:
+    Rewrites `color.cyan`, pre-checks syntax via `Indicator.from()`. If script lacks `strategy(`, displays gold warning. If valid strategy, updates diagnostics and invokes `onBacktest(sanitized)`.
+
+---
+
+## 6. `client/src/strategyTester.js`
+
+Quantitative backtesting execution engine and performance dashboard.
+
+- **`class StrategyTester`**
+  - **`constructor({ container: HTMLElement, onExportToPropSim: Function })`**:
+    Initializes instance properties (`candles = []`, `results = null`, `lastCode = null`, `running = false`) and displays empty state.
+  - **`setCandles(candles: Array<CandleBar>): void`**:
+    Updates historical bars. If `this.lastCode` exists and `!this.running`, re-executes simulation silently (`{ silent: true }`).
+  - **`async runSimulation(strategyCode: string, bars?: Array<CandleBar>, opts?: { silent?: boolean }): Promise<void>`**:
+    Validates `strategyCode` contains `strategy(`. Requires `bars.length >= 30`. Runs `new PineTS(...)` on bars data. Computes equity, drawdowns, win rate, profit factor, Sharpe/Sortino ratios, and closed trades ledger. Stores output in `this.results` and calls `renderReport()`.
+  - **`renderEmpty(): void`**:
+    Renders informational empty state explaining that backtests derive from running `strategy()` code.
+  - **`renderMessage(msg: string, tone?: 'error' | 'info'): void`**:
+    Renders diagnostic or error status message.
+  - **`renderReport(): void`**:
+    Renders summary metric cards, SVG equity curve, and closed trades table. Binds `#btn-export-propsim` and `#btn-export-csv` (gated by `auth.enforce('csvTradesExport')`).
+
+---
+
+## 7. `client/src/technicalRatingCard.js`
+
+Symbol summary and consensus speedometer rating card.
+
+- **`class TechnicalRatingCard`**
+  - **`constructor({ container: HTMLElement, app?: TradingChartApp, symbol?: string })`**:
+    Mounts card and triggers initial data fetch.
+  - **`setSymbol(symbol: string): void`**:
+    Updates target instrument and triggers `fetchData()`.
+  - **`async fetchData(): Promise<void>`**:
+    Fetches `/api/tickers?symbols=SYM` and `/api/screener?search=SYM`. Updates internal `tickerData` and `screenerData`, then calls `updateUI()`.
+  - **`calculateGaugeMetrics(): GaugeMetrics`**:
+    Calculates consensus needle angle (-90 to +90 degrees) and oscillator/MA breakdown.
+  - **`updateUI(): void`**:
+    Renders price, 24h change, day range slider, 52-week slider, and rating badge.
+
+---
+
+## 8. `client/src/technicalScreener.js`
+
+Institutional technical screening table view.
+
+- **`class TechnicalScreenerView`**
+  - **`constructor(options: { container: HTMLElement, app?: TradingChartApp })`**:
+    Mounts screener layout, fetches initial screener dataset, and starts plan-gated auto-refresh timer (`auth.entitlements.screenerAutoRefreshSec`, min 5s guard).
+  - **`destroy(): void`**:
+    Clears active background refresh timer.
+  - **`async fetchData(): Promise<void>`**:
+    Queries `GET /api/screener?category=...&rating=...&search=...` and renders table rows in `#screener-tbody`.
+
+---
+
+## 9. DOM IDs & Selectors Contract
+
+| Selector | Component | Description |
+|----------|-----------|-------------|
+| `#modal-indicators` | `IndicatorsModal` | Container element for library modal (`.open` toggled). |
+| `#ind-search-input` | `IndicatorsModal` | Live filter input box. |
+| `#ind-cat-select` | `IndicatorsModal` | Category dropdown filter. |
+| `#ind-count-label` | `IndicatorsModal` | "Showing X of Y indicators" status label. |
+| `#ind-clear-search` | `IndicatorsModal` | Clear search query button. |
+| `.ind-card-row[data-id]` | `IndicatorsModal` | Indicator list item row. |
+| `.add-ind-btn[data-id]` | `IndicatorsModal` | "+ Add" action button. |
+| `#modal-indicator-settings` | `IndicatorSettingsModal` | Active indicator settings modal dialog. |
+| `#ind-select-handle` | `IndicatorSettingsModal` | Handle selector dropdown. |
+| `.modal-tab[data-tab]` | `IndicatorSettingsModal` | Tab switchers (`inputs`, `style`). |
+| `#btn-ind-apply` | `IndicatorSettingsModal` | Apply and save button. |
+| `#btn-ind-remove` | `IndicatorSettingsModal` | Remove indicator from chart button. |
+| `#view-pine` | `PineStudio` | Desktop bottom dock container for Pine IDE. |
+| `#pine-template-select` | `PineStudio` | Template starter dropdown. |
+| `#pine-code-editor` | `PineStudio` | Textarea for Pine script source. |
+| `#pine-line-gutter` | `PineStudio` | Line number gutter synchronized with editor scrolling. |
+| `#btn-pine-new` | `PineStudio` | Create new skeleton script button. |
+| `#btn-pine-save` | `PineStudio` | Save script to `localStorage` button. |
+| `#btn-pine-compile` | `PineStudio` | Validate and "Add to Chart" button. |
+| `#btn-pine-backtest` | `PineStudio` | "Backtest Strategy" button. |
+| `#pine-diag-content` | `PineStudio` | Output pane for compiler diagnostics and errors. |
+| `#view-strategy` | `StrategyTester` | Desktop bottom dock container for Strategy Tester. |
+| `#strat-net-profit` | `StrategyTester` | Net profit KPI metric card. |
+| `#strat-profit-factor` | `StrategyTester` | Profit factor KPI card. |
+| `#strat-win-rate` | `StrategyTester` | Win rate KPI card. |
+| `#strat-max-drawdown` | `StrategyTester` | Maximum drawdown KPI card. |
+| `#strat-sharpe` | `StrategyTester` | Per-trade Sharpe ratio KPI card. |
+| `#strat-trades-tbody` | `StrategyTester` | Table body for recent closed trades ledger. |
+| `#btn-export-propsim` | `StrategyTester` | Button forwarding backtest metrics to Prop-Sim. |
+| `#btn-export-csv` | `StrategyTester` | Button downloading closed trades CSV. |
+| `#trc-price` | `TechnicalRatingCard` | Current price display. |
+| `#trc-chg` | `TechnicalRatingCard` | 24-hour price change display. |
+| `#trc-rating-badge` | `TechnicalRatingCard` | Consensus rating badge (Strong Buy/Buy/Neutral/Sell/Strong Sell). |
+| `#trc-needle-group` | `TechnicalRatingCard` | SVG speedometer needle group rotated by consensus score. |

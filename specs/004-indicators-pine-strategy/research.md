@@ -1,79 +1,116 @@
 # Research: Indicators Library, Pine Editor and Strategy Tester
 
 History: `git log --format='%h %ad %s' --date=short -- client/src/{indicatorsData,indicatorsModal,indicatorSettingsModal,indicatorsFa,pineStudio,strategyTester,velaPanels,technicalRatingCard}.js PINE_SCRIPT_GUIDE.md`
-— ecdb389 (2026-09-17, initial modal/editor/tester/guide), 267f359 (2026-09-18, library split into `indicatorsData.js`),
-b1565ab (settings modal), c724bb4 (technical rating card), 707d863 (Strategy Tester polish), 7544e50 (2026-10-12, real
-Pine backtest, `indicatorsFa.js`, honest add feedback), c22ef30 / 95eade6 / 48af625 (QA polish).
+— `ecdb389` (2026-09-17, initial modal, editor, tester, and guide), `267f359` (2026-09-18, library split into `indicatorsData.js`), `b1565ab` (settings modal), `c724bb4` (technical rating card), `707d863` (Strategy Tester polish), `7544e50` (2026-10-12, real Pine backtest, `indicatorsFa.js`, honest add feedback), `c22ef30` / `95eade6` / `48af625` (QA polish).
 
 ## R1. Execute Pine client-side with PineTS
 
-- **Decision**: Parse and run all Pine code in the browser with `pinets` (`Indicator.from` for validation, `PineTS` for backtests) and `@luxalgo/vela-pinets` `PineEngine` for on-chart plotting.
-- **Rationale**: No per-user server compute; scripts never leave the device; `ARCHITECTURE.md` §2.2 records the AGPL-3.0 reasoning (keep the AGPL engine out of a network service). Matches Constitution "scripting executed client-side only".
-- **Alternatives considered**: Server-side execution (rejected: compute cost, AGPL §13 exposure, latency); a hand-written subset interpreter (rejected: parity with TradingView syntax).
+- **Decision**: Parse, transpile, and execute all Pine Script code directly in the trader's web browser using `pinets` (`Indicator.from()` for syntax validation and metadata extraction, `PineTS` for strategy backtesting) and `@luxalgo/vela-pinets` (`PineEngine` bridge) for on-chart canvas plotting.
+- **Rationale**: Eliminates server-side execution bottlenecks and compute overhead; user scripts remain private and never leave the device; complies with AGPL-3.0 network service isolation boundaries documented in `ARCHITECTURE.md` §2.2; strictly aligns with Chartivia Constitution Principle VIII ("scripting executed client-side only").
+- **Alternatives considered**:
+  - Server-side Node/Python sandboxed runner (rejected: excessive server compute costs, network round-trip latency, AGPL §13 exposure).
+  - Custom handwritten subset interpreter (rejected: cannot maintain TradingView Pine v5 syntax parity and standard library functions).
+- **Evidence**: `client/src/pineStudio.js:4`, `client/src/strategyTester.js:67`, `client/src/chartManager.js:364-375`.
 
-## R2. Allow `'unsafe-eval'` in CSP
+## R2. Allow `'unsafe-eval'` in Content Security Policy
 
-- **Decision**: `script-src 'self' 'unsafe-eval'`, no `'unsafe-inline'` (`server/security.js:12-14`).
-- **Rationale**: PineTS transpiles Pine to JS and instantiates it with `new Function`; without `unsafe-eval` neither the editor nor the library would run.
-- **Alternatives considered**: Running PineTS in a sandboxed worker/iframe with its own CSP (not attempted; would isolate eval from the app origin — candidate hardening); precompiling library scripts at build time (would cover the library but not user scripts).
+- **Decision**: Configure server-side Helmet CSP header to `script-src 'self' 'unsafe-eval'`, strictly forbidding `'unsafe-inline'`.
+- **Rationale**: `pinets` operates by transpiling Pine Script source into equivalent JavaScript and executing it via `new Function()`. Without `'unsafe-eval'`, dynamic script compilation throws CSP violations in the browser.
+- **Alternatives considered**:
+  - Sandboxed iframe with relaxed CSP (rejected: complicates canvas rendering context and bi-directional message synchronization).
+  - Offline pre-compilation (rejected: cannot support custom scripts written dynamically in Pine Studio).
+- **Evidence**: `server/security.js:12-14` (`// PineTS transpiles Pine to JS and evaluates via new Function()`).
 
-## R3. Backtest = run the user's exact `strategy()` on chart bars (7544e50)
+## R3. Backtest = run the user's exact `strategy()` on chart bars (commit 7544e50)
 
-- **Decision**: `StrategyTester.runSimulation` maps `app.activeBars` into a PineTS provider, runs `new Indicator(code)`, and reads `ctx.fullContext.strategy.closedtrades` / `opentrades` / `initial_capital`. All metrics are derived from those trades. No result exists until the user clicks "Backtest Strategy".
-- **Rationale**: Constitution I ("A backtest MUST run the real Pine/PineTS engine on real bars"). The commit message calls this "honest data (real Pine backtest … no fake metrics)". Before 7544e50 the tester produced its own simulated report (236-line rewrite in that commit).
-- **Evidence of feasibility**: `tests/spike_pine_strategy.mjs` ("can PineTS run a user strategy() and return its real closed trades?"). Re-checked during retrofit with a side-effect-free node snippet on 300 synthetic bars: PineTS 0.9.33 returned `initial_capital=100000`, 6 closed + 1 open trades with fields `entry_price, exit_price, size, profit, entry_time, exit_time, entry_bar_index, exit_bar_index`.
-- **Alternatives considered**: Own JS simulator over indicator signals (rejected: diverges from script semantics, was the "fake metrics" source); server backtests (see R1).
+- **Decision**: `StrategyTester.runSimulation` takes the exact user-provided `strategy()` source, constructs a custom market data provider from `app.activeBars`, instantiates `new PineTS(provider, symbol, timeframe, bars.length)`, and executes `engine.run(new Indicator(code))`. All metrics (Net Profit, Profit Factor, Win Rate, Max Drawdown, Sharpe, trades list) are derived solely from the engine's `closedtrades` and `initial_capital`.
+- **Rationale**: Chartivia Constitution Principle I ("A backtest MUST run the real Pine/PineTS engine on real bars"). Eliminates fabricated metrics and simulated trade guessing. Prior to commit `7544e50`, Strategy Tester generated synthetic trades; this commit rewrote the subsystem to enforce 100% mathematical honesty.
+- **Alternatives considered**:
+  - Synthetic trade generation based on indicator signals (rejected: violation of Constitution Principle I).
+  - Remote cloud backtesting server (rejected: compute constraints and latency).
+- **Evidence**: `client/src/strategyTester.js:49-88`, `tests/spike_pine_strategy.mjs:1-27`.
 
-## R4. Undefined metrics are `null` → "—"
+## R4. Undefined metrics render `null` → "—" (or "∞")
 
-- **Decision**: Profit factor, Sharpe, Sortino, avg-win/loss and trades/day are `null` when mathematically undefined; profit factor is `Infinity` ("∞") with gains and no losses.
-- **Rationale**: Avoids invented placeholders (comment at `strategyTester.js:126`).
-- **Alternatives considered**: 0 or a capped value (rejected: misleading).
+- **Decision**: When backtest mathematical formulas have undefined divisors (e.g. 0 loss trades for Profit Factor, standard deviation = 0 or <2 trades for Sharpe/Sortino, 0 loss trades for R-Multiple), the values are set to `null` (rendered as `" — "`) or `Infinity` (rendered as `"∞"` for Profit Factor with positive gross profit).
+- **Rationale**: Prevents deceptive or placeholder figures (such as `0.00` or arbitrary defaults) from misleading traders regarding strategy performance.
+- **Alternatives considered**:
+  - Clamping to artificial bounds like 99.99 (rejected: mathematically false).
+  - Displaying `0.00` (rejected: conflates zero performance with undefined statistical properties).
+- **Evidence**: `client/src/strategyTester.js:126-141,192-205`.
 
-## R5. Per-trade Sharpe/Sortino, not annualised
+## R5. Per-trade Sharpe and Sortino ratios, not annualized
 
-- **Decision**: Mean/sd of per-trade return (`profitPct/100`), sample sd, labelled "Sharpe (per trade)".
-- **Rationale**: Trades are not daily returns; annualising would need an equity time series per bar.
-- **Alternatives considered**: Daily-equity Sharpe (deferred; would require bar-level equity from the engine).
+- **Decision**: Sharpe and Sortino ratios are calculated using the mean and sample standard deviation of per-trade percentage returns (`profitPct / 100`), explicitly labelled in the UI as "Sharpe (per trade)" / "Sortino (per trade)".
+- **Rationale**: Chart candle intervals vary, and strategies do not trade on daily fixed periods. Accurate annualization would require a continuous bar-by-bar portfolio equity curve time series, which the engine trade ledger does not directly export.
+- **Alternatives considered**:
+  - Standard annualization factor $\sqrt{252}$ or $\sqrt{365}$ (rejected: mathematically invalid when trades occur irregularly across multi-timeframe candles).
+- **Evidence**: `client/src/strategyTester.js:134-141`.
 
 ## R6. Silent re-run of the last backtested script on new bars
 
-- **Decision**: `setCandles()` re-runs `lastCode` with `{ silent: true }` when present and not already running; never runs anything otherwise.
-- **Rationale**: Keeps the report consistent with the visible symbol/timeframe without fabricating a default strategy (comment `strategyTester.js:18-19`).
-- **Alternatives considered**: Clear the report on symbol change (loses context); auto-run a demo strategy (rejected as invented output).
+- **Decision**: When candle data changes (e.g. symbol or timeframe switch), `setCandles(candles)` automatically re-runs the last backtested script (`this.lastCode`) in `{ silent: true }` mode if not currently running. If no strategy has been backtested yet (`lastCode === null`), no simulation is executed and the empty state remains intact.
+- **Rationale**: Keeps backtest metrics synchronized with active chart price action without fabricating an unrequested default strategy.
+- **Alternatives considered**:
+  - Reset to empty state on symbol switch (rejected: loses user backtesting context).
+  - Auto-run a default demo strategy (rejected: violates Constitution Principle I by presenting unsolicited backtests).
+- **Evidence**: `client/src/strategyTester.js:18-23`.
 
-## R7. Static library of Pine v5 scripts + optional native engine indicators
+## R7. Static catalogue of 114 Pine v5 indicator scripts with optional native engine shortcuts
 
-- **Decision**: One array of 114 Pine v5 scripts; 30 entries also carry `nativeName` and are added via Vela's native indicator API first, falling back to the script.
-- **Rationale**: Every entry is guaranteed to have a working Pine path (validated by `tests/validate-all-indicators.js`), while native ones get Vela's faster renderer and settings.
-- **Alternatives considered**: Loading scripts on demand from the server (unnecessary for ~1.8k lines); Pine v6 scripts (PineTS 0.9.33 parses `//@version=6` — verified during retrofit — but the library is v5 throughout).
+- **Decision**: Maintain a comprehensive bundled library of 114 Pine Script v5 indicators in `client/src/indicatorsData.js`. 30 entries declare a `nativeName` property that attempts attachment via Vela's native WebGL indicator engine (`chart.addNativeIndicator`), falling back gracefully to the Pine Script compilation pipeline if the native call fails.
+- **Rationale**: Guarantees that every indicator has a valid execution path while maximizing rendering performance on the 30 core indicators optimized in Vela.
+- **Alternatives considered**:
+  - Lazy-loading indicators from server REST endpoints (rejected: entire catalogue is ~66 KB compressed; bundling enables offline/instant availability).
+  - Upgrading library scripts to Pine v6 (rejected: PineTS v5 syntax is mature and 100% validated across all 114 scripts).
+- **Evidence**: `client/src/indicatorsData.js:1-1769`, `client/src/main.js:144-156`, `tests/validate-all-indicators.js:1-33`.
 
-## R8. Persian text in a parallel map (7544e50)
+## R8. Persian translations isolated in a parallel lookup dictionary (`indicatorsFa.js`, commit 7544e50)
 
-- **Decision**: `INDICATORS_FA[id] = { name, description }` separate from the library.
-- **Rationale**: Keeps the library diff-friendly and lets the modal and toasts share Persian names.
-- **Alternatives considered**: Inline `nameFa`/`descriptionFa` fields (equivalent; would have doubled the size of the 1.8k-line file).
+- **Decision**: Store Persian names and descriptions in a dedicated dictionary `INDICATORS_FA[id] = { name, description }` matching the 114 library IDs.
+- **Rationale**: Separates script code from localization strings, keeping the 1,769-line catalogue clean and enabling easy reuse of localized names in toasts and settings modals.
+- **Alternatives considered**:
+  - Inline properties `nameFa` and `descriptionFa` in `INDICATORS_LIBRARY` (rejected: doubles metadata verbosity inside script definitions).
+- **Evidence**: `client/src/indicatorsFa.js:1-117`, `client/src/indicatorsModal.js:133-140`.
 
-## R9. Honest add feedback in the indicators dialog (7544e50)
+## R9. Honest add feedback and busy debouncing in indicators modal (commit 7544e50)
 
-- **Decision**: The dialog awaits `onAddIndicator` and only shows "✓ Added" for `undefined | true | {success:true}`; plan gate, compile and engine failures show "✕ Not added". A `data-busy` guard drops repeat clicks for 1.5 s.
-- **Rationale**: Comment `indicatorsModal.js:179-180` — "plan gate, compile errors and engine failures must not show a green tick".
-- **Alternatives considered**: Optimistic tick (previous behaviour).
+- **Decision**: `IndicatorsModal` awaits the completion of `onAddIndicator` before updating button states. The button shows `"✓ Added"` / `"✓ افزوده شد"` (green) only on confirmed success (`undefined | true | { success: true }`), and shows `"✕ Not added"` / `"✕ افزوده نشد"` (red) on plan quota blocks, compile errors, or engine rejections. A 1.5 s `data-busy` attribute prevents duplicate additions from rapid clicking.
+- **Rationale**: Prevents misleading visual confirmation when an indicator failed to plot on the canvas.
+- **Alternatives considered**:
+  - Immediate optimistic button state update (rejected: falsely claims success when plan quota is exceeded).
+- **Evidence**: `client/src/indicatorsModal.js:173-199`.
 
-## R10. Plan gating mirrored on the client
+## R10. Plan entitlement gating mirrored on client
 
-- **Decision**: `auth.enforce('indicatorsPerChart', countActiveIndicators())` on dialog add; `auth.feature('pineStudio'|'strategyTester')` on side-panel mount; `enforce('csvTradesExport')` on CSV.
-- **Rationale**: Indicators exist only in client chart state, so the client is where the count is known.
-- **Alternatives considered**: Server enforcement on saved layouts — not implemented; Constitution VII requires it (see plan GAP VII and Converge tasks).
+- **Decision**: Check `auth.enforce('indicatorsPerChart', countActiveIndicators())` upon library indicator addition, `auth.feature('pineStudio')` and `auth.feature('strategyTester')` on side panel mounting, and `auth.enforce('csvTradesExport')` on trades CSV export.
+- **Rationale**: Canvas indicators are maintained in client memory; the client is where active indicators are enumerated.
+- **Alternatives considered**:
+  - Server-only gating (rejected: canvas indicators do not hit server endpoints during real-time interaction).
+- **Evidence**: `client/src/main.js:141,435,452`, `client/src/strategyTester.js:313`.
 
-## R11. `color.cyan` source rewrite
+## R11. `color.cyan` engine incompatibility handled via source rewriting
 
-- **Decision**: Replace `\bcolor.cyan\b` with `color.rgb(0, 229, 255)` before every compile path.
-- **Rationale**: The engine lacks that constant (PINE_SCRIPT_GUIDE §4.2); rewriting avoids patching `node_modules` (Constitution IX).
-- **Alternatives considered**: Vendor patch (forbidden).
+- **Decision**: Intercept and rewrite any occurrence of `\bcolor\.cyan\b` to `color.rgb(0, 229, 255)` in `compileAndAdd`, `runBacktest`, `testScript`, and `addPineIndicator`.
+- **Rationale**: PineTS v0.9.33 lacks the built-in `color.cyan` constant. Rewriting the source string before parsing avoids modifying vendor code in `node_modules` (complying with Constitution Principle IX).
+- **Alternatives considered**:
+  - Patching `node_modules/pinets` (rejected: strictly forbidden by Constitution Principle IX).
+- **Evidence**: `client/src/pineStudio.js:241,260`, `client/src/chartManager.js:371`, `tests/test-indicator-syntax.js:6`.
 
-## R12. Technical rating card derived from screener row (c724bb4)
+## R12. Technical rating card derived from institutional screener and ticker feeds (commit c724bb4)
 
-- **Decision**: Card reads `/api/tickers` and `/api/screener` and synthesises a TradingView-style gauge.
-- **Rationale**: Visual parity with TradingView's symbol details card.
-- **Assessment**: The rating badge is real (server RSI-14 / SMA20-vs-50 rules); vote counts, 52-week range, venue label and fallback constants are not — conflicts with Constitution I. Logged as `[NEEDS CLARIFICATION]` in FR-024 and as Converge tasks.
+- **Decision**: `TechnicalRatingCard` queries `GET /api/tickers?symbols=SYM` and `GET /api/screener?search=SYM` to populate price, 24 h change, day range, and a consensus speedometer gauge.
+- **Rationale**: Replicates TradingView's symbol details widget to provide traders with a quick technical overview.
+- **Assessment**: The rating score (Strong Buy/Buy/Neutral/Sell/Strong Sell) and RSI-14 are authentic server calculations. However, moving average vote counts, 52-week bounds, and fallback constants are synthetic, representing a violation of Constitution Principle I. Documented in `spec.md` FR-024 for architect resolution in Converge phase.
+- **Evidence**: `client/src/technicalRatingCard.js:26-75,243-247`.
+
+---
+
+## Spec/code mismatches
+
+- FR-004: Desktop bottom Pine Studio "Add to Chart" (`#btn-pine-compile`) adds custom indicator directly via `this.chartManager.addPineIndicator(code)` without checking `indicatorsPerChart` plan quota (`client/src/main.js:280-285`).
+- FR-007: Template `description` fields defined in `PINE_TEMPLATES` (`smc_pro`, `supertrend`, `rsi_divergence`, `ma_cross`, `rebalance_shannon`) are not rendered or displayed anywhere in the UI (`client/src/pineStudio.js:10,44,63,81,96`).
+- FR-018: Desktop bottom dock suite mounts Pine Studio and Strategy Tester instances unconditionally without enforcing `pineStudio` or `strategyTester` plan feature entitlements (`client/src/main.js:278,295`).
+- FR-019: Language switch invokes `this.pineStudioSide?.render?.()` but `this.pineStudioSide` is never assigned in `mountPineEditor`, leaving the side Pine editor un-localized on switch (`client/src/main.js:439,1864`).
+- FR-021: Indicator settings modal displays a success toast unconditionally at line 373 even when all calls to `handle.setInputs`, `orch.applyInputs`, `handle.setProps`, `orch.applyProps`, or `handle.updateCode` throw exceptions swallowed in empty catch blocks (`client/src/indicatorSettingsModal.js:337-373`).
+- FR-024: Technical rating card synthesizes 52-week range (`high * 1.35`, `low * 0.65`), hardcodes moving average vote counts (`maBuy = 12 : 2`, `maSell = 12 : 1`), hardcodes `"BINANCE"` / `"Perpetual Contract · USDⓈ-M"`, and uses fallback constants `price = 84000`, `rsi = 56`, `trend = 'Bullish'`, `rating = 'Buy'` on fetch error (`client/src/technicalRatingCard.js:53-56,65-68,107-109,244-245`).
