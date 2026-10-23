@@ -58,3 +58,9 @@ same loop (`speckit-converge` re-scans code against specs and appends new gaps).
 - UI probe baseline (2026-10-23, `.sdd/baseline/ui_probe_2026-10-23.json`): landing page clean in all
   4 cells; `/chart` has 2 covered controls on desktop (Vela undo button and attribution under the
   quick-trade panel / an svg) and 11 sub-44px touch targets on mobile. These are the first Converge items.
+
+## Acceptance tests and the app under test
+`gates.mjs` builds and starts Chartivia from the phase worktree on port 18088 (copy of server/data), never
+the production service on 8088. Acceptance tests MUST read `process.env.SDD_BASE_URL` (fallback
+`http://127.0.0.1:8088` only for manual runs). Existing `tests/qa_*.cjs` hard-code 8088 and stay as the
+manual/regression suite until converted.

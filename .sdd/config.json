@@ -18,15 +18,16 @@
   ],
   "regression": "bash scripts/qa/run_regression.sh .sdd/out/regression qa_accounts_cycle1 qa_accounts_cycle3 qa_cycleA qa_i18n_final && ! grep -l '❌' .sdd/out/regression/*.log",
   "protected": [
-    ".specify/**",
-    "specs/**",
-    "tests/acceptance/**",
-    ".sdd/**",
-    "server/data/**",
     "**/*.key",
     "**/.env",
+    ".sdd/**",
+    ".sdd/worktrees/**",
+    ".specify/**",
+    "scripts/qa/**",
     "scripts/sdd/**",
-    "scripts/qa/**"
+    "server/data/**",
+    "specs/**",
+    "tests/acceptance/**"
   ],
   "alwaysAllowed": [
     "package-lock.json"
@@ -75,5 +76,10 @@
     "interactiveSelector": "button, a[href], input, select, textarea, [role=button]",
     "untranslatedPattern": "",
     "chromePath": "/usr/bin/chromium"
-  }
+  },
+  "worktreeSetup": "ln -s /root/TradingChart/node_modules node_modules && mkdir -p server/data && cp -r /root/TradingChart/server/data/. server/data/ 2>/dev/null; true",
+  "serve": "./node_modules/.bin/vite build >/dev/null && PORT=$SDD_PORT node server/index.js",
+  "servePort": 18088,
+  "serveReadyPath": "/",
+  "serveTimeoutSec": 120
 }
