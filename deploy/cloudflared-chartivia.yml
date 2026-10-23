@@ -11,4 +11,8 @@ ingress:
     service: http://127.0.0.1:8088
   - hostname: www.chartivia.com
     service: http://127.0.0.1:8088
+  - hostname: chartivia.ir
+    service: http://127.0.0.1:8088
+  - hostname: www.chartivia.ir
+    service: http://127.0.0.1:8088
   - service: http_status:404

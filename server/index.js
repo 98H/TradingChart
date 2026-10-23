@@ -29,10 +29,12 @@ const wss = new WebSocketServer({ server, path: '/ws/live', maxPayload: 4096 });
 // hop so req.ip / req.secure reflect the real client, never a spoofed header.
 app.set('trust proxy', 'loopback');
 app.disable('x-powered-by');
-// Canonical host: www.chartivia.com → chartivia.com (301, path preserved).
+// Canonical host: www.chartivia.com, chartivia.ir, www.chartivia.ir → chartivia.com (301, path preserved).
 app.use((req, res, next) => {
   const h = String(req.headers.host || '').toLowerCase();
-  if (h === 'www.chartivia.com') return res.redirect(301, `https://chartivia.com${req.originalUrl}`);
+  if (h === 'www.chartivia.com' || h === 'chartivia.ir' || h === 'www.chartivia.ir' || h.endsWith('.chartivia.ir')) {
+    return res.redirect(301, `https://chartivia.com${req.originalUrl}`);
+  }
   next();
 });
 app.use(securityHeaders);
