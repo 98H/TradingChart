@@ -1,0 +1,10 @@
+{
+  "spec": "004",
+  "frozenAt": "2026-10-24T04:56:53.116Z",
+  "files": {
+    "tests/acceptance/004/01_indicators_library_and_dialog.test.cjs": "d53d328c1840535ec33ff7f7fb1cd9d1ea659b86453b249192648acce67e903d",
+    "tests/acceptance/004/02_pine_editor_and_studio.test.cjs": "9a3a4c31b873e84861aeb0beba9b5fad689a9ad8e3f0ddc0cd835e908ca3bff9",
+    "tests/acceptance/004/03_strategy_tester_and_backtest.test.cjs": "7c94be0c03663f55aa7e905d7664df07df4880a910c924617cec6a2a9fd09747",
+    "tests/acceptance/004/04_settings_rating_and_localization.test.cjs": "79a5a9631ada3896a5e4df2942bd691134d8549b394680c27faadc11449e59f8"
+  }
+}
