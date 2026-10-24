@@ -1,0 +1,11 @@
+{
+  "spec": "008",
+  "frozenAt": "2026-10-24T04:59:47.541Z",
+  "files": {
+    "tests/acceptance/008/01_market_intelligence_http_apis.test.cjs": "80e8bd43c1a840cc8ee06c6f1b766efa999182855648133be611eaeb8b0d4453",
+    "tests/acceptance/008/02_disclosure_trackers_view.test.cjs": "67749d1ae05a6bae3fee328cea8012f15eb80b7611fea900380a5e898820281d",
+    "tests/acceptance/008/03_economic_calendar_and_news_views.test.cjs": "783be33591608105b212e3f890fefdcbe03b39531fecd335496af2f75735e9bd",
+    "tests/acceptance/008/04_tehran_gold_and_tse_tape_views.test.cjs": "bd0da4a025c35a631ccda42ebf74dc0c0d94230de281e24aa16675126024276a",
+    "tests/acceptance/008/05_dock_panels_mobile_and_bilingual_parity.test.cjs": "894813b293eef7ee846fa11910baae40235e95c9e7aaf6ded0be6cf4d9ebf8b6"
+  }
+}
