@@ -1,0 +1,11 @@
+{
+  "spec": "003",
+  "frozenAt": "2026-10-24T04:55:20.357Z",
+  "files": {
+    "tests/acceptance/003/01_toolbar_shortcuts_and_history.test.cjs": "ec56919604dd66e466f2aceb4a7de1046637fe89df7ecb6e88b4889780d24f7d",
+    "tests/acceptance/003/02_library_search_and_cloud_sync.test.cjs": "92b4a5a1cb4075ed2988a2fe02c975e4c7edcdce8e9ca567d711fa1d213d2902",
+    "tests/acceptance/003/03_drawing_context_menu_and_actions.test.cjs": "f6255b63088611335e159b9f2ac62e9b95ab45a17c742581c358a9a772175da2",
+    "tests/acceptance/003/04_symbol_and_layout_drawings_sync.test.cjs": "79dc5878333ba8f7bf492c5b9d3c0fe27ca768cf7f2a59553f644e5cdd556c8a",
+    "tests/acceptance/003/05_mobile_viewport_and_persian_rtl.test.cjs": "97da0ec2c7ff3859c6d89adb1388b3c8a4a0505fe984232d95dd67d3b038fa8e"
+  }
+}
