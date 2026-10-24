@@ -1,9 +1,11 @@
 {
   "spec": "001",
-  "frozenAt": "2026-10-23T20:43:37.460Z",
+  "frozenAt": "2026-10-24T05:35:59.636Z",
   "files": {
     "tests/acceptance/001/01_http_and_stream_api.test.cjs": "c1eb9a21cb1585719b5b96ec22ca967704307013616d31566cf4d62f3d5804e7",
     "tests/acceptance/001/02_chart_market_controls.test.cjs": "e067078f192095fe9948f2caf1b492c158983cda37ea693af7c8bbdd34939981",
-    "tests/acceptance/001/03_workspace_tools_and_watchlists.test.cjs": "32e3d0760bcead7a8cb29c942f2810c95db21a8f1c8891fd53aea43dce1e8d25"
+    "tests/acceptance/001/03_workspace_tools_and_watchlists.test.cjs": "32e3d0760bcead7a8cb29c942f2810c95db21a8f1c8891fd53aea43dce1e8d25",
+    "tests/acceptance/001/04_shell_toggles_and_resilience.test.cjs": "580e5bab55fd84f5bd6067a925b76e391008833ff7f926c0b64ef441778a1ff0",
+    "tests/acceptance/001/converge_corrupt_settings.test.cjs": "c9f25aa20dbc697dc6dfc41e9700db672e36214db5b41620cfbfe0bb29d6656c"
   }
 }

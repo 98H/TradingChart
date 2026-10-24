@@ -1,0 +1,1 @@
+GAP: FR-023: SettingsModal constructor unhandled JSON.parse on corrupt tradingchart_user_settings aborts app initialization (client/src/settingsModal.js:13)

@@ -1,0 +1,3 @@
+PASS 001-chart-workspace-shell  FRs=24 tasks done=54 open=0
+
+SPECS=1 PASS=1 FAIL=0
