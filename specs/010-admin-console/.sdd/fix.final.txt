@@ -1,0 +1,3 @@
+PASS 010-admin-console  FRs=17 tasks done=57 open=0
+
+SPECS=1 PASS=1 FAIL=0

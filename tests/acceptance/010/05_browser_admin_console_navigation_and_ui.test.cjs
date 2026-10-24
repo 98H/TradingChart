@@ -58,6 +58,9 @@ async function run() {
   const ctx = await launch('desktop');
   const { page } = ctx;
 
+  const uniqueIp = `10.95.${Math.floor(Math.random() * 200) + 10}.${Math.floor(Math.random() * 200) + 10}`;
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueIp });
+
   try {
     // ──────────────────────────────────────────────────────────────────────────
     // 1. Gate Authentication, Error Display & Password Toggle (FR-016, FR-017)
@@ -114,7 +117,7 @@ async function run() {
 
     // Navigate to #/users
     await realClick(page, '.sidebar nav a[href="#/users"]');
-    await page.waitForSelector('#u-list tbody tr, #u-list', { timeout: 10000 });
+    await page.waitForSelector('#u-list tbody tr', { timeout: 10000 });
     const usersHash = await page.evaluate(() => location.hash);
     assert(usersHash === '#/users', 'FR-016 routed to #/users', `Expected #/users, got ${usersHash}`);
 
@@ -123,14 +126,17 @@ async function run() {
     assert(await page.$('#u-export') !== null, 'FR-016 user export button present', 'Missing #u-export');
 
     // User Detail Drawer (FR-016)
-    // Click first user row to open slide-over drawer
-    await realClick(page, '#u-list tbody tr:first-child td:nth-child(2)');
+    // Click first user row button to open slide-over drawer
+    await realClick(page, '#u-list tbody tr:first-child button[data-user]');
     await page.waitForSelector('.drawer', { timeout: 8000 });
     const isDrawerOpen = await page.evaluate(() => {
       const d = document.querySelector('.drawer');
       return d && d.offsetWidth > 0;
     });
     assert(isDrawerOpen, 'FR-016 user detail drawer opened', 'Drawer is not open');
+
+    // Wait for user details to load and tabs to render
+    await page.waitForSelector('.drawer .tab', { timeout: 10000 });
 
     // Drawer tabs: Overview & Sessions
     const drawerTabs = await page.$$eval('.drawer .tab', els => els.map(t => t.textContent.trim()));
@@ -144,7 +150,7 @@ async function run() {
     assert(await page.$('#dr-notes') !== null, 'FR-016 drawer has notes field #dr-notes', 'Missing #dr-notes');
 
     // Close drawer via close button
-    await realClick(page, '.drawer button[aria-label="بستن"], .drawer .drawer-head button:first-child');
+    await realClick(page, '.drawer button[data-close], .drawer button[aria-label="بستن"], .drawer .drawer-head button:first-child');
     await page.waitForFunction(() => !document.querySelector('.drawer') || document.querySelector('.drawer').offsetWidth === 0, { timeout: 6000 });
 
     // ──────────────────────────────────────────────────────────────────────────
