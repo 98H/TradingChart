@@ -136,5 +136,5 @@ Any visitor compares plans (cards with prices and a feature matrix); a signed-in
 
 - Payments are not integrated: paid plans are granted by admin approval (or immediately with `TC_BILLING_MODE=simulated`).
 - Admin plan management (plans studio) is specified in 010-admin-console.
-- "Gift subscription" (اشتراک هدیه) does not exist in the code; the open question is tracked once, in 010.
+- "Gift subscription" (اشتراک هدیه) does not exist in the code; it is specified as new work in 013-gift-subscriptions.
 - Known gaps for Converge: 42 of 47 entitlements are client-only; silent failures in sync, plans and sessions fetches without user feedback; untranslated device names and social placeholders; a hard-coded Persian default name and bio in the trader profile shown in English; a hard-coded English desk title; mailer load errors not exposed in platform status.
