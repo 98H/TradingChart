@@ -130,5 +130,5 @@ The operator toggles registration and maintenance mode, edits the announcement (
 ## Assumptions
 
 - The console is a separate app at `/admin` sharing the account store with the platform (009).
-- "Gift subscription" (اشتراک هدیه) has no implementation today — **[NEEDS CLARIFICATION: should the console grant time-limited gift subscriptions (plan + expiry) to users? If yes it will be specified as new work in this feature.]**
+- Gift subscriptions (dated or unlimited), requested by the founder on 2026-10-23, are specified as new work in 013-gift-subscriptions.
 - Known gaps for Converge (high risk, architect review): nothing prevents demoting, suspending or deleting the **last** administrator; header-key lockout is IP-wide; `invalid_action` and `announcement_empty` lack localized messages; the settings form ignores server errors other than test domains; an unused helper.
