@@ -1,0 +1,10 @@
+{
+  "spec": "006",
+  "frozenAt": "2026-10-24T00:28:48.156Z",
+  "files": {
+    "tests/acceptance/006/01_webhook_relay_and_cloud_sync_api.test.cjs": "a6c031b2fdf6bfec06b53ddc618dcf865a7923cb685694bbdf9a794df5d0538c",
+    "tests/acceptance/006/02_alerts_conditions_and_overlay.test.cjs": "b6dba48679e6621d519188b74313443b069ea949a4f5709642e6cc78816c7690",
+    "tests/acceptance/006/03_paper_trading_orders_and_journal.test.cjs": "53b3ba1c2f0fd3b9db35ef78db7e1bf2c9f384785a49c491a003934439e25881",
+    "tests/acceptance/006/04_bar_replay_and_journal.test.cjs": "a4e6b04bb78ab43ecc119e0f95403a27fff3b7e454544fb5edb69718e238e54e"
+  }
+}
