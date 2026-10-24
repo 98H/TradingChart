@@ -1,0 +1,11 @@
+{
+  "spec": "011",
+  "frozenAt": "2026-10-24T05:03:29.823Z",
+  "files": {
+    "tests/acceptance/011/01_http_and_server_i18n.test.cjs": "eeb22d8288175b46c99b13188998bb0e8afa8d5e372f574537e7c97417ad8fdc",
+    "tests/acceptance/011/02_language_switch_and_bilingual_parity.test.cjs": "998379b855e0c51362173f330a387c2ff16e440dd3abf71221522bab5da5287a",
+    "tests/acceptance/011/03_persian_typography_digits_and_engine.test.cjs": "8f29e20fa4c67711b372c0bb8896632ad66b533a5bdd2fa0e072100415af8d71",
+    "tests/acceptance/011/04_mobile_viewport_and_touch_interactions.test.cjs": "7138e6ed8c1a7c1aee65a290381b08598ad23141812d6f6740f5dc0572933b71",
+    "tests/acceptance/011/05_responsive_header_landing_and_admin.test.cjs": "349535540ec1b1c4b8b65fe109991dd96bcaf0bdeca221c9da3aa52bb179fb99"
+  }
+}
