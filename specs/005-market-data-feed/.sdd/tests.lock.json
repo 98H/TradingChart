@@ -1,0 +1,10 @@
+{
+  "spec": "005",
+  "frozenAt": "2026-10-24T04:58:12.238Z",
+  "files": {
+    "tests/acceptance/005/01_market_data_http_apis.test.cjs": "2c9ba902790de4e9aa4697f65c581295ed2b25539d4890ba77844abfb79b67e7",
+    "tests/acceptance/005/02_live_stream_and_provider.test.cjs": "3b3cb87ac6b42c6c0b9a075d12a4c737159a1621dae7d095218a58b6add054cc",
+    "tests/acceptance/005/03_topbar_source_and_pipeline_dialog.test.cjs": "be3ff03014d3fef4c96b440bab3521f7746611cadbb28cbbf5c43c60a4ad06d7",
+    "tests/acceptance/005/04_depth_of_market_and_synthetics.test.cjs": "9e765edb768a3d78466f47bed15af2abd6a1fe6f726673c24da9d347c3d55d3e"
+  }
+}
