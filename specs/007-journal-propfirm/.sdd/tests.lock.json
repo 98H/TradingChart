@@ -1,0 +1,11 @@
+{
+  "spec": "007",
+  "frozenAt": "2026-10-24T01:31:19.249Z",
+  "files": {
+    "tests/acceptance/007/01_cloud_sync_and_persistence_api.test.cjs": "a2439f0b0e518777c84423d7fd7d936b907c14b8b66104f571f39aca2127bfe1",
+    "tests/acceptance/007/02_workspace_navigation_dashboard_and_filters.test.cjs": "e7afbe6ae88550a59aff7f61a4588e4e64ae3c295bb574649926160cf0ffa3e8",
+    "tests/acceptance/007/03_trade_logging_importer_and_csv.test.cjs": "a8b9cded78528c9687885aa394168ff0cce9fda551da43818080b7118526509c",
+    "tests/acceptance/007/04_analytics_ledger_daily_and_aicoach.test.cjs": "8a770d2005b8646ed360e1a7db1982740417f81f8d5a6d5e57230a21bd440566",
+    "tests/acceptance/007/05_prop_firm_tracker_simulator_and_gating.test.cjs": "a62bc266db85a8f8dbf14765a42f9b147951511508edaea62096d7ad549cb831"
+  }
+}
