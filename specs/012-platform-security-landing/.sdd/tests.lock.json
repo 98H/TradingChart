@@ -1,0 +1,11 @@
+{
+  "spec": "012",
+  "frozenAt": "2026-10-24T05:04:34.711Z",
+  "files": {
+    "tests/acceptance/012/01_security_headers_and_routing.test.cjs": "b4d3451e3e9f7851d124b11e9419b34dcec98ebdcaa122fc623432257bce9ea9",
+    "tests/acceptance/012/02_request_guards_and_api_protection.test.cjs": "87a2ff515bf91669c7ccc0348088e46bed2b87952358382f74f5599ca97a1e55",
+    "tests/acceptance/012/03_metadata_seo_and_discovery.test.cjs": "68444b3a8a9e5b5f6437396258c08d21fb296d8db1811b550af08491072cc137",
+    "tests/acceptance/012/04_browser_landing_navigation_and_bilingual.test.cjs": "a05880cf7c2ef51e5640d5e56a13ca8731c8c97dced9af7ed41dc205d2e8fe53",
+    "tests/acceptance/012/05_browser_viewport_and_visual_integrity.test.cjs": "c9bec3e7618afcc376818fb4b913f0257bec53bfb0276ecb2c86ff58c9cb3d41"
+  }
+}
