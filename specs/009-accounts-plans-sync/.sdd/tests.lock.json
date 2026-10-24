@@ -1,0 +1,11 @@
+{
+  "spec": "009",
+  "frozenAt": "2026-10-24T05:00:51.108Z",
+  "files": {
+    "tests/acceptance/009/01_auth_lifecycle_and_rate_limits.test.cjs": "15daf6e4b6b65f10d17ff745a0bd66c61e7c035479971b4e9f756ff9e03be7b1",
+    "tests/acceptance/009/02_totp_profile_sessions_and_data_export.test.cjs": "fec131a8f50359e6e5b203592648a400fe199b1f4e225562ade9fc9ece482fb0",
+    "tests/acceptance/009/03_cloud_sync_and_plans_entitlements_api.test.cjs": "14207b034607b0204d74f6ff70d5b14e35cd43530f93284b638d07d2ab505eba",
+    "tests/acceptance/009/04_browser_avatar_menu_and_workspace_sync.test.cjs": "7bc226c7f3d37becb7b903606caaccf087b5a1535da8902c70c7cb9b628a0bc8",
+    "tests/acceptance/009/05_browser_modals_plans_and_bilingual_parity.test.cjs": "2d4618b17eacd9f729f6b9fb0688d79db2ac0bde1d17cf19c6b69f7a04c765e0"
+  }
+}
