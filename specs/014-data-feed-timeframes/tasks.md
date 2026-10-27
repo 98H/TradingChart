@@ -24,6 +24,8 @@ demo engine; acceptance files covering FR-006 therefore run from Phase 2.
 
 ## Phase 3: Client — live bucketing, no fabricated bar, notices, timeframe UI
 
+Architect note (escalation of attempt 1): this phase's code already exists in the worktree and all four 014 acceptance suites passed. Only fix: REVERT `let currentLang = 'fa'` to `let currentLang = 'en'` in client/src/i18n.js — changing the app default language is out of scope and produced 3 new mobile/fa UI-probe defects. `closeAllBrowsers` export (tests/qa_lib.cjs) and the regression output dir are fixed on the base branch; do not touch them.
+
 - [ ] T012 [US4] Create client/src/timeframes.js with the same logic as server/timeframes.js (FR-011)
 - [ ] T013 [US4] In client/src/universalProvider.js bucket ticks with `bucketStart`, open a new bucket at the previous close, never change volume on ticks, refresh the last 2 bars every 15 s and on bucket roll, record the last `source` per (symbol, tf), derive `supportedTimeframes` from the grammar (FR-011)
 - [ ] T014 [US3] In client/src/universalProvider.js return `[]` (or the real cached series) instead of the price-100 seed bar on 404/503/network errors (FR-012)
