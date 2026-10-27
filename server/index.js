@@ -205,7 +205,7 @@ app.get('/api/depth', async (req, res) => {
   try {
     const symbol = cleanSymbol(req.query.symbol, 'BTCUSDT');
     if (!symbol) return bad(res, 'invalid_symbol');
-    res.json(await getOrderBookDepth(symbol, clampInt(req.query.levels, 15, 1, 50)));
+    res.json(await getOrderBookDepth(symbol, clampInt(req.query.levels || req.query.limit, 15, 1, 50)));
   } catch (error) { serverError(res, '/api/depth', error); }
 });
 

@@ -48,7 +48,8 @@ async function computeSingleSymbol(sym) {
   try {
     const ticker = await get24hTicker(sym.symbol);
     const candles = await getCandles(sym.symbol, '60', 60);
-    const closes = candles.map(c => c.close);
+    const rawList = Array.isArray(candles) ? candles : (candles?.candles || []);
+    const closes = rawList.map(c => c.close);
 
     const rsi14 = computeRSI(closes, 14);
     const sma20 = computeSMA(closes, 20);

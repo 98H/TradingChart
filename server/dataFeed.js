@@ -10,6 +10,7 @@
 import { SYMBOL_CATALOG, getSymbolMeta } from './symbolCatalog.js';
 import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
 import { candleLru, dedupeInFlight } from './lru.js';
+import { demoBars, demoPrice, dailyLayer } from './demoPath.js';
 
 export function getBinanceBases() {
   const envBases = process.env.TC_BINANCE_BASES;
@@ -456,111 +457,6 @@ export function getTseMarketTape(symbol = 'FOOLAD') {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. CONTINUOUS MULTI-ASSET OHLCV GENERATOR
-// ─────────────────────────────────────────────────────────────────────────────
-export function generateContinuousBars(symbol, interval, limit = 500, endTime = Date.now()) {
-  const clean = symbol.toUpperCase();
-  const stepSec = getIntervalSeconds(interval);
-  const stepMs = stepSec * 1000;
-
-  let basePrice = 100.0;
-  let volatility = 0.003;
-  let digits = 2;
-
-  // 1. Tehran Gold & Currencies
-  if (clean.includes('ABSHODEH')) {
-    basePrice = 18450000; volatility = 0.0025; digits = 0;
-  } else if (clean.includes('GOLD_18K')) {
-    basePrice = 4250000; volatility = 0.0025; digits = 0;
-  } else if (clean.includes('EMAMI')) {
-    basePrice = 52400000; volatility = 0.0035; digits = 0;
-  } else if (clean.includes('BAHAR')) {
-    basePrice = 47200000; volatility = 0.0032; digits = 0;
-  } else if (clean.includes('NIM')) {
-    basePrice = 28100000; volatility = 0.004; digits = 0;
-  } else if (clean.includes('ROB')) {
-    basePrice = 18200000; volatility = 0.0045; digits = 0;
-  } else if (clean.includes('GERMI')) {
-    basePrice = 8700000; volatility = 0.004; digits = 0;
-  } else if (clean.includes('USD_TEHRAN') || clean.includes('USD_IRR')) {
-    basePrice = 62800; volatility = 0.002; digits = 0;
-  } else if (clean.includes('USDT_TOMAN') || clean.includes('USDT_IRT')) {
-    basePrice = 63100; volatility = 0.002; digits = 0;
-  } else if (clean.includes('AED_DIRHAM') || clean.includes('DIRHAM')) {
-    basePrice = 17150; volatility = 0.002; digits = 0;
-  }
-  // 2. Iran Stock Exchange (TSETMC)
-  else if (TSE_BASE_PRICES[clean]) {
-    basePrice = TSE_BASE_PRICES[clean].base;
-    volatility = 0.004;
-    digits = 0;
-  }
-  // 3. Global Commodities & Metals
-  else if (clean.includes('XAU')) { basePrice = 2718.40; volatility = 0.0025; digits = 2; }
-  else if (clean.includes('XAG')) { basePrice = 31.85; volatility = 0.004; digits = 3; }
-  else if (clean.includes('USOIL')) { basePrice = 71.20; volatility = 0.005; digits = 2; }
-  else if (clean.includes('UKOIL')) { basePrice = 75.10; volatility = 0.005; digits = 2; }
-  else if (clean.includes('NATGAS')) { basePrice = 2.85; volatility = 0.007; digits = 3; }
-  // 4. Forex Majors & Crosses
-  else if (clean.includes('EURUSD')) { basePrice = 1.0845; volatility = 0.0015; digits = 5; }
-  else if (clean.includes('GBPUSD')) { basePrice = 1.2980; volatility = 0.0018; digits = 5; }
-  else if (clean.includes('USDJPY')) { basePrice = 152.40; volatility = 0.002; digits = 3; }
-  else if (clean.includes('AUDUSD')) { basePrice = 0.6580; volatility = 0.002; digits = 5; }
-  else if (clean.includes('USDCAD')) { basePrice = 1.3850; volatility = 0.0018; digits = 5; }
-  else if (clean.includes('USDCHF')) { basePrice = 0.8650; volatility = 0.0018; digits = 5; }
-  else if (clean.includes('EURGBP')) { basePrice = 0.8350; volatility = 0.0015; digits = 5; }
-  else if (clean.includes('EURJPY')) { basePrice = 165.20; volatility = 0.0022; digits = 3; }
-  else if (clean.includes('GBPJPY')) { basePrice = 197.80; volatility = 0.0025; digits = 3; }
-  // 5. Global Indices & Equities
-  else if (clean.includes('SPX')) { basePrice = 5880.00; volatility = 0.0025; digits = 2; }
-  else if (clean.includes('NDX')) { basePrice = 20650.00; volatility = 0.0035; digits = 2; }
-  else if (clean.includes('DJI')) { basePrice = 42800.00; volatility = 0.0025; digits = 1; }
-  else if (clean.includes('AAPL')) { basePrice = 232.50; volatility = 0.004; digits = 2; }
-  else if (clean.includes('NVDA')) { basePrice = 138.80; volatility = 0.006; digits = 2; }
-  else if (clean.includes('TSLA')) { basePrice = 245.20; volatility = 0.008; digits = 2; }
-  else if (clean.includes('MSFT')) { basePrice = 428.50; volatility = 0.004; digits = 2; }
-  else if (clean.includes('AMZN')) { basePrice = 188.00; volatility = 0.005; digits = 2; }
-  else if (clean.includes('GOOGL')) { basePrice = 166.50; volatility = 0.005; digits = 2; }
-  else if (clean.includes('META')) { basePrice = 585.00; volatility = 0.005; digits = 2; }
-
-  const bars = [];
-  let curPrice = basePrice;
-  const startTs = endTime - (limit * stepMs);
-
-  for (let i = 0; i < limit; i++) {
-    const t = startTs + (i * stepMs);
-    const seed = Math.sin(t / 100000 + clean.charCodeAt(0) * 11) * 10000;
-    const rnd = seed - Math.floor(seed);
-    const rnd2 = Math.cos(t / 70000) * 0.5;
-
-    let change = (rnd - 0.49 + rnd2 * 0.2) * volatility * curPrice;
-    if (TSE_BASE_PRICES[clean]) {
-      change = Math.max(-0.045 * curPrice, Math.min(0.045 * curPrice, change));
-    }
-
-    const open = curPrice;
-    const close = curPrice + change;
-    const high = Math.max(open, close) + (Math.abs(change) * (0.2 + rnd * 0.5));
-    const low = Math.min(open, close) - (Math.abs(change) * (0.2 + (1 - rnd) * 0.5));
-    const volume = Math.floor(150 + rnd * 1250);
-
-    bars.push({
-      time: t,
-      open: Number(open.toFixed(digits)),
-      high: Number(high.toFixed(digits)),
-      low: Number(low.toFixed(digits)),
-      close: Number(close.toFixed(digits)),
-      volume,
-      closeTime: t + stepMs - 1
-    });
-
-    curPrice = close;
-  }
-
-  return bars;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 5. UNIVERSAL CANDLE FETCHER WITH WATERFALL RESOLUTION
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getCandles(symbol, timeframe, limit = 500, fromTime = null, toTime = null) {
@@ -644,7 +540,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
     return cachedDemo;
   }
 
-  const rawBars = generateContinuousBars(cleanSymbol, canonical, limit, toTime || Date.now());
+  const rawBars = demoBars(cleanSymbol, tf, { limit, from: fromTime, to: toTime });
   const result = [...rawBars];
   result.source = 'demo';
   result.candles = result;
@@ -689,92 +585,48 @@ export async function get24hTicker(symbol) {
     }
   }
 
-  // 2. Iran Gold & FX
-  if (meta.category === 'iran_gold') {
-    const snap = getGoldMarketSnapshot();
-    let price = 50000000;
-    let change = 250000;
-    let changePct = 0.5;
+  // 2. All non-crypto demo markets: derived from demoPath (FR-009)
+  const now = Date.now();
+  const lastPrice = demoPrice(clean, now);
+  const precision = meta.precision ?? 2;
+  const t24h = now - 24 * 3600 * 1000;
+  const bars24h = demoBars(clean, '1', { from: t24h, to: now, limit: 1440 });
 
-    if (clean === 'GOLD_ABSHODEH') {
-      price = snap.abshodeh.price;
-      change = snap.abshodeh.change;
-      changePct = snap.abshodeh.changePercent;
-    } else if (clean === 'GOLD_18K') {
-      price = snap.gram18.price;
-      change = snap.gram18.change;
-      changePct = snap.gram18.changePercent;
-    } else if (clean === 'USD_TEHRAN') {
-      price = snap.usdFree;
-      change = 350;
-      changePct = 0.56;
-    } else if (clean === 'USDT_TOMAN') {
-      price = snap.usdtNobitex;
-      change = 400;
-      changePct = 0.63;
-    } else if (clean === 'AED_DIRHAM') {
-      price = snap.dirhamRate;
-      change = 90;
-      changePct = 0.52;
-    } else {
-      const coinKey = clean.replace('COIN_', '').toLowerCase();
-      if (snap.coins[coinKey]) {
-        price = snap.coins[coinKey].marketPrice;
-        change = Math.round(price * 0.008);
-        changePct = 0.8;
-      }
+  let openPrice = lastPrice;
+  let highPrice = lastPrice;
+  let lowPrice = lastPrice;
+  let volume = 0;
+
+  if (bars24h.length > 0) {
+    openPrice = bars24h[0].open;
+    highPrice = Math.max(lastPrice, ...bars24h.map(b => b.high));
+    lowPrice = Math.min(lastPrice, ...bars24h.map(b => b.low));
+    volume = Math.round(bars24h.reduce((s, b) => s + b.volume, 0));
+  } else {
+    // If market was closed all 24h, fallback to last daily bar
+    const days = dailyLayer(clean);
+    const lastDay = days[days.length - 1];
+    if (lastDay) {
+      openPrice = lastDay.open;
+      highPrice = Math.max(lastPrice, lastDay.high);
+      lowPrice = Math.min(lastPrice, lastDay.low);
+      volume = lastDay.volume;
     }
-
-    return {
-      symbol: clean,
-      lastPrice: price,
-      priceChange: change,
-      priceChangePercent: changePct,
-      highPrice: Math.round(price * 1.012),
-      lowPrice: Math.round(price * 0.988),
-      volume: 12500,
-      quoteVolume: 12500 * price,
-      exchange: meta.exchange,
-      category: meta.category,
-      currency: meta.currency
-    };
   }
 
-  // 3. Iran Stock Exchange (TSETMC)
-  if (meta.category === 'iran_tse') {
-    const tape = getTseMarketTape(clean);
-    return {
-      symbol: clean,
-      lastPrice: tape.lastPrice,
-      priceChange: tape.change,
-      priceChangePercent: tape.changePercent,
-      highPrice: tape.highPrice,
-      lowPrice: tape.lowPrice,
-      volume: tape.volume,
-      quoteVolume: tape.value,
-      exchange: meta.exchange,
-      category: meta.category,
-      currency: meta.currency
-    };
-  }
-
-  // 4. Global Forex, Metals, Commodities, Indices, Stocks
-  const bars = generateContinuousBars(clean, '1d', 2);
-  const prev = bars[0];
-  const last = bars[1];
-  const change = last.close - prev.close;
-  const pct = (change / prev.close) * 100;
-  const precision = meta.precision || 2;
+  const priceChange = Number((lastPrice - openPrice).toFixed(precision));
+  const priceChangePercent = openPrice > 0 ? Number(((priceChange / openPrice) * 100).toFixed(2)) : 0;
+  const quoteVolume = Math.round(volume * lastPrice);
 
   return {
     symbol: clean,
-    lastPrice: last.close,
-    priceChange: Number(change.toFixed(precision)),
-    priceChangePercent: Number(pct.toFixed(2)),
-    highPrice: Math.max(prev.high, last.high),
-    lowPrice: Math.min(prev.low, last.low),
-    volume: last.volume * 100,
-    quoteVolume: last.volume * 100 * last.close,
+    lastPrice,
+    priceChange,
+    priceChangePercent,
+    highPrice,
+    lowPrice,
+    volume,
+    quoteVolume,
     exchange: meta.exchange,
     category: meta.category,
     currency: meta.currency

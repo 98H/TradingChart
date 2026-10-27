@@ -33,7 +33,14 @@ function ladder(rows, levels) {
   return rows.slice(0, levels).map(([p, q], i) => {
     const size = Number(q);
     cum += size;
-    return { level: i + 1, price: Number(p), size: Number(size.toFixed(6)), total: Number(cum.toFixed(6)) };
+    return {
+      0: Number(p),
+      1: size,
+      level: i + 1,
+      price: Number(p),
+      size: Number(size.toFixed(6)),
+      total: Number(cum.toFixed(6))
+    };
   });
 }
 
@@ -99,8 +106,22 @@ export async function getOrderBookDepth(symbol, levels = 15) {
       const bs = Number((Math.abs(Math.sin((i + 1) * 1.7)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
       const as = Number((Math.abs(Math.cos((i + 1) * 1.3)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
       cb += bs; ca += as;
-      bids.push({ level: i + 1, price: bp, size: bs, total: Number(cb.toFixed(3)) });
-      asks.push({ level: i + 1, price: ap, size: as, total: Number(ca.toFixed(3)) });
+      bids.push({
+        0: bp,
+        1: bs,
+        level: i + 1,
+        price: bp,
+        size: bs,
+        total: Number(cb.toFixed(3))
+      });
+      asks.push({
+        0: ap,
+        1: as,
+        level: i + 1,
+        price: ap,
+        size: as,
+        total: Number(ca.toFixed(3))
+      });
     }
     const spread = Number((bestAsk - bestBid).toFixed(precision));
     data = {
