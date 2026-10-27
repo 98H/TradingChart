@@ -48,5 +48,6 @@
     "tests/acceptance/013/03_admin_overview_metrics_filtering_and_ui.test.cjs",
     "tests/acceptance/013/04_trading_app_avatar_plans_modal_and_gates.test.cjs"
   ],
-  "escalate": false
+  "escalate": true,
+  "reason": "PASS but touches high-risk paths: server/accounts.js server/adminApi.js server/tradeRelayApi.js — architect review of phase1.diff required before merge"
 }
