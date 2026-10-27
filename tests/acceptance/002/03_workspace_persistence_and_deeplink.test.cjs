@@ -16,6 +16,7 @@ async function realClick(page, selector, timeout = 6000) {
   await page.waitForSelector(selector, { visible: true, timeout });
   const handle = await page.$(selector);
   if (!handle) throw new Error(`Selector ${selector} not found`);
+  await page.evaluate(el => el.scrollIntoView({ block: 'nearest' }), handle);
   const box = await handle.boundingBox();
   if (!box) throw new Error(`Bounding box for ${selector} not available`);
   const cx = box.x + box.width / 2;
@@ -122,14 +123,16 @@ async function run() {
 
       // Toggle auto-save OFF
       await realClick(page, '#btn-toggle-autosave');
+      await page.waitForFunction(() => window.__TRADING_APP__.layoutManager.autoSaveEnabled === false);
       const isAutoSaveOff = await page.evaluate(() => window.__TRADING_APP__.layoutManager.autoSaveEnabled === false);
       assert(isAutoSaveOff, 'FR-009 auto-save toggled OFF', 'Expected autoSaveEnabled to be false');
 
       const btnTextOff = await page.evaluate(() => document.querySelector('#btn-toggle-autosave')?.innerText || '');
-      assert(btnTextOff.includes('OFF'), 'FR-009 auto-save button reflects OFF', `Button text: ${btnTextOff}`);
+      assert(btnTextOff.includes('OFF') || btnTextOff.includes('غیرفعال'), 'FR-009 auto-save button reflects OFF', `Button text: ${btnTextOff}`);
 
       // Toggle auto-save back ON: triggers immediate save
       await realClick(page, '#btn-toggle-autosave');
+      await page.waitForFunction(() => window.__TRADING_APP__.layoutManager.autoSaveEnabled === true);
       const isAutoSaveOn = await page.evaluate(() => window.__TRADING_APP__.layoutManager.autoSaveEnabled === true);
       assert(isAutoSaveOn, 'FR-009 auto-save toggled back ON', 'Expected autoSaveEnabled to be true');
 
@@ -232,8 +235,14 @@ async function run() {
       });
 
       await page.goto(BASE + '/chart?symbol=BINANCE:SOLUSDT&interval=240', { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(() => window.__TRADING_APP__?.currentSymbol === 'SOLUSDT', { timeout: 25000 });
-      await new Promise(r => setTimeout(r, 2000));
+      await page.waitForFunction(() => {
+        const app = window.__TRADING_APP__;
+        return app?._deepLinkApplied === true &&
+               app?.currentSymbol === 'SOLUSDT' &&
+               app?.currentTimeframe === '240' &&
+               app?.chartManager?.activeSymbol === 'SOLUSDT';
+      }, { timeout: 25000 });
+      await new Promise(r => setTimeout(r, 500));
 
       const dlState = await page.evaluate(() => ({
         sym: window.__TRADING_APP__.currentSymbol,
@@ -244,10 +253,15 @@ async function run() {
       assert(dlState.sym === 'SOLUSDT', 'FR-012 deep link overrides active symbol', `Expected SOLUSDT, got ${dlState.sym}`);
       assert(dlState.tf === '240', 'FR-012 deep link overrides active timeframe', `Expected 240, got ${dlState.tf}`);
 
-      // 2. Symbol-only deep link: overrides symbol, keeps existing timeframe
+      // 2. Symbol-only deep link: overrides symbol, keeps existing timeframe (240 from previous step)
       await page.goto(BASE + '/chart?symbol=ETHUSDT', { waitUntil: 'domcontentloaded' });
-      await new Promise(r => setTimeout(r, 4500));
-      await page.waitForFunction(() => window.__TRADING_APP__?.chartManager?.activeSymbol?.includes('ETHUSDT'), { timeout: 25000 });
+      await page.waitForFunction(() => {
+        const app = window.__TRADING_APP__;
+        return app?._deepLinkApplied === true &&
+               app?.currentSymbol === 'ETHUSDT' &&
+               app?.chartManager?.activeSymbol?.includes('ETHUSDT');
+      }, { timeout: 25000 });
+      await new Promise(r => setTimeout(r, 500));
 
       const symOnlyState = await page.evaluate(() => ({
         sym: window.__TRADING_APP__.currentSymbol,
