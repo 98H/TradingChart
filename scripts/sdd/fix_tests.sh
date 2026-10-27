@@ -10,7 +10,7 @@ MAIN=$(pwd); HERE=$(cd "$(dirname "$0")" && pwd); PROMPTS="$HERE/prompts"; [[ -d
 CFG="$MAIN/.sdd/config.json"
 jqr() { node -e "const c=require('$CFG');const v=$1;process.stdout.write(v==null?'':String(v))"; }
 CMD=$(jqr "c.agent.testAuthor"); TMO=$(jqr "(c.agent&&c.agent.timeoutSec)||3600"); ACC=$(jqr "c.acceptanceDir||'tests/acceptance'")
-SETUP=$(jqr "c.worktreeSetup||''"); SERVE=$(jqr "c.serve||''"); PORT=$(jqr "c.servePort||0"); STMO=$(jqr "c.serveTimeoutSec||60")
+SETUP=$(jqr "c.worktreeSetup||''"); SERVE=$(jqr "c.serve||''"); PORT=${SDD_PORT_OVERRIDE:-$(jqr "c.servePort||0")}; STMO=$(jqr "c.serveTimeoutSec||60")
 RUN=$(jqr "c.acceptanceRun||'node {FILE}'")
 FEAT=$(basename "$SPEC"); NUM=${FEAT%%-*}; BR="sdd/$NUM-fix"; WT="$MAIN/.sdd/worktrees/$NUM-fix"
 EVID=$(for f in "$@"; do echo "### $(basename "$f")"; grep -E "❌|FAIL|Error|FRs without|uncovered" "$f" | head -40; done)
@@ -50,7 +50,7 @@ publish() { mkdir -p "$MAIN/$SPEC/.sdd"; cp "$OUT"/fixcheck.*.log "$OUT/test-fix
 [[ $bad -ne 0 ]] && { publish; echo "FIX FAIL (branch $BR kept)"; exit 1; }
 rm -f "$P" "$OUT/serve.fix.log"
 node "$HERE/lock_tests.mjs" freeze "$SPEC" >/dev/null && git add -A "$ACC" "$SPEC/.sdd" && git commit -qm "sdd($FEAT): retrofit tests repaired and locked" || { echo "FIX FAIL: lock/commit"; exit 1; }
-cd "$MAIN" && { git merge -q --ff-only "$BR" 2>/dev/null || git merge -q --no-edit "$BR"; } || { echo "FIX FAIL: merge"; exit 1; }
+cd "$MAIN" && git clean -fq -- "$SPEC/.sdd" && { git merge -q --ff-only "$BR" 2>/dev/null || git merge -q --no-edit "$BR"; } || { echo "FIX FAIL: merge"; exit 1; }
 git worktree remove --force "$WT"; git branch -D "$BR" -q
 cat "$MAIN/$SPEC/.sdd/gaps.txt" 2>/dev/null
 echo "FIX OK"
