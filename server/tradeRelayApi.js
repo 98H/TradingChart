@@ -43,8 +43,9 @@ function sanitizeSignal(body) {
   return { signal: { action, symbol, quantity, price, orderType, sl, tp } };
 }
 
-export function mountTradeRelay(app, { users, flushNow, PLANS, rateGate }) {
-  const entitled = u => !!(PLANS[u.plan] || PLANS.basic || {}).webhookAlerts;
+export function mountTradeRelay(app, { users, flushNow, PLANS, rateGate, effectivePlanId }) {
+  const planOf = u => (typeof effectivePlanId === 'function' ? effectivePlanId(u) : (u && u.plan) || 'basic');
+  const entitled = u => !!(PLANS[planOf(u)] || PLANS.basic || {}).webhookAlerts;
 
   function execute(u, req, res) {
     if (!entitled(u)) return res.status(403).json({ ok: false, success: false, error: 'plan_feature_locked', feature: 'webhookAlerts' });

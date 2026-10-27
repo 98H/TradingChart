@@ -14,7 +14,7 @@ import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
 import { getScreenerData } from './technicalScreener.js';
 import { getOrderBookDepth } from './depthFeed.js';
 import { getMarketNews } from './newsFeed.js';
-import { mountAccountSystem, PLANS } from './accounts.js';
+import { mountAccountSystem, PLANS, effectivePlanId } from './accounts.js';
 import { securityHeaders, sameOriginWrites, apiRateLimit, cleanSymbol, clampInt, optTimestamp, serverError } from './security.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -91,7 +91,7 @@ app.get('/api/candles', async (req, res) => {
     if (fromTime === undefined || toTime === undefined) return bad(res, 'invalid_time');
 
     const histCap = req.user
-      ? (PLANS[req.user.plan]?.histBars ?? PLANS.basic.histBars)
+      ? (PLANS[effectivePlanId(req.user)]?.histBars ?? PLANS.basic.histBars)
       : PLANS.basic.histBars;
     const limit = clampInt(req.query.limit, 500, 1, histCap);
     res.setHeader('X-History-Limit', String(histCap));

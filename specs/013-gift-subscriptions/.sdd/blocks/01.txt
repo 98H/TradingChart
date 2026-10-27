@@ -1,0 +1,2 @@
+- [ ] T001 [US1] Add `effectivePlanId(u, now)` and export it; add `effectivePlan` and `gift` to `publicUser` in server/accounts.js (FR-001, FR-002, FR-008)
+- [ ] T002 [US1] Switch every entitlement read of `u.plan` / `req.user.plan` in server/accounts.js (state GET/PUT quotas, social links, `/api/plans` current) to `effectivePlanId` (FR-002)

@@ -1,0 +1,1 @@
+- [ ] T004 [P] [US1] Use the effective plan for `webhookAlerts` in server/tradeRelayApi.js and pass `effectivePlanId` through its dependency object from server/accounts.js (FR-002)

@@ -1,0 +1,1 @@
+- [ ] T005 [US2] Add the 60 s gift-expiry job with `user.gift_expired` audit, and remove gifts on plan deletion with `user.gift_revoke` reason `plan_deleted`, in server/accounts.js (FR-006, FR-007)

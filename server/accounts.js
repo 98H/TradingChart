@@ -599,14 +599,61 @@ function revokeAllForUser(userId, exceptId = null) {
   for (let i = arr.length - 1; i >= 0; i--) if (arr[i].userId === userId && arr[i].id !== exceptId) arr.splice(i, 1);
 }
 
+export function defaultPlanId() {
+  const p = Object.values(PLANS).find(x => x && x.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]];
+  return p ? p.id : 'basic';
+}
+
+export function effectivePlanId(u, now = Date.now()) {
+  if (!u) return defaultPlanId();
+  const n = (now instanceof Date) ? now.getTime() : (typeof now === 'number' ? now : Date.now());
+  if (u.gift && u.gift.plan && PLANS[u.gift.plan]) {
+    if (u.gift.expiresAt == null || Number(u.gift.expiresAt) > n) {
+      return u.gift.plan;
+    }
+  }
+  return (u.plan && PLANS[u.plan]) ? u.plan : defaultPlanId();
+}
+
+export function clearExpiredGifts(now = Date.now()) {
+  try {
+    const uStore = users();
+    let changed = false;
+    const sysReq = { headers: {}, ip: '127.0.0.1', user: { id: 'system', username: 'system' } };
+    const n = (now instanceof Date) ? now.getTime() : (typeof now === 'number' ? now : Date.now());
+    for (const u of uStore.users) {
+      if (u.gift && u.gift.expiresAt != null && !isNaN(Number(u.gift.expiresAt)) && Number(u.gift.expiresAt) <= n) {
+        const oldGift = u.gift;
+        u.gift = null;
+        changed = true;
+        audit(sysReq, 'user.gift_expired', u.id, {
+          plan: oldGift.plan,
+          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null
+        });
+      }
+    }
+    if (changed) {
+      flushNow();
+    }
+  } catch (e) {
+    console.error('[accounts] clearExpiredGifts failed:', e.message);
+  }
+}
+
 // ── Public shapes ─────────────────────────────────────────────────────────
 function publicUser(u) {
+  const effPlan = effectivePlanId(u);
+  const gift = (u.gift && u.gift.plan && PLANS[u.gift.plan] && (u.gift.expiresAt == null || Number(u.gift.expiresAt) > Date.now()))
+    ? { plan: u.gift.plan, expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null }
+    : null;
   return {
     id: u.id, email: u.email, username: u.username, displayName: u.displayName,
     bio: u.bio || '', avatarPreset: u.avatarPreset || 'mecha',
     location: u.location || '', signature: u.signature || '',
     socialLinks: u.socialLinks || {},
     plan: u.plan || 'basic', planSince: u.planSince || null,
+    effectivePlan: effPlan,
+    gift,
     role: u.role || 'user',
     isAdmin: Boolean(u.role === 'admin' || u.isAdmin === true),
     emailVerified: !!u.emailVerified, createdAt: u.createdAt,
@@ -772,7 +819,7 @@ export function mountAccountSystem(app) {
     if (b.socialLinks !== undefined) {
       // Plan-gated social networks (TradingView parity). Unknown networks and
       // networks above the user's tier are rejected; malformed values dropped.
-      const allowed = SOCIAL_NETWORKS_BY_PLAN[u.plan || 'basic'] || SOCIAL_NETWORKS_BY_PLAN.basic;
+      const allowed = SOCIAL_NETWORKS_BY_PLAN[effectivePlanId(u)] || SOCIAL_NETWORKS_BY_PLAN.basic;
       const incoming = typeof b.socialLinks === 'object' && b.socialLinks ? b.socialLinks : {};
       const next = { ...(u.socialLinks || {}) };
       for (const net of SOCIAL_NETWORKS_ALL) {
@@ -940,11 +987,16 @@ export function mountAccountSystem(app) {
   const gcTimer = setInterval(gcExpiredSessions, 3600 * 1000);
   if (gcTimer.unref) gcTimer.unref();
 
+  // ── Gift expiry periodic job (FR-006, SC-002, SC-003) ───────────────────
+  clearExpiredGifts();
+  const giftExpiryTimer = setInterval(clearExpiredGifts, 60_000);
+  if (giftExpiryTimer.unref) giftExpiryTimer.unref();
+
   // ── Cloud state sync (per-user workspace blob) ──────────────────────────
   app.get('/api/user/state', (req, res) => {
     if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
     const rec = readState(req.user.id);
-    res.json({ ok: true, state: rec.state || {}, updatedAt: rec.updatedAt || 0, plan: req.user.plan });
+    res.json({ ok: true, state: rec.state || {}, updatedAt: rec.updatedAt || 0, plan: effectivePlanId(req.user) });
   });
 
   app.put('/api/user/state', (req, res) => {
@@ -958,7 +1010,7 @@ export function mountAccountSystem(app) {
         return res.status(413).json({ ok: false, error: 'state_too_large' });
       }
     } catch (e) { return res.status(400).json({ ok: false, error: 'invalid_state' }); }
-    const violations = validateStateAgainstPlan(state, req.user.plan);
+    const violations = validateStateAgainstPlan(state, effectivePlanId(req.user));
     if (violations.length) {
       return res.status(403).json({ ok: false, error: 'limit_exceeded', violations });
     }
@@ -1042,13 +1094,14 @@ export function mountAccountSystem(app) {
   // ── Plans (entitlement matrix + usage) ──────────────────────────────────
   app.get('/api/plans', (req, res) => {
     const admin = isReqAdmin(req);
-    const mine = req.user ? (req.user.plan || 'basic') : null;
-    const visible = PLAN_ORDER.filter(id => admin || PLANS[id]?.isActive !== false || id === mine);
+    const effPlan = req.user ? effectivePlanId(req.user) : null;
+    const basePlan = req.user ? (req.user.plan || 'basic') : null;
+    const visible = PLAN_ORDER.filter(id => admin || PLANS[id]?.isActive !== false || id === effPlan || id === basePlan);
     res.json({
       ok: true,
       plans: Object.fromEntries(visible.map(id => [id, { ...PLANS[id] }])),
       planOrder: visible,
-      current: req.user ? (req.user.plan || 'basic') : null,
+      current: effPlan,
       usage: req.user ? computeUsage(req.user) : null,
       isAdmin: isReqAdmin(req)
     });
@@ -1058,10 +1111,11 @@ export function mountAccountSystem(app) {
   mountAdminApi(app, {
     users, sessions, flushNow, publicUser, PLANS, PLAN_ORDER, readState, statePath, stateCache,
     revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, STATE_DIR,
-    defaultPlanId: () => (Object.values(PLANS).find(p => p.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]]).id
+    effectivePlanId,
+    defaultPlanId
   });
 
-  mountTradeRelay(app, { users, flushNow, PLANS, rateGate });
+  mountTradeRelay(app, { users, flushNow, PLANS, rateGate, effectivePlanId });
 
   // ── Admin: Full Plans Catalog & Management ───────────────────────────────
   app.get('/api/admin/plans', (req, res) => {
@@ -1180,17 +1234,28 @@ export function mountAccountSystem(app) {
     const defaultPlan = Object.values(PLANS).find(p => p.isDefault && p.id !== id) || PLANS.basic || Object.values(PLANS).find(p => p.id !== id);
     const fallbackId = defaultPlan.id;
 
-    // Migrate any users on this plan to fallback plan
+    // Migrate any users on this plan to fallback plan, and remove gifts on this plan (FR-007)
     const uStore = users();
     let migratedCount = 0;
+    let giftsRevokedCount = 0;
     uStore.users.forEach(u => {
       if (u.plan === id) {
         u.plan = fallbackId;
         u.planSince = Date.now();
         migratedCount++;
       }
+      if (u.gift && u.gift.plan === id) {
+        const oldGift = u.gift;
+        u.gift = null;
+        giftsRevokedCount++;
+        audit(req, 'user.gift_revoke', u.id, {
+          plan: oldGift.plan,
+          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
+          reason: 'plan_deleted'
+        });
+      }
     });
-    if (migratedCount > 0) {
+    if (migratedCount > 0 || giftsRevokedCount > 0) {
       flushNow();
     }
 
@@ -1277,6 +1342,16 @@ export function mountAccountSystem(app) {
     let migrated = 0;
     for (const u of users().users) {
       if (!PLANS[u.plan || 'basic']) { u.plan = fallback; u.planSince = Date.now(); migrated++; }
+      if (u.gift && !PLANS[u.gift.plan]) {
+        const oldGift = u.gift;
+        u.gift = null;
+        migrated++;
+        audit(req, 'user.gift_revoke', u.id, {
+          plan: oldGift.plan,
+          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
+          reason: 'plan_deleted'
+        });
+      }
     }
     if (migrated) flushNow();
     savePlansStore();
