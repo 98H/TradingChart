@@ -24,4 +24,4 @@ effective-plan tests can only grant a gift through the admin API.
 
 ## Phase 3: Trading app UI
 
-- [ ] T012 [US3] Make `plan()` and entitlements use `user.effectivePlan`, and show the «اشتراک هدیه» / "Gift subscription" badge with «تا <تاریخ>» / "until <date>" or «نامحدود» / "Unlimited" in the avatar menu, account dialog and plans dialog in client/src/authManager.js (FR-012, FR-013)
+- [x] T012 [US3] Make `plan()` and entitlements use `user.effectivePlan`, and show the «اشتراک هدیه» / "Gift subscription" badge with «تا <تاریخ>» / "until <date>" or «نامحدود» / "Unlimited" in the avatar menu, account dialog and plans dialog in client/src/authManager.js (FR-012, FR-013)

@@ -1,9 +1,9 @@
 {
   "feature": "013-gift-subscriptions",
   "phase": 3,
-  "attempt": 1,
-  "pass": false,
-  "at": "2026-10-27T18:42:49.555Z",
+  "attempt": 2,
+  "pass": true,
+  "at": "2026-10-27T19:27:26.979Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -38,8 +38,8 @@
       "summary": "ok"
     },
     "regression": {
-      "pass": false,
-      "summary": "exit 1"
+      "pass": true,
+      "summary": "ok"
     }
   },
   "highRisk": [

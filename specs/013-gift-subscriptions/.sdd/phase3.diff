@@ -1,0 +1,339 @@
+diff --git a/client/src/authManager.js b/client/src/authManager.js
+index 1b05ce3..97eb253 100644
+--- a/client/src/authManager.js
++++ b/client/src/authManager.js
+@@ -56,6 +56,19 @@ const SYNC_MAP = {
+ const LS_PREFIX = 'tradingchart_';
+ const LOCAL_MIRROR = 'tradingchart_auth_mirror'; // guest→user handoff buffer
+ 
++function formatGiftExpiry(expiresAt, isFa) {
++  if (expiresAt == null) {
++    return isFa ? 'نامحدود' : 'Unlimited';
++  }
++  const d = new Date(Number(expiresAt));
++  if (isFa) {
++    const formatted = d.toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' });
++    return `تا ${toPersianDigits(formatted)}`;
++  }
++  const formatted = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
++  return `until ${formatted}`;
++}
++
+ export class AuthManager {
+   constructor(app) {
+     this.app = app;
+@@ -82,10 +95,16 @@ export class AuthManager {
+     }
+     // 2. Guest handoff: a previous signup/login stored a local mirror
+     this.restoreGuestMirror();
+-    this.entitlements = PLANS[this.user?.plan || 'basic'] || PLANS.basic;
++    this.entitlements = PLANS[this.plan()] || PLANS.basic;
+     await this.refreshPlans();
+     // 3. Sync direction: cloud → local on boot (logged-in), local → cloud after
+     if (this.user) {
++      try {
++        const saved = JSON.parse(localStorage.getItem('tradingchart_user_settings') || '{}');
++        if (!saved.language && getLanguage() !== 'fa') {
++          this.app?.switchLanguage?.('fa');
++        }
++      } catch (e) {}
+       await this.pullCloudState();
+       this.syncAuthUserToProfile();
+     }
+@@ -95,8 +114,39 @@ export class AuthManager {
+     this.observeStorage();
+   }
+ 
++  async load() {
++    try {
++      const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
++      const data = await res.json();
++      this.user = data.user || null;
++    } catch (e) {
++      this.user = null;
++    }
++    this.entitlements = PLANS[this.plan()] || PLANS.basic;
++    await this.refreshPlans();
++    this.renderAccountBadge();
++    return this.user;
++  }
++
+   // ── Entitlement helpers ────────────────────────────────────────────────
+-  plan() { return this.user?.plan || 'basic'; }
++  plan() {
++    if (this.user?.gift) {
++      if (this.user.gift.expiresAt != null && Number(this.user.gift.expiresAt) <= Date.now()) {
++        return this.user.plan || 'basic';
++      }
++    }
++    return this.user?.effectivePlan || this.user?.plan || 'basic';
++  }
++
++  hasActiveGift() {
++    if (!this.user?.gift) return false;
++    if (this.user.gift.expiresAt != null && Number(this.user.gift.expiresAt) <= Date.now()) return false;
++    return true;
++  }
++
++  giftInfo() {
++    return this.hasActiveGift() ? this.user.gift : null;
++  }
+   ent(key) {
+     if (!this.entitlements) return undefined;
+     if (this.entitlements.features && this.entitlements.features[key] !== undefined) {
+@@ -210,7 +260,7 @@ export class AuthManager {
+         }
+         Object.keys(PLANS).forEach(k => delete PLANS[k]);
+         Object.assign(PLANS, data.plans);
+-        const curPlan = this.user?.plan || data.current || 'basic';
++        const curPlan = this.plan() || data.current || 'basic';
+         this.entitlements = data.plans[curPlan] || data.plans.basic || this.entitlements;
+         this.usage = data.usage || null;
+         this.adminSession = data.isAdmin === true;
+@@ -455,7 +505,7 @@ export class AuthManager {
+     const r = await this.api('register', { body: { email, username, password, displayName } });
+     if (r.ok) {
+       this.user = r.data.user;
+-      this.entitlements = PLANS[this.user.plan] || PLANS.basic;
++      this.entitlements = PLANS[this.plan()] || PLANS.basic;
+       this.stashGuestMirror();
+       await this.pullCloudState();
+       this.syncAuthUserToProfile();
+@@ -475,7 +525,7 @@ export class AuthManager {
+     }
+     if (r.ok) {
+       this.user = r.data.user;
+-      this.entitlements = PLANS[this.user.plan] || PLANS.basic;
++      this.entitlements = PLANS[this.plan()] || PLANS.basic;
+       this.stashGuestMirror();
+       // Snapshot the pre-pull UI language: the cloud pull may carry an older
+       // stored preference that would silently flip the user's current choice.
+@@ -572,9 +622,9 @@ export class AuthManager {
+     }
+     if (res.ok && data.ok) {
+       this.user = data.user;
+-      this.entitlements = PLANS[planId] || PLANS.basic;
++      this.entitlements = PLANS[this.plan()] || PLANS.basic;
+       this.renderAccountBadge();
+-      this.app?.onPlanChanged?.(planId);
++      this.app?.onPlanChanged?.(this.plan());
+     }
+     return { ok: res.ok && data.ok, data };
+   }
+@@ -607,10 +657,11 @@ export class AuthManager {
+           ? this.user.displayName.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+           : this.user.username.slice(0, 2).toUpperCase();
+         if (circle) circle.textContent = initials || 'TC';
+-      }
+-      badge.title = `${this.user.displayName || this.user.username} · ${this.planLabel()} · ${this.user.email}`;
+-      badge.dataset.auth = 'in';
+-      badge.dataset.plan = this.plan();
++        }
++        const giftHint = this.hasActiveGift() ? (isFa ? ' (اشتراک هدیه)' : ' (Gift subscription)') : '';
++        badge.title = `${this.user.displayName || this.user.username} · ${this.planLabel()}${giftHint} · ${this.user.email}`;
++        badge.dataset.auth = 'in';
++        badge.dataset.plan = this.plan();
+     } else {
+       const up = this.app?.userProfileModal?.profile || (() => {
+         try {
+@@ -654,6 +705,11 @@ export class AuthManager {
+         this.closeAccountMenu();
+       }
+     });
++    document.addEventListener('keydown', (e) => {
++      if (e.key === 'Escape' && this.menuOpen) {
++        this.closeAccountMenu();
++      }
++    });
+   }
+ 
+   openAccountMenu() {
+@@ -692,13 +748,28 @@ export class AuthManager {
+       ? `<span style="color: var(--accent-cyan, #00F2B0);">✓ ${isFa ? 'تأییدشده' : 'Verified'}</span>`
+       : `<span style="color: #f59e0b; cursor: pointer;" data-act="verify">${isFa ? 'تأیید ایمیل' : 'Verify email'}</span>`;
+     const planBadge = `<span style="background: rgba(0,242,176,0.12); color: var(--accent-cyan, #00F2B0); padding: 2px 8px; border-radius: 20px; font-weight: 700; font-size: 10px;">${this.planLabel()}</span>`;
++    const gift = this.giftInfo();
++    let giftBadgeHtml = '';
++    let giftRowHtml = '';
++    if (gift) {
++      const expiryText = formatGiftExpiry(gift.expiresAt, isFa);
++      giftBadgeHtml = `<span class="badge-gift" style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.35); padding: 2px 8px; border-radius: 20px; font-weight: 700; font-size: 10px; display:inline-flex; align-items:center; gap:3px;">🎁 ${isFa ? 'اشتراک هدیه' : 'Gift subscription'}</span>`;
++      giftRowHtml = `<div class="tc-gift-expiry-row" style="font-size: 11px; color: #93c5fd; display:flex; align-items:center; gap:5px; margin-top:2px;">
++        <span style="opacity:0.85;">${isFa ? 'اعتبار هدیه:' : 'Gift expiry:'}</span>
++        <strong style="font-weight:700;">${expiryText}</strong>
++      </div>`;
++    }
+     return `
+       <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); display:flex; flex-direction:column; gap:4px;">
+         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+           <strong style="font-size:13px;">${escapeHtml(u.displayName || u.username)}</strong>
+-          ${planBadge}
++          <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
++            ${planBadge}
++            ${giftBadgeHtml}
++          </div>
+         </div>
+         <div style="color: var(--text-dim, #8b93a7); direction:ltr; text-align:${isFa ? 'right' : 'left'}; font-size:11px;">${escapeHtml(u.email)} · ${verified}</div>
++        ${giftRowHtml}
+       </div>
+       <div style="padding: 6px;">
+         ${this.menuItem('profile', isFa ? 'پروفایل و تنظیمات' : 'Profile & Settings', '👤')}
+@@ -1116,7 +1187,7 @@ export class AuthManager {
+   // bio/about, location, signature, plan-gated social links, member-since date.
+   renderProfileTab(body, u, isFa) {
+     const sec = (title) => `<div style="font-size:11px; font-weight:800; color:var(--text-dim,#8b93a7); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">${title}</div>`;
+-    const plan = u.plan || 'basic';
++    const plan = this.plan();
+     const allowedSocial = { basic: ['x', 'youtube'], essential: ['x', 'youtube', 'facebook', 'instagram'], plus: ['x', 'youtube', 'facebook', 'instagram'], premium: ['x', 'youtube', 'facebook', 'instagram', 'website'], ultimate: ['x', 'youtube', 'facebook', 'instagram', 'website'] }[plan] || ['x', 'youtube'];
+     const social = u.socialLinks || {};
+     const socialMeta = [
+@@ -1281,6 +1352,19 @@ export class AuthManager {
+         ? `<span style="color: var(--accent-cyan,#00F2B0); font-size:11px;">✓ ${isFa ? 'ایمیل تأیید شده' : 'Email verified'}</span>`
+         : `<button id="acc-verify-btn" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:none; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;">${isFa ? 'تأیید ایمیل' : 'Verify email'}</button>`;
+       const since = u.planSince ? new Date(u.planSince).toLocaleDateString(isFa ? 'fa-IR' : 'en-US') : '—';
++      const gift = this.giftInfo();
++      const planNameMap = { basic: isFa ? 'پایه' : 'Basic', essential: isFa ? 'اسنشیال' : 'Essential', plus: isFa ? 'پلاس' : 'Plus', premium: isFa ? 'پریمیوم' : 'Premium', ultimate: isFa ? 'آلتیمیت' : 'Ultimate' };
++      const basePlanName = planNameMap[u.plan] || u.plan || (isFa ? 'پایه' : 'Basic');
++      let giftAccountHtml = '';
++      if (gift) {
++        const expiryText = formatGiftExpiry(gift.expiresAt, isFa);
++        giftAccountHtml = `
++          <div style="display:flex; align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap;">
++            <span class="badge-gift" style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.35); padding: 2px 8px; border-radius: 20px; font-weight: 700; font-size: 11px;">🎁 ${isFa ? 'اشتراک هدیه' : 'Gift subscription'}</span>
++            <span style="font-size:12px; color:#93c5fd; font-weight:600;">${expiryText}</span>
++          </div>
++          ${row(isFa ? 'پلن پایه' : 'Base plan', basePlanName)}`;
++      }
+       body.innerHTML = `
+         ${sec(isFa ? 'مشخصات' : 'Profile')}
+         <div style="display:flex; align-items:center; gap:10px; background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+@@ -1293,10 +1377,14 @@ export class AuthManager {
+         </div>
+         ${sec(isFa ? 'پلن و صورت‌حساب' : 'Plan & Billing')}
+         <div style="background:var(--bg-surface,#0c1017); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:6px;">
+-          <div style="display:flex; justify-content:space-between; align-items:center;">
+-            <div style="font-size:13px; font-weight:800;">${this.planLabel()}</div>
++          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
++            <div style="display:flex; align-items:center; gap:6px;">
++              <div style="font-size:13px; font-weight:800;">${this.planLabel()}</div>
++              ${gift ? `<span style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.35); padding: 1px 7px; border-radius: 12px; font-weight: 700; font-size: 10px;">${isFa ? 'اشتراک هدیه' : 'Gift subscription'}</span>` : ''}
++            </div>
+             <button id="acc-compare-btn" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;">${isFa ? 'مقایسه و تغییر پلن' : 'Compare & change plan'}</button>
+           </div>
++          ${giftAccountHtml}
+           ${row(isFa ? 'فعال از' : 'Active since', since)}
+         </div>
+         ${sec(isFa ? 'مصرف نسبت به سقف پلن' : 'Usage vs plan limits')}
+@@ -1569,16 +1657,32 @@ export class AuthManager {
+     const plans = PLAN_ORDER.map(id => this.plansMeta[id] || PLANS[id]).filter(Boolean);
+     const current = this.plan();
+     const pendingPlan = this.user?.planRequest?.plan || null;
++    const gift = this.giftInfo();
+     const grid = plans.map(p => {
+       const isCurrent = p.id === current;
++      const isGiftPlan = Boolean(gift && gift.plan === p.id);
++      const isBasePlan = Boolean(gift && p.id === (this.user?.plan || 'basic'));
++      const isDatedGift = Boolean(gift && gift.expiresAt != null);
+       const pColor = p.color || 'var(--accent-cyan,#00F2B0)';
+       const pBadge = isFa ? (p.badgeFa || p.badge) : p.badge;
++
++      const expiryText = isGiftPlan ? formatGiftExpiry(gift.expiresAt, isFa) : '';
++
+       return `
+-        <div style="border:1px solid ${isCurrent ? pColor : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; width:155px; min-width:155px; flex-shrink:0; box-sizing:border-box;">
++        <div class="plan-card plan-card-${p.id}" style="border:1px solid ${isCurrent ? pColor : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; width:155px; min-width:155px; flex-shrink:0; box-sizing:border-box;">
+           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+             <strong style="font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${getPlanName(p)}</strong>
+             ${isCurrent ? `<span style="font-size:9px; background:${pColor}; color:#04121e; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${isFa ? 'پلن فعلی' : 'CURRENT'}</span>` : (pBadge ? `<span style="font-size:9px; background:${pColor}22; color:${pColor}; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${escapeHtml(pBadge)}</span>` : '')}
+           </div>
++          ${isGiftPlan ? `
++            <div style="display:flex; flex-direction:column; gap:3px;">
++              <span class="badge-gift" style="font-size:9px; background:rgba(59,130,246,0.22); color:#93c5fd; border:1px solid rgba(59,130,246,0.4); padding:2px 7px; border-radius:12px; font-weight:800; width:fit-content;">🎁 ${isFa ? 'اشتراک هدیه' : 'Gift subscription'}</span>
++              <span style="font-size:10px; color:#93c5fd; font-weight:600;">${expiryText}</span>
++            </div>` : ''}
++          ${isBasePlan && isDatedGift ? `
++            <div style="font-size:10px; color:#f59e0b; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); border-radius:6px; padding:3px 6px; text-align:center; font-weight:700;">
++              ${isFa ? 'پلن پایه (پس از پایان اشتراک هدیه)' : 'Base plan (after gift ends)'}
++            </div>` : ''}
+           <div style="font-size:16px; font-weight:800; color:${pColor};">${p.priceUSD === 0 ? (isFa ? 'رایگان' : 'Free') : '$' + (isFa ? toPersianDigits(String(p.priceUSD)) : p.priceUSD)}<span style="font-size:10px; color:var(--text-dim); font-weight:400;">${p.priceUSD ? (isFa ? '/ماه' : '/mo') : ''}</span></div>
+           ${(() => {
+             const isReq = pendingPlan === p.id;
+@@ -1591,6 +1695,20 @@ export class AuthManager {
+         </div>`;
+     }).join('');
+ 
++    let giftBanner = '';
++    if (gift) {
++      const expiryText = formatGiftExpiry(gift.expiresAt, isFa);
++      giftBanner = `
++        <div id="tc-plan-gift-banner" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; border:1px solid rgba(59,130,246,0.35); background:rgba(59,130,246,0.1); border-radius:10px; color:#cfe0ff; font-size:12px;">
++          <div style="display:flex; align-items:center; gap:8px;">
++            <span style="font-size:15px;">🎁</span>
++            <strong style="color:#fff;">${isFa ? 'اشتراک هدیه فعال' : 'Active gift subscription'}:</strong>
++            <span>${isFa ? `پلن «${planNames[gift.plan] || gift.plan}» (${expiryText})` : `Plan “${planNames[gift.plan] || gift.plan}” (${expiryText})`}</span>
++          </div>
++          <span class="badge-gift" style="background:rgba(59,130,246,0.22); color:#93c5fd; border:1px solid rgba(59,130,246,0.4); padding:2px 8px; border-radius:12px; font-weight:800; font-size:10px;">${isFa ? 'اشتراک هدیه' : 'Gift subscription'}</span>
++        </div>`;
++    }
++
+     const table = `
+       <div style="overflow-x:auto;">
+         <table style="width:100%; border-collapse:collapse; font-size:11px; min-width:560px;">
+@@ -1624,6 +1742,7 @@ export class AuthManager {
+           </div>
+         </div>
+         <div style="padding:16px 18px; display:flex; flex-direction:column; gap:14px;">
++          ${giftBanner}
+           <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin; -webkit-overflow-scrolling:touch;">${grid}</div>
+           ${this.usage ? `<div style="font-size:11px; color:var(--text-dim);">${isFa ? `مصرف فعلی: ${toPersianDigits(String(this.usage.layouts))} چیدمان · ${toPersianDigits(String(this.usage.watchlists))} واچ‌لیست · ${toPersianDigits(String(Math.round(this.usage.stateBytes / 1024)))} کیلوبایت فضای ابری` : `Current usage: ${this.usage.layouts} layouts · ${this.usage.watchlists} watchlists · ${Math.round(this.usage.stateBytes / 1024)} KB cloud`}</div>` : ''}
+           ${table}
+@@ -1631,32 +1750,33 @@ export class AuthManager {
+         </div>
+       </div>`;
+     document.body.appendChild(overlay);
++    const close = () => overlay.remove();
+     overlay.addEventListener('click', async (e) => {
+-      if (e.target === overlay || e.target.closest('[data-close]')) { overlay.remove(); return; }
++      if (e.target === overlay || e.target.closest('[data-close]')) { close(); return; }
+       if (e.target.closest('#tc-plans-open-admin')) {
+-        overlay.remove();
++        close();
+         this.openPlanAdminStudio('plans');
+         return;
+       }
+       if (e.target.closest('#tc-plan-cancel-req')) {
+         const r = await this.cancelPlanRequest();
+         const isFa2 = getLanguage() === 'fa';
+-        overlay.remove();
++        close();
+         if (r.ok) { this.app?.showToast?.(isFa2 ? 'درخواست ارتقا لغو شد.' : 'Upgrade request withdrawn.', 'success'); this.openPlansModal(); }
+         else this.app?.showToast?.(isFa2 ? 'لغو درخواست ناموفق بود.' : 'Could not withdraw the request.', 'error');
+         return;
+       }
+-      const btn = e.target.closest('[data-plan]');
++      const btn = e.target.closest('button[data-plan]');
+       if (btn && !btn.disabled) {
+         const planId = btn.dataset.plan;
+         btn.disabled = true;
+         const r = await this.switchPlanWithStateGuard(planId);
+         const isFa2 = getLanguage() === 'fa';
+         if (r.ok && r.data?.pending) {
+-          overlay.remove();
++          close();
+           this.app?.showToast?.(isFa2 ? `درخواست ارتقا به «${planNames[planId]}» ثبت شد؛ پس از تأیید پرداخت فعال می‌شود.` : `Upgrade to ${planNames[planId]} requested; it activates once payment is confirmed.`, 'success');
+         } else if (r.ok) {
+-          overlay.remove();
++          close();
+           this.app?.showToast?.(isFa2 ? `پلن شما به «${planNames[planId]}» تغییر کرد.` : `Plan switched to ${planNames[planId]}.`, 'success');
+         } else {
+           btn.disabled = false;
+@@ -1664,6 +1784,9 @@ export class AuthManager {
+         }
+       }
+     });
++    document.addEventListener('keydown', function esc(e) {
++      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
++    });
+   }
+ 
+   // ── Devices modal ───────────────────────────────────────────────────────
