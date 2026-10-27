@@ -212,14 +212,9 @@ async function run() {
       'FR-009 supported timeframes', 'Expected timeframe list containing 60');
     assert(info.capabilities && info.capabilities.stream === true, 'FR-009 stream capability', 'Expected stream=true');
 
-    // Edge case: Error fallback produces neutral seed bar or cached series (SC-005)
+    // Edge case (amended by spec 014 FR-012): no fabricated bar — unknown symbol yields an empty series
     const seedBars = await provider.getBars('UNKNOWN_DEAD_SYM', '60', { limit: 10 });
-    assert(Array.isArray(seedBars) && seedBars.length === 1, 'FR-009 fallback seed bar array', 'Expected single seed bar');
-    const seed = seedBars[0];
-    assert(seed.open === 100 && seed.high === 100 && seed.low === 100 && seed.close === 100 && seed.volume === 0,
-      'FR-009 neutral seed bar values', `Unexpected seed bar: ${JSON.stringify(seed)}`);
-    assert(typeof seed.time === 'number' && typeof seed.openTime === 'number',
-      'FR-009 seed bar timestamps', 'Missing time or openTime on seed bar');
+    assert(Array.isArray(seedBars) && seedBars.length === 0, 'FR-009 fallback without fabricated bar (014 FR-012)', `Expected [], got ${JSON.stringify(seedBars).slice(0, 120)}`);
 
     // Coalescing: subscribe() throttles callbacks to at most once per 250 ms
     let onBarCalls = 0;
