@@ -1,0 +1,10 @@
+{
+  "spec": "013",
+  "frozenAt": "2026-10-27T14:07:13.654Z",
+  "files": {
+    "tests/acceptance/013/01_effective_plan_entitlements_and_lifecycle.test.cjs": "7c1ce9cb0410722883c58b8ca0c0884db989357b37f677df17b410fa286ad67d",
+    "tests/acceptance/013/02_admin_gift_api_validation_and_bulk.test.cjs": "e39e9662ec3face47971e404a233d9a0fc85fd92067c3dfecbd4de3734179470",
+    "tests/acceptance/013/03_admin_overview_metrics_filtering_and_ui.test.cjs": "163a5f9bb1eeb9a50d0e85c026eba21e5d05276ae80fcc826f6270439f19884c",
+    "tests/acceptance/013/04_trading_app_avatar_plans_modal_and_gates.test.cjs": "c3599a02f449b858633afdea7a48085d896bdb8bd2c45588d90c947d22706088"
+  }
+}
