@@ -411,4 +411,4 @@ async function awaitRegisterWindow(fetchImpl = globalThis.fetch) {
   return false;
 }
 
-module.exports = { launch, boot, errorsOf, auditStatic, shots, runSuite, INPAGE, BASE, VIEWPORTS, EVID, awaitRegisterWindow };
+module.exports = { closeAllBrowsers, launch, boot, errorsOf, auditStatic, shots, runSuite, INPAGE, BASE, VIEWPORTS, EVID, awaitRegisterWindow };
