@@ -1,0 +1,48 @@
+{
+  "feature": "014-data-feed-timeframes",
+  "phase": 2,
+  "attempt": 1,
+  "pass": true,
+  "at": "2026-10-27T21:44:41.445Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18088"
+    },
+    "acceptance": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "ui": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    }
+  },
+  "highRisk": [],
+  "knownGapsSkipped": [],
+  "deferredToLaterPhase": [
+    "tests/acceptance/014/01_server_timeframes_grammar_and_aggregation.test.cjs",
+    "tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs"
+  ],
+  "escalate": false
+}

@@ -16,11 +16,11 @@ demo engine; acceptance files covering FR-006 therefore run from Phase 2.
 
 ## Phase 2: Demo engine — sessions, deterministic path, one price everywhere
 
-- [ ] T007 [US2] Create server/marketSessions.js with the session table of data-model.md and helpers `isSessionDay`, `sessionWindows` (FR-008)
-- [ ] T008 [US2] Create server/demoPath.js: seeded daily layer since 2000-01-03 on session days, minute and second Brownian-bridge layers that aggregate exactly to their parent bar, `demoBars(symbol, tf, {limit, from, to})`, `demoPrice(symbol, now)` (FR-007, FR-008)
-- [ ] T009 [US2] Route every non-crypto symbol in server/dataFeed.js `getCandles` to `demoBars` with `source:"demo"`, delete `generateContinuousBars`, and honour `from_time`/`to_time` (seconds→ms, from > to → 400 in server/index.js) for crypto and demo (FR-006, FR-007)
-- [ ] T010 [US2] Make server/dataFeed.js `get24hTicker` for every non-crypto market use `demoPrice` and the last 24 h of the path; keep the ws tick in server/index.js and the simulated ladder in server/depthFeed.js on that ticker (FR-009)
-- [ ] T011 [P] [US2] Keep server/technicalScreener.js working with the new `getCandles` results (FR-009)
+- [x] T007 [US2] Create server/marketSessions.js with the session table of data-model.md and helpers `isSessionDay`, `sessionWindows` (FR-008)
+- [x] T008 [US2] Create server/demoPath.js: seeded daily layer since 2000-01-03 on session days, minute and second Brownian-bridge layers that aggregate exactly to their parent bar, `demoBars(symbol, tf, {limit, from, to})`, `demoPrice(symbol, now)` (FR-007, FR-008)
+- [x] T009 [US2] Route every non-crypto symbol in server/dataFeed.js `getCandles` to `demoBars` with `source:"demo"`, delete `generateContinuousBars`, and honour `from_time`/`to_time` (seconds→ms, from > to → 400 in server/index.js) for crypto and demo (FR-006, FR-007)
+- [x] T010 [US2] Make server/dataFeed.js `get24hTicker` for every non-crypto market use `demoPrice` and the last 24 h of the path; keep the ws tick in server/index.js and the simulated ladder in server/depthFeed.js on that ticker (FR-009)
+- [x] T011 [P] [US2] Keep server/technicalScreener.js working with the new `getCandles` results (FR-009)
 
 ## Phase 3: Client — live bucketing, no fabricated bar, notices, timeframe UI
 
