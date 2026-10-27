@@ -18,9 +18,9 @@ effective-plan tests can only grant a gift through the admin API.
 
 ## Phase 2: Admin console UI
 
-- [ ] T009 [US1] Add the gift card (current gift, Grant/Replace dialog with plan, expiry date vs Unlimited, note; Revoke with confirmation) to the user drawer overview in client/admin/admin.js (FR-010, FR-013)
-- [ ] T010 [US4] Add the gift badge + expiry in the users table and mobile cards, the "Gift" status filter, the "Grant gift" bulk action and the "Active gifts" dashboard KPI in client/admin/admin.js (FR-011, FR-009, FR-013)
-- [ ] T011 [P] [US1] Add FA/EN messages for `invalid_expiry`, `invalid_note`, `no_gift`, `plan_inactive` and gift audit action names in client/admin/core.js (FR-013)
+- [x] T009 [US1] Add the gift card (current gift, Grant/Replace dialog with plan, expiry date vs Unlimited, note; Revoke with confirmation) to the user drawer overview in client/admin/admin.js (FR-010, FR-013)
+- [x] T010 [US4] Add the gift badge + expiry in the users table and mobile cards, the "Gift" status filter, the "Grant gift" bulk action and the "Active gifts" dashboard KPI in client/admin/admin.js (FR-011, FR-009, FR-013)
+- [x] T011 [P] [US1] Add FA/EN messages for `invalid_expiry`, `invalid_note`, `no_gift`, `plan_inactive` and gift audit action names in client/admin/core.js (FR-013)
 
 ## Phase 3: Trading app UI
 
