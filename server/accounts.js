@@ -641,7 +641,8 @@ export function clearExpiredGifts(now = Date.now()) {
 }
 
 // ── Public shapes ─────────────────────────────────────────────────────────
-function publicUser(u) {
+export function publicUser(u) {
+  if (!u) return null;
   const effPlan = effectivePlanId(u);
   const gift = (u.gift && u.gift.plan && PLANS[u.gift.plan] && (u.gift.expiresAt == null || Number(u.gift.expiresAt) > Date.now()))
     ? { plan: u.gift.plan, expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null }
@@ -691,11 +692,24 @@ export function mountAccountSystem(app) {
           removeSessionById(row.id); scheduleFlush();
         } else {
           const u = users().users.find(x => x.id === row.userId);
-          if (u && !u.suspended) {
+          if (u) {
             req.user = u; req.sessionRow = row;
-            row.lastSeen = Date.now();
+            if (!u.suspended) {
+              row.lastSeen = Date.now();
+            }
           }
         }
+      }
+    }
+    next();
+  });
+
+  // Guard against suspended accounts making authenticated API requests
+  app.use((req, res, next) => {
+    if (req.user && req.user.suspended) {
+      if (req.path === '/api/auth/logout' || req.path === '/logout') return next();
+      if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/user/')) {
+        return res.status(403).json({ ok: false, error: 'account_suspended' });
       }
     }
     next();

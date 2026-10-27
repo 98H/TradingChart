@@ -19,7 +19,8 @@ const BOOT_AT = Date.now();
 
 export function mountAdminApi(app, d) {
   // d = { users, sessions, flushNow, publicUser, PLANS, PLAN_ORDER, readState, statePath,
-  //       stateCache, revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, defaultPlanId, STATE_DIR }
+  //       stateCache, revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, defaultPlanId, STATE_DIR,
+  //       effectivePlanId }
 
   const guard = (req, res) => {
     if (isReqAdmin(req)) return false;
@@ -29,6 +30,13 @@ export function mountAdminApi(app, d) {
   const findUser = id => d.users().users.find(u => u.id === id) || null;
   const isSelf = (req, u) => !!(req.user && u && req.user.id === u.id);
   const adminCount = () => d.users().users.filter(u => !u.suspended && (u.role === 'admin' || u.isAdmin === true)).length;
+
+  function hasActiveGift(u, now = Date.now()) {
+    if (!u || !u.gift || !u.gift.plan) return false;
+    if (!d.PLANS[u.gift.plan]) return false;
+    if (u.gift.expiresAt != null && !isNaN(Number(u.gift.expiresAt)) && Number(u.gift.expiresAt) <= now) return false;
+    return true;
+  }
 
   function stateBytes(uid) {
     try { return fs.statSync(d.statePath(uid)).size; } catch (e) { return 0; }
@@ -46,8 +54,18 @@ export function mountAdminApi(app, d) {
   const typeOk = (u, type) => !type || type === 'all' || (type === 'test' ? isTestUser(u) : !isTestUser(u));
   function adminRow(u, ls) {
     const pu = d.publicUser(u);
+    const effPlan = typeof d.effectivePlanId === 'function' ? d.effectivePlanId(u) : (u.plan || 'basic');
+    const gift = u.gift ? {
+      plan: u.gift.plan,
+      expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null,
+      grantedAt: Number(u.gift.grantedAt) || 0,
+      grantedBy: String(u.gift.grantedBy || ''),
+      note: String(u.gift.note || '')
+    } : null;
     return {
       ...pu,
+      effectivePlan: effPlan,
+      gift,
       isTest: isTestUser(u), testOverride: typeof u.testAccount === 'boolean',
       suspended: !!u.suspended, suspendedAt: u.suspendedAt || null, suspendReason: u.suspendReason || '',
       notes: u.notes || '',
@@ -103,6 +121,7 @@ export function mountAdminApi(app, d) {
     const planDist = {};
     for (const id of d.PLAN_ORDER) planDist[id] = 0;
     let mrr = 0, verified = 0, twofa = 0, suspended = 0, admins = 0, paid = 0, planRequests = 0;
+    let gifts = 0;
     let new24 = 0, new7 = 0, new30 = 0, prev30 = 0, active24 = 0, active7 = 0;
     const days = 30;
     const signups = Array.from({ length: days }, (_, i) => {
@@ -113,8 +132,10 @@ export function mountAdminApi(app, d) {
     for (const u of all) {
       const pid = d.PLANS[u.plan] ? u.plan : d.defaultPlanId();
       planDist[pid] = (planDist[pid] || 0) + 1;
+      const isGiftActive = hasActiveGift(u, now);
+      if (isGiftActive) gifts++;
       const price = Number(d.PLANS[pid]?.priceUSD || 0);
-      if (price > 0 && !u.suspended) { mrr += price; paid++; }
+      if (price > 0 && !u.suspended && !isGiftActive) { mrr += price; paid++; }
       if (u.emailVerified) verified++;
       if (u.totpSecret) twofa++;
       if (u.suspended) suspended++;
@@ -139,7 +160,7 @@ export function mountAdminApi(app, d) {
       kpi: {
         users: all.length, new24, new7, new30, prev30, active24, active7, activeSessions, adminSessions: listAdminSessions().length,
         verified, twofa, suspended, admins, paid, planRequests, mrr: Math.round(mrr * 100) / 100,
-        plans: d.PLAN_ORDER.length
+        plans: d.PLAN_ORDER.length, gifts
       },
       planDist: d.PLAN_ORDER.map(id => ({ id, nameEn: d.PLANS[id]?.nameEn || id, nameFa: d.PLANS[id]?.nameFa || id, color: d.PLANS[id]?.color || '#00F2B0', count: planDist[id] || 0, priceUSD: d.PLANS[id]?.priceUSD || 0 })),
       signups, recentUsers, recentEvents
@@ -150,6 +171,7 @@ export function mountAdminApi(app, d) {
   function filteredUsers(q) {
     const ls = lastSeenMap();
     const term = String(q.q || '').trim().toLowerCase();
+    const now = Date.now();
     let rows = d.users().users.filter(u => {
       if (term && !(u.email.includes(term) || u.usernameLower.includes(term) || String(u.displayName || '').toLowerCase().includes(term) || u.id.toLowerCase() === term)) return false;
       if (q.plan && q.plan !== 'all' && (u.plan || 'basic') !== q.plan) return false;
@@ -161,6 +183,7 @@ export function mountAdminApi(app, d) {
       if (q.status === 'verified' && !u.emailVerified) return false;
       if (q.status === 'twofa' && !u.totpSecret) return false;
       if (q.status === 'plan_request' && !(u.planRequest && d.PLANS[u.planRequest.plan])) return false;
+      if (q.status === 'gift' && !hasActiveGift(u, now)) return false;
       return true;
     }).map(u => adminRow(u, ls));
     const sort = ['createdAt', 'lastSeen', 'username', 'email', 'plan', 'sessions'].includes(q.sort) ? q.sort : 'createdAt';
@@ -255,7 +278,6 @@ export function mountAdminApi(app, d) {
         if (s) {
           u.suspendedAt = Date.now();
           u.suspendReason = String(b.suspendReason || '').slice(0, 200);
-          d.revokeAllForUser(u.id);
         } else { u.suspendedAt = null; u.suspendReason = ''; }
       }
     }
@@ -347,27 +369,121 @@ export function mountAdminApi(app, d) {
     res.json({ ok: true, deleted: u.id });
   });
 
+  // ── Users: gift grant & revoke (FR-003, FR-004) ────────────────────────
+  app.post('/api/admin/users/:id/gift', (req, res) => {
+    if (guard(req, res)) return;
+    const u = findUser(req.params.id);
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    const { plan, expiresAt, note } = req.body || {};
+    const gPlan = String(plan || '').trim().toLowerCase();
+    if (!d.PLANS[gPlan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
+    if (d.PLANS[gPlan].isActive === false) return res.status(400).json({ ok: false, error: 'plan_inactive' });
+    if (expiresAt !== null) {
+      if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        return res.status(400).json({ ok: false, error: 'invalid_expiry' });
+      }
+    }
+    const noteStr = note !== undefined ? String(note) : '';
+    if (noteStr.length > 200) return res.status(400).json({ ok: false, error: 'invalid_note' });
+
+    const now = Date.now();
+    const a = actorOf(req);
+    const exp = expiresAt !== null ? Number(expiresAt) : null;
+    const replaced = u.gift ? {
+      plan: u.gift.plan,
+      expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null
+    } : null;
+
+    u.gift = {
+      plan: gPlan,
+      expiresAt: exp,
+      grantedAt: now,
+      grantedBy: a.label,
+      note: noteStr
+    };
+    d.flushNow();
+    audit(req, 'user.gift_grant', u.id, {
+      plan: gPlan,
+      expiresAt: exp,
+      note: noteStr,
+      replaced
+    });
+    res.json({ ok: true, user: adminRow(u, lastSeenMap()) });
+  });
+
+  app.delete('/api/admin/users/:id/gift', (req, res) => {
+    if (guard(req, res)) return;
+    const u = findUser(req.params.id);
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (!u.gift) return res.status(400).json({ ok: false, error: 'no_gift' });
+    const oldGift = u.gift;
+    u.gift = null;
+    d.flushNow();
+    audit(req, 'user.gift_revoke', u.id, {
+      plan: oldGift.plan,
+      expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
+      reason: 'admin'
+    });
+    res.json({ ok: true, user: adminRow(u, lastSeenMap()) });
+  });
+
   // ── Users: bulk actions ────────────────────────────────────────────────
   app.post('/api/admin/users/bulk', (req, res) => {
     if (guard(req, res)) return;
-    const { ids, action, plan } = req.body || {};
+    const { ids, action, plan, expiresAt, note } = req.body || {};
     if (!Array.isArray(ids) || !ids.length || ids.length > 1000) return res.status(400).json({ ok: false, error: 'invalid_ids' });
-    if (!['suspend', 'unsuspend', 'plan', 'delete', 'verify'].includes(action)) return res.status(400).json({ ok: false, error: 'invalid_action' });
+    if (!['suspend', 'unsuspend', 'plan', 'delete', 'verify', 'gift'].includes(action)) return res.status(400).json({ ok: false, error: 'invalid_action' });
     if (action === 'plan' && !d.PLANS[plan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
+    if (action === 'gift') {
+      const gPlan = String(plan || '').trim().toLowerCase();
+      if (!d.PLANS[gPlan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
+      if (d.PLANS[gPlan].isActive === false) return res.status(400).json({ ok: false, error: 'plan_inactive' });
+      if (expiresAt !== null) {
+        if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+          return res.status(400).json({ ok: false, error: 'invalid_expiry' });
+        }
+      }
+      const noteStr = note !== undefined ? String(note) : '';
+      if (noteStr.length > 200) return res.status(400).json({ ok: false, error: 'invalid_note' });
+    }
     let done = 0, skipped = 0;
+    const now = Date.now();
+    const a = actorOf(req);
     for (const id of ids) {
       const u = findUser(String(id));
       if (!u) { skipped++; continue; }
       if (isSelf(req, u) && (action === 'suspend' || action === 'delete')) { skipped++; continue; }
-      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); d.revokeAllForUser(u.id); }
+      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); }
       else if (action === 'unsuspend') { if (!u.suspended) { skipped++; continue; } u.suspended = false; u.suspendedAt = null; u.suspendReason = ''; }
       else if (action === 'plan') { if (u.plan === plan) { skipped++; continue; } u.plan = plan; u.planSince = Date.now(); if (u.planRequest?.plan === plan) u.planRequest = null; }
       else if (action === 'verify') { if (u.emailVerified) { skipped++; continue; } u.emailVerified = true; u.verifyCode = null; }
       else if (action === 'delete') deleteUser(u);
+      else if (action === 'gift') {
+        const gPlan = String(plan || '').trim().toLowerCase();
+        const exp = expiresAt !== null ? Number(expiresAt) : null;
+        const noteStr = note !== undefined ? String(note) : '';
+        const replaced = u.gift ? {
+          plan: u.gift.plan,
+          expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null
+        } : null;
+        u.gift = {
+          plan: gPlan,
+          expiresAt: exp,
+          grantedAt: now,
+          grantedBy: a.label,
+          note: noteStr
+        };
+        audit(req, 'user.gift_grant', u.id, {
+          plan: gPlan,
+          expiresAt: exp,
+          note: noteStr,
+          replaced
+        });
+      }
       done++;
     }
     d.flushNow();
-    audit(req, 'users.bulk', null, { action, plan: action === 'plan' ? plan : undefined, done, skipped });
+    audit(req, 'users.bulk', null, { action, plan: (action === 'plan' || action === 'gift') ? plan : undefined, done, skipped });
     res.json({ ok: true, done, skipped });
   });
 

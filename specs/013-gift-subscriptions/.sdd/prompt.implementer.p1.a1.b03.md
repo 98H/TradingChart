@@ -8,6 +8,9 @@ Working directory: the repository root. Feature: specs/013-gift-subscriptions. P
 
 ## Phase 1 — your share (other tasks of this phase run in parallel sessions; do not touch their files)
 - [ ] T005 [US2] Add the 60 s gift-expiry job with `user.gift_expired` audit, and remove gifts on plan deletion with `user.gift_revoke` reason `plan_deleted`, in server/accounts.js (FR-006, FR-007)
+- [ ] T006 [US1] Add `POST /api/admin/users/:id/gift` and `DELETE /api/admin/users/:id/gift` with validation and audit in server/adminApi.js, receiving `effectivePlanId` via the `mountAdminApi` dependency object in server/accounts.js (FR-003, FR-004)
+- [ ] T007 [US4] Extend `POST /api/admin/users/bulk` with `action: "gift"` in server/adminApi.js (FR-005)
+- [ ] T008 [US4] Add `gift` and `effectivePlan` to `adminRow`, `status=gift` filter, `kpi.gifts`, and exclude gift users from `mrr`/`paid` in server/adminApi.js (FR-009)
 
 
 4. Feedback from the previous attempt's gates and reviewer:
