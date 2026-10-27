@@ -1,0 +1,480 @@
+diff --git a/server/accounts.js b/server/accounts.js
+index 8aece1b..dd3d33a 100644
+--- a/server/accounts.js
++++ b/server/accounts.js
+@@ -599,14 +599,62 @@ function revokeAllForUser(userId, exceptId = null) {
+   for (let i = arr.length - 1; i >= 0; i--) if (arr[i].userId === userId && arr[i].id !== exceptId) arr.splice(i, 1);
+ }
+ 
++export function defaultPlanId() {
++  const p = Object.values(PLANS).find(x => x && x.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]];
++  return p ? p.id : 'basic';
++}
++
++export function effectivePlanId(u, now = Date.now()) {
++  if (!u) return defaultPlanId();
++  const n = (now instanceof Date) ? now.getTime() : (typeof now === 'number' ? now : Date.now());
++  if (u.gift && u.gift.plan && PLANS[u.gift.plan]) {
++    if (u.gift.expiresAt == null || Number(u.gift.expiresAt) > n) {
++      return u.gift.plan;
++    }
++  }
++  return (u.plan && PLANS[u.plan]) ? u.plan : defaultPlanId();
++}
++
++export function clearExpiredGifts(now = Date.now()) {
++  try {
++    const uStore = users();
++    let changed = false;
++    const sysReq = { headers: {}, ip: '127.0.0.1', user: { id: 'system', username: 'system' } };
++    const n = (now instanceof Date) ? now.getTime() : (typeof now === 'number' ? now : Date.now());
++    for (const u of uStore.users) {
++      if (u.gift && u.gift.expiresAt != null && !isNaN(Number(u.gift.expiresAt)) && Number(u.gift.expiresAt) <= n) {
++        const oldGift = u.gift;
++        u.gift = null;
++        changed = true;
++        audit(sysReq, 'user.gift_expired', u.id, {
++          plan: oldGift.plan,
++          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null
++        });
++      }
++    }
++    if (changed) {
++      flushNow();
++    }
++  } catch (e) {
++    console.error('[accounts] clearExpiredGifts failed:', e.message);
++  }
++}
++
+ // ── Public shapes ─────────────────────────────────────────────────────────
+-function publicUser(u) {
++export function publicUser(u) {
++  if (!u) return null;
++  const effPlan = effectivePlanId(u);
++  const gift = (u.gift && u.gift.plan && PLANS[u.gift.plan] && (u.gift.expiresAt == null || Number(u.gift.expiresAt) > Date.now()))
++    ? { plan: u.gift.plan, expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null }
++    : null;
+   return {
+     id: u.id, email: u.email, username: u.username, displayName: u.displayName,
+     bio: u.bio || '', avatarPreset: u.avatarPreset || 'mecha',
+     location: u.location || '', signature: u.signature || '',
+     socialLinks: u.socialLinks || {},
+     plan: u.plan || 'basic', planSince: u.planSince || null,
++    effectivePlan: effPlan,
++    gift,
+     role: u.role || 'user',
+     isAdmin: Boolean(u.role === 'admin' || u.isAdmin === true),
+     emailVerified: !!u.emailVerified, createdAt: u.createdAt,
+@@ -644,9 +692,11 @@ export function mountAccountSystem(app) {
+           removeSessionById(row.id); scheduleFlush();
+         } else {
+           const u = users().users.find(x => x.id === row.userId);
+-          if (u && !u.suspended) {
++          if (u) {
+             req.user = u; req.sessionRow = row;
+-            row.lastSeen = Date.now();
++            if (!u.suspended) {
++              row.lastSeen = Date.now();
++            }
+           }
+         }
+       }
+@@ -654,6 +704,17 @@ export function mountAccountSystem(app) {
+     next();
+   });
+ 
++  // Guard against suspended accounts making authenticated API requests
++  app.use((req, res, next) => {
++    if (req.user && req.user.suspended) {
++      if (req.path === '/api/auth/logout' || req.path === '/logout') return next();
++      if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/user/')) {
++        return res.status(403).json({ ok: false, error: 'account_suspended' });
++      }
++    }
++    next();
++  });
++
+   // ── Register ────────────────────────────────────────────────────────────
+   router.post('/register', (req, res) => {
+     if (rateGate(req, res, 'register', 5, 60000)) return;
+@@ -772,7 +833,7 @@ export function mountAccountSystem(app) {
+     if (b.socialLinks !== undefined) {
+       // Plan-gated social networks (TradingView parity). Unknown networks and
+       // networks above the user's tier are rejected; malformed values dropped.
+-      const allowed = SOCIAL_NETWORKS_BY_PLAN[u.plan || 'basic'] || SOCIAL_NETWORKS_BY_PLAN.basic;
++      const allowed = SOCIAL_NETWORKS_BY_PLAN[effectivePlanId(u)] || SOCIAL_NETWORKS_BY_PLAN.basic;
+       const incoming = typeof b.socialLinks === 'object' && b.socialLinks ? b.socialLinks : {};
+       const next = { ...(u.socialLinks || {}) };
+       for (const net of SOCIAL_NETWORKS_ALL) {
+@@ -940,11 +1001,16 @@ export function mountAccountSystem(app) {
+   const gcTimer = setInterval(gcExpiredSessions, 3600 * 1000);
+   if (gcTimer.unref) gcTimer.unref();
+ 
++  // ── Gift expiry periodic job (FR-006, SC-002, SC-003) ───────────────────
++  clearExpiredGifts();
++  const giftExpiryTimer = setInterval(clearExpiredGifts, 60_000);
++  if (giftExpiryTimer.unref) giftExpiryTimer.unref();
++
+   // ── Cloud state sync (per-user workspace blob) ──────────────────────────
+   app.get('/api/user/state', (req, res) => {
+     if (!req.user) return res.status(401).json({ ok: false, error: 'unauthenticated' });
+     const rec = readState(req.user.id);
+-    res.json({ ok: true, state: rec.state || {}, updatedAt: rec.updatedAt || 0, plan: req.user.plan });
++    res.json({ ok: true, state: rec.state || {}, updatedAt: rec.updatedAt || 0, plan: effectivePlanId(req.user) });
+   });
+ 
+   app.put('/api/user/state', (req, res) => {
+@@ -958,7 +1024,7 @@ export function mountAccountSystem(app) {
+         return res.status(413).json({ ok: false, error: 'state_too_large' });
+       }
+     } catch (e) { return res.status(400).json({ ok: false, error: 'invalid_state' }); }
+-    const violations = validateStateAgainstPlan(state, req.user.plan);
++    const violations = validateStateAgainstPlan(state, effectivePlanId(req.user));
+     if (violations.length) {
+       return res.status(403).json({ ok: false, error: 'limit_exceeded', violations });
+     }
+@@ -1042,13 +1108,14 @@ export function mountAccountSystem(app) {
+   // ── Plans (entitlement matrix + usage) ──────────────────────────────────
+   app.get('/api/plans', (req, res) => {
+     const admin = isReqAdmin(req);
+-    const mine = req.user ? (req.user.plan || 'basic') : null;
+-    const visible = PLAN_ORDER.filter(id => admin || PLANS[id]?.isActive !== false || id === mine);
++    const effPlan = req.user ? effectivePlanId(req.user) : null;
++    const basePlan = req.user ? (req.user.plan || 'basic') : null;
++    const visible = PLAN_ORDER.filter(id => admin || PLANS[id]?.isActive !== false || id === effPlan || id === basePlan);
+     res.json({
+       ok: true,
+       plans: Object.fromEntries(visible.map(id => [id, { ...PLANS[id] }])),
+       planOrder: visible,
+-      current: req.user ? (req.user.plan || 'basic') : null,
++      current: effPlan,
+       usage: req.user ? computeUsage(req.user) : null,
+       isAdmin: isReqAdmin(req)
+     });
+@@ -1058,10 +1125,11 @@ export function mountAccountSystem(app) {
+   mountAdminApi(app, {
+     users, sessions, flushNow, publicUser, PLANS, PLAN_ORDER, readState, statePath, stateCache,
+     revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, STATE_DIR,
+-    defaultPlanId: () => (Object.values(PLANS).find(p => p.isDefault) || PLANS.basic || PLANS[PLAN_ORDER[0]]).id
++    effectivePlanId,
++    defaultPlanId
+   });
+ 
+-  mountTradeRelay(app, { users, flushNow, PLANS, rateGate });
++  mountTradeRelay(app, { users, flushNow, PLANS, rateGate, effectivePlanId });
+ 
+   // ── Admin: Full Plans Catalog & Management ───────────────────────────────
+   app.get('/api/admin/plans', (req, res) => {
+@@ -1180,17 +1248,28 @@ export function mountAccountSystem(app) {
+     const defaultPlan = Object.values(PLANS).find(p => p.isDefault && p.id !== id) || PLANS.basic || Object.values(PLANS).find(p => p.id !== id);
+     const fallbackId = defaultPlan.id;
+ 
+-    // Migrate any users on this plan to fallback plan
++    // Migrate any users on this plan to fallback plan, and remove gifts on this plan (FR-007)
+     const uStore = users();
+     let migratedCount = 0;
++    let giftsRevokedCount = 0;
+     uStore.users.forEach(u => {
+       if (u.plan === id) {
+         u.plan = fallbackId;
+         u.planSince = Date.now();
+         migratedCount++;
+       }
++      if (u.gift && u.gift.plan === id) {
++        const oldGift = u.gift;
++        u.gift = null;
++        giftsRevokedCount++;
++        audit(req, 'user.gift_revoke', u.id, {
++          plan: oldGift.plan,
++          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
++          reason: 'plan_deleted'
++        });
++      }
+     });
+-    if (migratedCount > 0) {
++    if (migratedCount > 0 || giftsRevokedCount > 0) {
+       flushNow();
+     }
+ 
+@@ -1277,6 +1356,16 @@ export function mountAccountSystem(app) {
+     let migrated = 0;
+     for (const u of users().users) {
+       if (!PLANS[u.plan || 'basic']) { u.plan = fallback; u.planSince = Date.now(); migrated++; }
++      if (u.gift && !PLANS[u.gift.plan]) {
++        const oldGift = u.gift;
++        u.gift = null;
++        migrated++;
++        audit(req, 'user.gift_revoke', u.id, {
++          plan: oldGift.plan,
++          expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
++          reason: 'plan_deleted'
++        });
++      }
+     }
+     if (migrated) flushNow();
+     savePlansStore();
+diff --git a/server/adminApi.js b/server/adminApi.js
+index 3e1d808..c23a98f 100644
+--- a/server/adminApi.js
++++ b/server/adminApi.js
+@@ -19,7 +19,8 @@ const BOOT_AT = Date.now();
+ 
+ export function mountAdminApi(app, d) {
+   // d = { users, sessions, flushNow, publicUser, PLANS, PLAN_ORDER, readState, statePath,
+-  //       stateCache, revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, defaultPlanId, STATE_DIR }
++  //       stateCache, revokeAllForUser, outboxPush, outboxAll, sixDigitCode, rateGate, defaultPlanId, STATE_DIR,
++  //       effectivePlanId }
+ 
+   const guard = (req, res) => {
+     if (isReqAdmin(req)) return false;
+@@ -30,6 +31,13 @@ export function mountAdminApi(app, d) {
+   const isSelf = (req, u) => !!(req.user && u && req.user.id === u.id);
+   const adminCount = () => d.users().users.filter(u => !u.suspended && (u.role === 'admin' || u.isAdmin === true)).length;
+ 
++  function hasActiveGift(u, now = Date.now()) {
++    if (!u || !u.gift || !u.gift.plan) return false;
++    if (!d.PLANS[u.gift.plan]) return false;
++    if (u.gift.expiresAt != null && !isNaN(Number(u.gift.expiresAt)) && Number(u.gift.expiresAt) <= now) return false;
++    return true;
++  }
++
+   function stateBytes(uid) {
+     try { return fs.statSync(d.statePath(uid)).size; } catch (e) { return 0; }
+   }
+@@ -46,8 +54,18 @@ export function mountAdminApi(app, d) {
+   const typeOk = (u, type) => !type || type === 'all' || (type === 'test' ? isTestUser(u) : !isTestUser(u));
+   function adminRow(u, ls) {
+     const pu = d.publicUser(u);
++    const effPlan = typeof d.effectivePlanId === 'function' ? d.effectivePlanId(u) : (u.plan || 'basic');
++    const gift = u.gift ? {
++      plan: u.gift.plan,
++      expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null,
++      grantedAt: Number(u.gift.grantedAt) || 0,
++      grantedBy: String(u.gift.grantedBy || ''),
++      note: String(u.gift.note || '')
++    } : null;
+     return {
+       ...pu,
++      effectivePlan: effPlan,
++      gift,
+       isTest: isTestUser(u), testOverride: typeof u.testAccount === 'boolean',
+       suspended: !!u.suspended, suspendedAt: u.suspendedAt || null, suspendReason: u.suspendReason || '',
+       notes: u.notes || '',
+@@ -103,6 +121,7 @@ export function mountAdminApi(app, d) {
+     const planDist = {};
+     for (const id of d.PLAN_ORDER) planDist[id] = 0;
+     let mrr = 0, verified = 0, twofa = 0, suspended = 0, admins = 0, paid = 0, planRequests = 0;
++    let gifts = 0;
+     let new24 = 0, new7 = 0, new30 = 0, prev30 = 0, active24 = 0, active7 = 0;
+     const days = 30;
+     const signups = Array.from({ length: days }, (_, i) => {
+@@ -113,8 +132,10 @@ export function mountAdminApi(app, d) {
+     for (const u of all) {
+       const pid = d.PLANS[u.plan] ? u.plan : d.defaultPlanId();
+       planDist[pid] = (planDist[pid] || 0) + 1;
++      const isGiftActive = hasActiveGift(u, now);
++      if (isGiftActive) gifts++;
+       const price = Number(d.PLANS[pid]?.priceUSD || 0);
+-      if (price > 0 && !u.suspended) { mrr += price; paid++; }
++      if (price > 0 && !u.suspended && !isGiftActive) { mrr += price; paid++; }
+       if (u.emailVerified) verified++;
+       if (u.totpSecret) twofa++;
+       if (u.suspended) suspended++;
+@@ -139,7 +160,7 @@ export function mountAdminApi(app, d) {
+       kpi: {
+         users: all.length, new24, new7, new30, prev30, active24, active7, activeSessions, adminSessions: listAdminSessions().length,
+         verified, twofa, suspended, admins, paid, planRequests, mrr: Math.round(mrr * 100) / 100,
+-        plans: d.PLAN_ORDER.length
++        plans: d.PLAN_ORDER.length, gifts
+       },
+       planDist: d.PLAN_ORDER.map(id => ({ id, nameEn: d.PLANS[id]?.nameEn || id, nameFa: d.PLANS[id]?.nameFa || id, color: d.PLANS[id]?.color || '#00F2B0', count: planDist[id] || 0, priceUSD: d.PLANS[id]?.priceUSD || 0 })),
+       signups, recentUsers, recentEvents
+@@ -150,6 +171,7 @@ export function mountAdminApi(app, d) {
+   function filteredUsers(q) {
+     const ls = lastSeenMap();
+     const term = String(q.q || '').trim().toLowerCase();
++    const now = Date.now();
+     let rows = d.users().users.filter(u => {
+       if (term && !(u.email.includes(term) || u.usernameLower.includes(term) || String(u.displayName || '').toLowerCase().includes(term) || u.id.toLowerCase() === term)) return false;
+       if (q.plan && q.plan !== 'all' && (u.plan || 'basic') !== q.plan) return false;
+@@ -161,6 +183,7 @@ export function mountAdminApi(app, d) {
+       if (q.status === 'verified' && !u.emailVerified) return false;
+       if (q.status === 'twofa' && !u.totpSecret) return false;
+       if (q.status === 'plan_request' && !(u.planRequest && d.PLANS[u.planRequest.plan])) return false;
++      if (q.status === 'gift' && !hasActiveGift(u, now)) return false;
+       return true;
+     }).map(u => adminRow(u, ls));
+     const sort = ['createdAt', 'lastSeen', 'username', 'email', 'plan', 'sessions'].includes(q.sort) ? q.sort : 'createdAt';
+@@ -255,7 +278,6 @@ export function mountAdminApi(app, d) {
+         if (s) {
+           u.suspendedAt = Date.now();
+           u.suspendReason = String(b.suspendReason || '').slice(0, 200);
+-          d.revokeAllForUser(u.id);
+         } else { u.suspendedAt = null; u.suspendReason = ''; }
+       }
+     }
+@@ -347,27 +369,121 @@ export function mountAdminApi(app, d) {
+     res.json({ ok: true, deleted: u.id });
+   });
+ 
++  // ── Users: gift grant & revoke (FR-003, FR-004) ────────────────────────
++  app.post('/api/admin/users/:id/gift', (req, res) => {
++    if (guard(req, res)) return;
++    const u = findUser(req.params.id);
++    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
++    const { plan, expiresAt, note } = req.body || {};
++    const gPlan = String(plan || '').trim().toLowerCase();
++    if (!d.PLANS[gPlan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
++    if (d.PLANS[gPlan].isActive === false) return res.status(400).json({ ok: false, error: 'plan_inactive' });
++    if (expiresAt !== null) {
++      if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
++        return res.status(400).json({ ok: false, error: 'invalid_expiry' });
++      }
++    }
++    const noteStr = note !== undefined ? String(note) : '';
++    if (noteStr.length > 200) return res.status(400).json({ ok: false, error: 'invalid_note' });
++
++    const now = Date.now();
++    const a = actorOf(req);
++    const exp = expiresAt !== null ? Number(expiresAt) : null;
++    const replaced = u.gift ? {
++      plan: u.gift.plan,
++      expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null
++    } : null;
++
++    u.gift = {
++      plan: gPlan,
++      expiresAt: exp,
++      grantedAt: now,
++      grantedBy: a.label,
++      note: noteStr
++    };
++    d.flushNow();
++    audit(req, 'user.gift_grant', u.id, {
++      plan: gPlan,
++      expiresAt: exp,
++      note: noteStr,
++      replaced
++    });
++    res.json({ ok: true, user: adminRow(u, lastSeenMap()) });
++  });
++
++  app.delete('/api/admin/users/:id/gift', (req, res) => {
++    if (guard(req, res)) return;
++    const u = findUser(req.params.id);
++    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
++    if (!u.gift) return res.status(400).json({ ok: false, error: 'no_gift' });
++    const oldGift = u.gift;
++    u.gift = null;
++    d.flushNow();
++    audit(req, 'user.gift_revoke', u.id, {
++      plan: oldGift.plan,
++      expiresAt: (oldGift.expiresAt !== undefined && oldGift.expiresAt !== null) ? Number(oldGift.expiresAt) : null,
++      reason: 'admin'
++    });
++    res.json({ ok: true, user: adminRow(u, lastSeenMap()) });
++  });
++
+   // ── Users: bulk actions ────────────────────────────────────────────────
+   app.post('/api/admin/users/bulk', (req, res) => {
+     if (guard(req, res)) return;
+-    const { ids, action, plan } = req.body || {};
++    const { ids, action, plan, expiresAt, note } = req.body || {};
+     if (!Array.isArray(ids) || !ids.length || ids.length > 1000) return res.status(400).json({ ok: false, error: 'invalid_ids' });
+-    if (!['suspend', 'unsuspend', 'plan', 'delete', 'verify'].includes(action)) return res.status(400).json({ ok: false, error: 'invalid_action' });
++    if (!['suspend', 'unsuspend', 'plan', 'delete', 'verify', 'gift'].includes(action)) return res.status(400).json({ ok: false, error: 'invalid_action' });
+     if (action === 'plan' && !d.PLANS[plan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
++    if (action === 'gift') {
++      const gPlan = String(plan || '').trim().toLowerCase();
++      if (!d.PLANS[gPlan]) return res.status(400).json({ ok: false, error: 'unknown_plan' });
++      if (d.PLANS[gPlan].isActive === false) return res.status(400).json({ ok: false, error: 'plan_inactive' });
++      if (expiresAt !== null) {
++        if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
++          return res.status(400).json({ ok: false, error: 'invalid_expiry' });
++        }
++      }
++      const noteStr = note !== undefined ? String(note) : '';
++      if (noteStr.length > 200) return res.status(400).json({ ok: false, error: 'invalid_note' });
++    }
+     let done = 0, skipped = 0;
++    const now = Date.now();
++    const a = actorOf(req);
+     for (const id of ids) {
+       const u = findUser(String(id));
+       if (!u) { skipped++; continue; }
+       if (isSelf(req, u) && (action === 'suspend' || action === 'delete')) { skipped++; continue; }
+-      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); d.revokeAllForUser(u.id); }
++      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); }
+       else if (action === 'unsuspend') { if (!u.suspended) { skipped++; continue; } u.suspended = false; u.suspendedAt = null; u.suspendReason = ''; }
+       else if (action === 'plan') { if (u.plan === plan) { skipped++; continue; } u.plan = plan; u.planSince = Date.now(); if (u.planRequest?.plan === plan) u.planRequest = null; }
+       else if (action === 'verify') { if (u.emailVerified) { skipped++; continue; } u.emailVerified = true; u.verifyCode = null; }
+       else if (action === 'delete') deleteUser(u);
++      else if (action === 'gift') {
++        const gPlan = String(plan || '').trim().toLowerCase();
++        const exp = expiresAt !== null ? Number(expiresAt) : null;
++        const noteStr = note !== undefined ? String(note) : '';
++        const replaced = u.gift ? {
++          plan: u.gift.plan,
++          expiresAt: (u.gift.expiresAt !== undefined && u.gift.expiresAt !== null) ? Number(u.gift.expiresAt) : null
++        } : null;
++        u.gift = {
++          plan: gPlan,
++          expiresAt: exp,
++          grantedAt: now,
++          grantedBy: a.label,
++          note: noteStr
++        };
++        audit(req, 'user.gift_grant', u.id, {
++          plan: gPlan,
++          expiresAt: exp,
++          note: noteStr,
++          replaced
++        });
++      }
+       done++;
+     }
+     d.flushNow();
+-    audit(req, 'users.bulk', null, { action, plan: action === 'plan' ? plan : undefined, done, skipped });
++    audit(req, 'users.bulk', null, { action, plan: (action === 'plan' || action === 'gift') ? plan : undefined, done, skipped });
+     res.json({ ok: true, done, skipped });
+   });
+ 
+diff --git a/server/index.js b/server/index.js
+index c9693f9..c42888e 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -14,7 +14,7 @@ import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
+ import { getScreenerData } from './technicalScreener.js';
+ import { getOrderBookDepth } from './depthFeed.js';
+ import { getMarketNews } from './newsFeed.js';
+-import { mountAccountSystem, PLANS } from './accounts.js';
++import { mountAccountSystem, PLANS, effectivePlanId } from './accounts.js';
+ import { securityHeaders, sameOriginWrites, apiRateLimit, cleanSymbol, clampInt, optTimestamp, serverError } from './security.js';
+ 
+ const __filename = fileURLToPath(import.meta.url);
+@@ -91,7 +91,7 @@ app.get('/api/candles', async (req, res) => {
+     if (fromTime === undefined || toTime === undefined) return bad(res, 'invalid_time');
+ 
+     const histCap = req.user
+-      ? (PLANS[req.user.plan]?.histBars ?? PLANS.basic.histBars)
++      ? (PLANS[effectivePlanId(req.user)]?.histBars ?? PLANS.basic.histBars)
+       : PLANS.basic.histBars;
+     const limit = clampInt(req.query.limit, 500, 1, histCap);
+     res.setHeader('X-History-Limit', String(histCap));
+diff --git a/server/tradeRelayApi.js b/server/tradeRelayApi.js
+index 9412063..b8ce8b1 100644
+--- a/server/tradeRelayApi.js
++++ b/server/tradeRelayApi.js
+@@ -43,8 +43,9 @@ function sanitizeSignal(body) {
+   return { signal: { action, symbol, quantity, price, orderType, sl, tp } };
+ }
+ 
+-export function mountTradeRelay(app, { users, flushNow, PLANS, rateGate }) {
+-  const entitled = u => !!(PLANS[u.plan] || PLANS.basic || {}).webhookAlerts;
++export function mountTradeRelay(app, { users, flushNow, PLANS, rateGate, effectivePlanId }) {
++  const planOf = u => (typeof effectivePlanId === 'function' ? effectivePlanId(u) : (u && u.plan) || 'basic');
++  const entitled = u => !!(PLANS[planOf(u)] || PLANS.basic || {}).webhookAlerts;
+ 
+   function execute(u, req, res) {
+     if (!entitled(u)) return res.status(403).json({ ok: false, success: false, error: 'plan_feature_locked', feature: 'webhookAlerts' });
