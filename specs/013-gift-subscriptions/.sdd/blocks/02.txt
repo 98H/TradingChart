@@ -1,0 +1,1 @@
+- [ ] T011 [P] [US1] Add FA/EN messages for `invalid_expiry`, `invalid_note`, `no_gift`, `plan_inactive` and gift audit action names in client/admin/core.js (FR-013)

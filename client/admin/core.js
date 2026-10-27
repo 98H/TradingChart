@@ -129,6 +129,10 @@ export function errMsg(e) {
     forbidden_admin_only: ['نشست مدیریتی شما منقضی شده است. لطفاً دوباره وارد شوید.', 'Your admin session has expired. Please sign in again.'],
     user_not_found: ['این کاربر دیگر وجود ندارد.', 'This user no longer exists.'],
     unknown_plan: ['پلن انتخاب‌شده معتبر نیست.', 'The selected plan is not valid.'],
+    plan_inactive: ['این پلن غیرفعال است و امکان اعطای آن وجود ندارد.', 'This plan is inactive and cannot be granted.'],
+    invalid_expiry: ['تاریخ انقضا معتبر نیست؛ باید تاریخی در آینده باشد.', 'Invalid expiry date; must be in the future.'],
+    invalid_note: ['یادداشت نمی‌تواند بیش از ۲۰۰ نویسه باشد.', 'Note cannot exceed 200 characters.'],
+    no_gift: ['این کاربر اشتراک هدیه فعالی ندارد.', 'This user does not have an active gift subscription.'],
     cannot_demote_self: ['نمی‌توانید نقش مدیریتی حساب خودتان را لغو کنید.', 'You cannot remove your own admin role.'],
     cannot_suspend_self: ['نمی‌توانید حساب خودتان را تعلیق کنید.', 'You cannot suspend your own account.'],
     cannot_delete_self: ['نمی‌توانید حساب خودتان را حذف کنید.', 'You cannot delete your own account.'],
@@ -192,9 +196,20 @@ const P = {
   external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>',
   flask: '<path d="M9 2h6M10 2v6L4 19a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3L14 8V2"/>',
   megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
-  bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
+  bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>'
 };
 export const icon = (name, cls = '') => `<svg ${cls ? `class="${cls}"` : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] || ''}</svg>`;
+
+/** Gift subscription audit action labels */
+export const GIFT_AUDIT_ACTIONS = () => ({
+  'user.gift_grant': tr('اعطای اشتراک هدیه', 'Gift subscription granted'),
+  'user.gift_revoke': tr('لغو اشتراک هدیه', 'Gift subscription revoked'),
+  'user.gift_expired': tr('انقضای اشتراک هدیه', 'Gift subscription expired')
+});
+export const AUDIT_ACTIONS = () => ({
+  ...GIFT_AUDIT_ACTIONS()
+});
 
 // ── Toasts ────────────────────────────────────────────────────────────────
 // Toasts never cover a persistent control. Re-measured every frame while a toast is on screen.
@@ -295,7 +310,7 @@ export function openDialog({ title, body, confirmText, cancelText, danger = fals
         <div class="dialog-body">${body || ''}<div class="alert alert-danger" data-dlg-err hidden></div></div>
         <div class="dialog-foot">
           ${noCancel ? '' : `<button type="button" class="btn" data-dlg-cancel>${esc(cancelText || tr('انصراف', 'Cancel'))}</button>`}
-          <button type="button" class="btn ${danger ? 'btn-danger-solid' : 'btn-primary'}" data-dlg-ok ${confirmDisabled ? 'disabled' : ''}>${esc(confirmText || tr('تأیید', 'Confirm'))}</button>
+          <button type="button" class="btn ${danger ? 'btn-danger btn-danger-solid' : 'btn-primary'}" data-dlg-ok ${confirmDisabled ? 'disabled' : ''}>${esc(confirmText || tr('تأیید', 'Confirm'))}</button>
         </div>
       </div>`;
     document.body.appendChild(wrap);

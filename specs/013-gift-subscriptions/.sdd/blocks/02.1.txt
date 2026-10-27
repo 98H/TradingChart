@@ -1,1 +1,0 @@
-- [ ] T003 [P] [US1] Use the effective plan for `histBars` in server/index.js (FR-002)

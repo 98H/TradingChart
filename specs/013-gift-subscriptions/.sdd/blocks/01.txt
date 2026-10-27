@@ -1,2 +1,2 @@
-- [ ] T001 [US1] Add `effectivePlanId(u, now)` and export it; add `effectivePlan` and `gift` to `publicUser` in server/accounts.js (FR-001, FR-002, FR-008)
-- [ ] T002 [US1] Switch every entitlement read of `u.plan` / `req.user.plan` in server/accounts.js (state GET/PUT quotas, social links, `/api/plans` current) to `effectivePlanId` (FR-002)
+- [ ] T009 [US1] Add the gift card (current gift, Grant/Replace dialog with plan, expiry date vs Unlimited, note; Revoke with confirmation) to the user drawer overview in client/admin/admin.js (FR-010, FR-013)
+- [ ] T010 [US4] Add the gift badge + expiry in the users table and mobile cards, the "Gift" status filter, the "Grant gift" bulk action and the "Active gifts" dashboard KPI in client/admin/admin.js (FR-011, FR-009, FR-013)

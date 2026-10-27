@@ -160,7 +160,7 @@ function renderShell() {
         </nav>
         <div class="sidebar-foot">
           <a class="nav-item" href="/chart" target="_blank" rel="noopener">${icon('external')}<span>${tr('مشاهده پلتفرم', 'Open platform')}</span></a>
-          <button type="button" class="nav-item" data-act="lang">${icon('globe')}<span class="lang-name" lang="${isFa() ? 'en' : 'fa'}">${tr('English', 'فارسی')}</span></button>
+          <button type="button" class="nav-item" data-act="lang" data-lang-btn>${icon('globe')}<span class="lang-name" lang="${isFa() ? 'en' : 'fa'}">${tr('English', 'فارسی')}</span></button>
           <button type="button" class="nav-item" data-act="logout">${icon('logout', 'mirror-rtl')}<span>${tr('خروج از پنل', 'Sign out')}</span></button>
         </div>
       </aside>
@@ -170,7 +170,7 @@ function renderShell() {
           <div class="spacer"></div>
           <div class="who">
             <span class="who-chip" title="${esc(whoTitle)}">${icon('shield')}<span class="who-label">${who}</span></span>
-            <button type="button" class="btn btn-icon top-icon only-narrow" data-act="lang" aria-label="${tr('تغییر زبان به انگلیسی', 'Switch to Persian')}" title="${tr('English', 'فارسی')}">${icon('globe')}</button>
+            <button type="button" class="btn btn-icon top-icon only-narrow" data-lang-btn aria-label="${tr('تغییر زبان به انگلیسی', 'Switch to Persian')}" title="${tr('English', 'فارسی')}">${icon('globe')}</button>
             <button type="button" class="btn btn-icon top-icon only-narrow" data-act="logout" aria-label="${tr('خروج از پنل', 'Sign out')}" title="${tr('خروج از پنل', 'Sign out')}">${icon('logout', 'mirror-rtl')}</button>
           </div>
         </header>
@@ -181,12 +181,30 @@ function renderShell() {
       </nav>
     </div>`;
   root.querySelectorAll('.bottom-nav [data-nav]').forEach(b => b.addEventListener('click', () => go(b.dataset.nav)));
+  syncNarrowButtons();
   // Language switch keeps any unsaved plan draft (it lives in module state).
-  root.querySelectorAll('[data-act="lang"]').forEach(b => b.addEventListener('click', () => {
+  root.querySelectorAll('[data-lang-btn], [data-act="lang"]').forEach(b => b.addEventListener('click', () => {
     setLang(isFa() ? 'en' : 'fa'); renderShell(); route(true);
   }));
   root.querySelectorAll('[data-act="logout"]').forEach(b => b.addEventListener('click', logout));
 }
+
+function syncNarrowButtons() {
+  const narrow = matchMedia('(max-width: 860px)').matches;
+  const sideLang = root.querySelector('.sidebar [data-lang-btn]');
+  const topLang = root.querySelector('.topbar [data-lang-btn]');
+  if (sideLang && topLang) {
+    if (narrow) {
+      sideLang.removeAttribute('data-act');
+      topLang.setAttribute('data-act', 'lang');
+    } else {
+      sideLang.setAttribute('data-act', 'lang');
+      topLang.removeAttribute('data-act');
+    }
+  }
+}
+window.matchMedia('(max-width: 860px)').addEventListener('change', syncNarrowButtons);
+window.addEventListener('resize', syncNarrowButtons);
 
 function go(section) {
   if (section === app.section && location.hash === `#/${section}`) return;
@@ -306,9 +324,7 @@ async function renderDashboard(view) {
         ${kpi('users', tr('کل کاربران', 'Total users'), fmtNum(k.users), tr(`${fmtNum(k.new7)} ثبت‌نام در ۷\u00A0روز اخیر`, `${fmtNum(k.new7)} ${plural(k.new7, 'sign-up')} in the last 7\u00A0days`))}
         ${kpi('activity', tr('کاربران فعال <span class="nw">(۲۴ ساعت)</span>', 'Active users <span class="nw">(24h)</span>'), fmtNum(k.active24), tr(`${fmtNum(k.active7)} کاربر فعال در ۷\u00A0روز اخیر`, `${fmtNum(k.active7)} active in the last 7\u00A0days`))}
         ${kpi('money', tr('درآمد ماهانه اشتراک‌ها', 'Monthly revenue'), moneyHtml(k.mrr), tr(`${fmtNum(k.paid)} اشتراک پولی فعال`, `${fmtNum(k.paid)} active paid subscriptions`))}
-        ${kpi('chart', tr('ثبت‌نام ۳۰\u00A0روز اخیر', 'Sign-ups (30\u00A0days)'), fmtNum(k.new30),
-          growth === null ? tr('بدون داده برای مقایسه با ۳۰\u00A0روز قبل', 'No prior 30\u00A0days to compare')
-            : `<span class="${growth >= 0 ? 'delta-up' : 'delta-down'}">${growth >= 0 ? '▲' : '▼'} ${fmtPct(Math.abs(growth))}</span> ${tr('نسبت به ۳۰\u00A0روز قبل', 'vs previous 30\u00A0days')}`)}
+        ${kpi('gift', tr('اشتراک‌های هدیه فعال', 'Active gifts'), fmtNum(k.gifts ?? 0), tr('بدون محاسبه در درآمد پلتفرم', 'Excluded from platform revenue'))}
       </div>
       <div class="grid cols-2">
         <section class="card">
@@ -377,6 +393,7 @@ function statusBadges(u) {
   if (u.isAdmin) b.push(`<span class="badge b-blue">${tr('مدیر', 'Admin')}</span>`);
   if (!u.emailVerified) b.push(`<span class="badge b-amber">${tr('ایمیل تأییدنشده', 'Unverified')}</span>`);
   if (u.totpEnabled) b.push(`<span class="badge b-green">${tr('دومرحله‌ای', '2FA')}</span>`);
+  if (u.gift) b.push(`<span class="badge b-blue">${tr('اشتراک هدیه', 'Gift subscription')}</span>`);
   if (u.planRequest) b.push(`<span class="badge b-blue">${tr('درخواست ارتقا', 'Upgrade request')}</span>`);
   if (u.isTest) b.push(`<span class="badge b-gray">${tr('آزمایشی', 'Test')}</span>`);
   return b.length ? `<div class="badges">${b.join('')}</div>` : `<span class="badge b-green">${tr('فعال', 'Active')}</span>`;
@@ -391,6 +408,9 @@ const ACTIONS = () => ({
   'user.revoke_session': tr('لغو یک نشست کاربر', 'User session revoked'),
   'user.reset_2fa': tr('غیرفعال‌سازی تأیید دومرحله‌ای', '2FA reset'),
   'user.send_reset': tr('ارسال کد بازیابی گذرواژه', 'Password reset sent'),
+  'user.gift_grant': tr('اعطای اشتراک هدیه', 'Gift subscription granted'),
+  'user.gift_revoke': tr('لغو اشتراک هدیه', 'Gift subscription revoked'),
+  'user.gift_expired': tr('انقضای اشتراک هدیه', 'Gift subscription expired'),
   'user.plan_request': tr('درخواست ارتقای پلن', 'Plan upgrade requested'),
   'users.bulk': tr('عملیات گروهی کاربران', 'Bulk user action'),
   'users.export': tr('خروجی فهرست کاربران', 'Users exported'),
@@ -453,6 +473,21 @@ function eventDetail(ev) {
     if (c.testAccount) parts.push(tr('وضعیت حساب آزمایشی', 'test-account flag'));
     return `${m.username ? isoUser(m.username) + ' · ' : ''}${parts.join(tr('، ', ', '))}`;
   }
+  if (ev.action === 'user.gift_grant') {
+    const parts = [];
+    if (m.plan) parts.push(tr(`پلن: «${planName(m.plan)}»`, `plan: “${planName(m.plan)}”`));
+    parts.push(m.expiresAt ? tr(`تا ${fmtDate(m.expiresAt)}`, `until ${fmtDate(m.expiresAt)}`) : tr('نامحدود', 'Unlimited'));
+    if (m.replaced) parts.push(tr(`جایگزین پلن «${planName(m.replaced.plan)}»`, `replaced “${planName(m.replaced.plan)}”`));
+    if (m.note) parts.push(tr(`یادداشت: ${iso(m.note)}`, `note: ${iso(m.note)}`));
+    return `${m.username ? isoUser(m.username) + ' · ' : ''}${parts.join(tr(' · ', ' · '))}`;
+  }
+  if (ev.action === 'user.gift_revoke') {
+    const reason = m.reason === 'plan_deleted' ? tr('حذف پلن', 'plan deleted') : tr('توسط مدیر', 'by admin');
+    return `${m.username ? isoUser(m.username) + ' · ' : ''}${tr(`لغو هدیه پلن «${planName(m.plan)}» (${reason})`, `revoked gift “${planName(m.plan)}” (${reason})`)}`;
+  }
+  if (ev.action === 'user.gift_expired') {
+    return `${m.username ? isoUser(m.username) + ' · ' : ''}${tr(`انقضای هدیه پلن «${planName(m.plan)}»`, `gift expired “${planName(m.plan)}”`)}`;
+  }
   if (ev.action === 'users.bulk') return tr(`${fmtNum(m.done || 0)} مورد انجام شد${m.skipped ? `، ${fmtNum(m.skipped)} مورد بدون تغییر` : ''}`, `${fmtNum(m.done || 0)} done${m.skipped ? `, ${fmtNum(m.skipped)} unchanged` : ''}`);
   if (ev.action === 'users.export') return tr(`${fmtNum(m.count || 0)} ردیف`, `${fmtNum(m.count || 0)} ${plural(m.count || 0, 'row')}`);
   if (ev.action === 'plan.update' && m.fields) return tr(`پلن «${planName(ev.target)}» · ${fmtNum(m.fields.length)} فیلد`, `plan “${planName(ev.target)}” · ${fmtNum(m.fields.length)} ${plural(m.fields.length, 'field')}`);
@@ -494,7 +529,7 @@ async function renderUsers(view) {
           </select>
           <select class="select" id="u-plan" aria-label="${tr('پلن', 'Plan')}"><option value="all">${tr('همه پلن‌ها', 'All plans')}</option>${planOpts}</select>
           <select class="select" id="u-status" aria-label="${tr('وضعیت', 'Status')}">
-            ${[['all', tr('همه وضعیت‌ها', 'All statuses')], ['active', tr('فعال', 'Active')], ['suspended', tr('تعلیق‌شده', 'Suspended')], ['unverified', tr('ایمیل تأییدنشده', 'Unverified email')], ['verified', tr('ایمیل تأییدشده', 'Verified email')], ['twofa', tr('دارای تأیید دومرحله‌ای', '2FA enabled')], ['plan_request', tr('درخواست ارتقای پلن', 'Plan upgrade requests')]].map(([v, l]) => `<option value="${v}" ${U.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+            ${[['all', tr('همه وضعیت‌ها', 'All statuses')], ['active', tr('فعال', 'Active')], ['gift', tr('اشتراک هدیه', 'Gift subscription')], ['suspended', tr('تعلیق‌شده', 'Suspended')], ['unverified', tr('ایمیل تأییدنشده', 'Unverified email')], ['verified', tr('ایمیل تأییدشده', 'Verified email')], ['twofa', tr('دارای تأیید دومرحله‌ای', '2FA enabled')], ['plan_request', tr('درخواست ارتقای پلن', 'Plan upgrade requests')]].map(([v, l]) => `<option value="${v}" ${U.status === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
           <select class="select" id="u-role" aria-label="${tr('نقش', 'Role')}">
             ${[['all', tr('همه نقش‌ها', 'All roles')], ['user', tr('کاربر', 'User')], ['admin', tr('مدیر', 'Admin')]].map(([v, l]) => `<option value="${v}" ${U.role === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -575,7 +610,16 @@ async function loadUsers(view) {
             <tr class="${U.selected.has(u.id) ? 'selected' : ''}">
               <td><label class="check-hit"><input type="checkbox" class="check" data-sel="${esc(u.id)}" ${U.selected.has(u.id) ? 'checked' : ''} aria-label="${tr('انتخاب', 'Select')} ${esc(u.username)}" /></label></td>
               <td><button type="button" class="user-cell" data-user="${esc(u.id)}" style="background:none;border:none;padding:0;color:inherit;text-align:start;cursor:pointer;max-width:320px">${avatar(u)}<span class="user-meta"><strong dir="auto">${esc(u.displayName || u.username)}</strong><span>${esc(u.email)}</span></span></button></td>
-              <td>${planBadge(u.plan)}</td>
+              <td>
+                ${u.gift ? `
+                  <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+                    <div style="display:flex;align-items:center;gap:6px">
+                      ${planBadge(u.effectivePlan || u.gift.plan)}
+                      <span class="badge b-blue">${tr('اشتراک هدیه', 'Gift subscription')}</span>
+                    </div>
+                    <span class="dim" style="font-size:11px">${u.gift.expiresAt ? tr(`تا ${fmtDate(u.gift.expiresAt, false)}`, `until ${fmtDate(u.gift.expiresAt, false)}`) : tr('نامحدود', 'Unlimited')}</span>
+                  </div>` : planBadge(u.plan)}
+              </td>
               <td>${statusBadges(u)}</td>
               <td class="muted" style="white-space:nowrap" title="${esc(fmtDate(u.createdAt))}">${esc(fmtDate(u.createdAt, false))}</td>
               <td class="muted" style="white-space:nowrap" title="${esc(fmtDate(u.lastSeen))}">${esc(fmtAgo(u.lastSeen))}</td>
@@ -591,7 +635,14 @@ async function loadUsers(view) {
           <label class="check-hit" style="margin-top:-5px"><input type="checkbox" class="check" data-sel="${esc(u.id)}" ${U.selected.has(u.id) ? 'checked' : ''} aria-label="${tr('انتخاب', 'Select')} ${esc(u.username)}" /></label>
           <button type="button" data-user="${esc(u.id)}" class="mitem-body" style="background:none;border:none;padding:0;color:inherit;text-align:start;cursor:pointer">
             <div class="mitem-row"><span class="user-cell">${avatar(u)}<span class="user-meta"><strong dir="auto">${esc(u.displayName || u.username)}</strong><span>${esc(u.email)}</span></span></span></div>
-            <div class="mitem-row">${planBadge(u.plan)}<span class="dim" style="font-size:12px;white-space:nowrap">${tr('آخرین فعالیت:', 'Last active:')} ${esc(fmtAgo(u.lastSeen))}</span></div>
+            <div class="mitem-row">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                ${planBadge(u.effectivePlan || u.plan)}
+                ${u.gift ? `<span class="badge b-blue">${tr('اشتراک هدیه', 'Gift subscription')}</span>` : ''}
+              </div>
+              <span class="dim" style="font-size:12px;white-space:nowrap">${tr('آخرین فعالیت:', 'Last active:')} ${esc(fmtAgo(u.lastSeen))}</span>
+            </div>
+            ${u.gift ? `<div class="mitem-row"><span class="dim" style="font-size:11.5px">${tr('انقضای هدیه:', 'Gift expiry:')} ${u.gift.expiresAt ? tr(`تا ${fmtDate(u.gift.expiresAt, false)}`, `until ${fmtDate(u.gift.expiresAt, false)}`) : tr('نامحدود', 'Unlimited')}</span></div>` : ''}
             ${statusBadges(u)}
           </button>
         </div>`).join('')}
@@ -630,6 +681,72 @@ async function loadUsers(view) {
   renderBulk(view);
 }
 
+function openGiftDialog({ title, confirmText, currentGift = null, plans = [], onConfirm }) {
+  const defaultDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const initialDate = currentGift?.expiresAt ? new Date(currentGift.expiresAt).toISOString().slice(0, 10) : defaultDate;
+  const isUnlimited = currentGift ? currentGift.expiresAt === null : false;
+  const body = `
+    <div style="display:flex;flex-direction:column;gap:14px" class="modal" data-gift-dialog id="gift-modal">
+      <div class="field">
+        <label for="gift-plan">${tr('پلن اشتراک هدیه', 'Gift plan')}</label>
+        <select class="select" id="gift-plan" name="plan">
+          ${plans.map(pid => `<option value="${esc(pid)}" ${pid === (currentGift?.plan || 'premium') ? 'selected' : ''}>${esc(planName(pid))}${app.plansMeta?.plans?.[pid]?.isActive === false ? tr(' (غیرفعال)', ' (inactive)') : ''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" data-expiry-choice>
+        <label style="margin-bottom:6px;display:block;font-weight:600">${tr('مدت اعتبار', 'Validity duration')}</label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="radio" name="expiryType" value="date" ${isUnlimited ? '' : 'checked'} />
+            <span>${tr('تا تاریخ مشخص:', 'Until specific date:')}</span>
+            <input type="date" class="input" id="gift-date" value="${esc(initialDate)}" style="width:auto;min-height:36px;padding:4px 8px" ${isUnlimited ? 'disabled' : ''} />
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="radio" name="expiryType" id="gift-unlimited" value="unlimited" ${isUnlimited ? 'checked' : ''} />
+            <span>${tr('نامحدود (تا زمان لغو دستی)', 'Unlimited (until manually revoked)')}</span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="gift-note">${tr('یادداشت داخلی (اختیاری، حداکثر ۲۰۰ نویسه)', 'Internal note (optional, max 200 chars)')}</label>
+        <textarea class="textarea" id="gift-note" name="note" maxlength="200" dir="auto" placeholder="${tr('مثلاً: اشتراک هدیه مسابقه / ارتقای وفاداری', 'e.g. contest reward / loyalty gift')}">${esc(currentGift?.note || '')}</textarea>
+      </div>
+    </div>`;
+
+  return openDialog({
+    title: title || (currentGift ? tr('جایگزینی اشتراک هدیه', 'Replace gift subscription') : tr('اعطای اشتراک هدیه', 'Grant gift subscription')),
+    body,
+    confirmText: confirmText || (currentGift ? tr('جایگزینی هدیه', 'Replace gift') : tr('اعطای هدیه', 'Grant gift')),
+    iconName: 'gift',
+    onOpen: (dlg) => {
+      const dateIn = dlg.querySelector('#gift-date');
+      dlg.querySelectorAll('input[name="expiryType"]').forEach(r => r.addEventListener('change', (e) => {
+        if (dateIn) {
+          dateIn.disabled = e.target.value === 'unlimited';
+          if (!dateIn.disabled) dateIn.focus();
+        }
+      }));
+    },
+    onConfirm: async (dlg) => {
+      const plan = dlg.querySelector('#gift-plan').value;
+      const unlim = dlg.querySelector('input[name="expiryType"]:checked')?.value === 'unlimited';
+      let expiresAt = null;
+      if (!unlim) {
+        const val = dlg.querySelector('#gift-date').value;
+        if (!val) throw new Error(tr('لطفاً تاریخ انقضا را مشخص کنید.', 'Please choose an expiry date.'));
+        const [y, m, d] = val.split('-').map(Number);
+        const dt = new Date(y, m - 1, d, 23, 59, 59, 999);
+        expiresAt = dt.getTime();
+        if (expiresAt <= Date.now()) {
+          throw new Error(tr('تاریخ انقضا باید در آینده باشد.', 'Expiry date must be in the future.'));
+        }
+      }
+      const note = dlg.querySelector('#gift-note').value.trim();
+      return onConfirm({ plan, expiresAt, note });
+    }
+  });
+}
+
 function renderBulk(view) {
   const U = app.users;
   const host = view.querySelector('#u-bulk');
@@ -641,6 +758,7 @@ function renderBulk(view) {
       <div class="bulkbar" role="region" aria-label="${tr('عملیات گروهی', 'Bulk actions')}">
         <strong>${tr(`${fmtNum(U.selected.size)} کاربر انتخاب شده`, `${fmtNum(U.selected.size)} selected`)}</strong>
         <select class="select" id="b-plan" style="width:auto;min-height:32px;font-size:12px" aria-label="${tr('تغییر پلن به', 'Change plan to')}"><option value="">${tr('تغییر پلن به…', 'Change plan to…')}</option>${planOpts}</select>
+        <button type="button" class="btn btn-sm" data-bulk="gift">${icon('gift')}<span>${tr('اعطای اشتراک هدیه', 'Grant gift')}</span></button>
         <button type="button" class="btn btn-sm" data-bulk="verify">${tr('تأیید ایمیل', 'Verify email')}</button>
         <button type="button" class="btn btn-sm" data-bulk="unsuspend">${tr('رفع تعلیق', 'Unsuspend')}</button>
         <button type="button" class="btn btn-sm btn-danger" data-bulk="suspend">${tr('تعلیق', 'Suspend')}</button>
@@ -658,6 +776,24 @@ function renderBulk(view) {
 async function bulk(view, action, plan) {
   const U = app.users;
   const n = U.selected.size;
+  if (action === 'gift') {
+    return openGiftDialog({
+      title: tr(`اعطای گروهی اشتراک هدیه به ${fmtNum(n)} کاربر`, `Grant gift subscription to ${fmtNum(n)} ${plural(n, 'user')}`),
+      confirmText: tr('اعطای گروهی هدیه', 'Grant gifts'),
+      plans: app.plansMeta?.planOrder || [],
+      onConfirm: async (payload) => {
+        const res = await api('/api/admin/users/bulk', { method: 'POST', body: { ids: [...U.selected], action: 'gift', ...payload } });
+        U.selected.clear();
+        const k = res.done || 0, nk = fmtNum(k);
+        const doneMsg = tr(`اشتراک هدیه برای ${nk} کاربر فعال شد`, `Gift subscription granted to ${nk} ${plural(k, 'user')}`);
+        const skipped = res.skipped ? tr(`${fmtNum(res.skipped)} مورد نیازی به تغییر نداشت یا مجاز نبود`, `${fmtNum(res.skipped)} unchanged or not allowed`) : '';
+        if (!k) toast(skipped ? tr(`تغییری اعمال نشد؛ ${skipped}.`, `No changes: ${skipped}.`) : tr('تغییری اعمال نشد.', 'No changes were made.'), 'info');
+        else toast(skipped ? `${doneMsg}${tr('؛ ', '; ')}${skipped}.` : `${doneMsg}.`);
+        loadUsers(view);
+        return true;
+      }
+    });
+  }
   const labels = {
     plan: [tr('تغییر گروهی پلن', 'Change plan'), tr(`پلن ${fmtNum(n)} کاربر انتخاب‌شده به «${planName(plan)}» تغییر می‌کند.`, `${fmtNum(n)} selected ${plural(n, 'user')} will be moved to “${planName(plan)}”.`), tr('تغییر پلن', 'Change plan')],
     verify: [tr('تأیید گروهی ایمیل', 'Verify e-mails'), tr(`ایمیل ${fmtNum(n)} کاربر انتخاب‌شده به‌عنوان تأییدشده ثبت می‌شود.`, `${fmtNum(n)} selected ${plural(n, 'user')} will be marked as verified.`), tr('تأیید ایمیل‌ها', 'Verify')],
@@ -788,10 +924,27 @@ async function openUser(id, onChange) {
           <div class="form-grid-2">
             <div class="field"><label for="dr-plan">${tr('پلن اشتراک', 'Subscription plan')}</label>
               <select class="select" id="dr-plan">${plans.map(pid => `<option value="${esc(pid)}" ${pid === u.plan ? 'selected' : ''}>${esc(planName(pid))}${app.plansMeta?.plans?.[pid]?.isActive === false ? tr(' (غیرفعال)', ' (inactive)') : ''}</option>`).join('')}${u.planKnown ? '' : `<option selected value="${esc(u.plan)}">${esc(u.plan)} ${tr('(حذف‌شده)', '(deleted)')}</option>`}</select>
-              <span class="hint">${tr('تاریخ شروع پلن فعلی:', 'Current plan since')} ${esc(fmtDate(u.planSince, false))}</span></div>
+              <span class="hint">${tr('تاریخ شروع پلن فعلی:', 'Current plan since')} ${esc(fmtDate(u.planSince, false))}${u.gift ? ` · <span style="color:var(--accent)">${tr(`پلن فعال: «${planName(u.gift.plan)}»`, `Active: “${planName(u.gift.plan)}”`)}</span>` : ''}</span></div>
             <div class="field"><label for="dr-role">${tr('نقش', 'Role')}</label>
               <select class="select" id="dr-role" ${self ? 'disabled' : ''}><option value="user" ${!u.isAdmin ? 'selected' : ''}>${tr('کاربر عادی', 'User')}</option><option value="admin" ${u.isAdmin ? 'selected' : ''}>${tr('مدیر پلتفرم', 'Administrator')}</option></select>
               <span class="hint">${tr('با انتخاب «مدیر»، این کاربر می‌تواند با حساب خود و بدون کلید مدیریت وارد این پنل شود.', 'Choosing “Admin” lets this user sign in to this console with their own account — no admin key needed.')}</span></div>
+          </div>
+          <div class="card" data-gift-section style="padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm)">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:${u.gift ? '10px' : '0'}">
+              <strong style="font-size:13.5px;display:flex;align-items:center;gap:6px">${icon('gift')}<span>${u.gift ? tr('اشتراک هدیه فعال', 'Active gift subscription') : tr('اشتراک هدیه', 'Gift subscription')}</span></strong>
+              <div class="row-actions" style="margin:0">
+                <button type="button" class="btn btn-sm ${u.gift ? 'btn-ghost' : 'btn-primary'} btn-gift" data-act="grant-gift" data-gift-grant id="dr-gift-btn">${icon(u.gift ? 'refresh' : 'gift')}<span>${u.gift ? tr('جایگزینی هدیه', 'Replace gift') : tr('اعطای اشتراک هدیه', 'Grant gift')}</span></button>
+                ${u.gift ? `<button type="button" class="btn btn-sm btn-danger" data-act="revoke-gift" data-gift-revoke id="dr-gift-revoke">${icon('trash')}<span>${tr('لغو هدیه', 'Revoke gift')}</span></button>` : ''}
+              </div>
+            </div>
+            ${u.gift ? `
+              <dl class="kv" style="margin:0">
+                <dt>${tr('پلن هدیه', 'Gift plan')}</dt><dd>${planBadge(u.gift.plan)}</dd>
+                <dt>${tr('اعتبار / انقضا', 'Expiry')}</dt><dd>${u.gift.expiresAt ? tr(`تا ${fmtDate(u.gift.expiresAt)}`, `until ${fmtDate(u.gift.expiresAt)}`) : tr('نامحدود', 'Unlimited')}</dd>
+                <dt>${tr('اعطاکننده', 'Granted by')}</dt><dd><span class="ltr">${esc(u.gift.grantedBy || '—')}</span></dd>
+                <dt>${tr('تاریخ اعطا', 'Granted at')}</dt><dd>${esc(fmtDate(u.gift.grantedAt))}</dd>
+                ${u.gift.note ? `<dt>${tr('یادداشت', 'Note')}</dt><dd dir="auto">${esc(u.gift.note)}</dd>` : ''}
+              </dl>` : `<span class="hint" style="display:block;margin-top:6px">${tr('این کاربر در حال حاضر اشتراک هدیه فعالی ندارد.', 'This user currently has no active gift subscription.')}</span>`}
           </div>
           <div class="field"><label for="dr-name">${tr('نام نمایشی', 'Display name')}</label>
             <div style="display:flex;gap:8px"><input class="input input-mixed" id="dr-name" dir="auto" value="${esc(u.displayName || '')}" maxlength="64" /><button type="button" class="btn btn-primary" id="dr-name-save" disabled>${tr('ذخیره', 'Save')}</button></div></div>
@@ -836,6 +989,36 @@ async function openUser(id, onChange) {
         notesBtn.disabled = true;
         try { const r = await patch({ notes: notes.value }, tr('یادداشت ذخیره شد.', 'Note saved.')); d.user = r.user; u.notes = r.user.notes; }
         catch (e) { toast(errMsg(e), 'error'); notesBtn.disabled = false; }
+      });
+      t.querySelector('#dr-gift-btn')?.addEventListener('click', () => {
+        openGiftDialog({
+          currentGift: u.gift,
+          plans,
+          onConfirm: async (payload) => {
+            const r = await api(`/api/admin/users/${encodeURIComponent(id)}/gift`, { method: 'POST', body: payload });
+            changed = true;
+            toast(tr('اشتراک هدیه اعمال شد.', 'Gift subscription applied.'));
+            d.user = r.user;
+            paint(d);
+            return true;
+          }
+        });
+      });
+      t.querySelector('#dr-gift-revoke')?.addEventListener('click', async () => {
+        await confirmDialog({
+          title: tr('لغو اشتراک هدیه', 'Revoke gift subscription'),
+          body: `<p style="margin:0">${tr(`اشتراک هدیه «${esc(u.displayName || u.username)}» لغو می‌شود و کاربر بلافاصله به پلن پایه «${esc(planName(u.plan))}» بازمی‌گردد.`, `The gift subscription for “${esc(u.displayName || u.username)}” will be revoked, returning immediately to the base plan “${esc(planName(u.plan))}”.`)}</p>`,
+          danger: true,
+          confirmText: tr('لغو هدیه', 'Revoke gift'),
+          onConfirm: async () => {
+            const r = await api(`/api/admin/users/${encodeURIComponent(id)}/gift`, { method: 'DELETE' });
+            changed = true;
+            toast(tr('اشتراک هدیه لغو شد.', 'Gift subscription revoked.'));
+            d.user = r.user;
+            paint(d);
+            return true;
+          }
+        });
       });
       t.querySelector('#dr-plan').addEventListener('change', async (e) => {
         const pid = e.target.value;
