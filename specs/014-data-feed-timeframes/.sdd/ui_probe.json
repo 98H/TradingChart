@@ -1,6 +1,6 @@
 {
-  "defects": 0,
-  "knownBaselineDefects": 26,
+  "defects": 3,
+  "knownBaselineDefects": 23,
   "baseline": ".sdd/baseline/ui_probe_2026-10-23.json",
   "results": [
     {
@@ -98,11 +98,15 @@
       "page": "/chart",
       "viewport": "mobile",
       "locale": "fa",
-      "defects": 0,
-      "knownBaselineDefects": 11,
+      "defects": 3,
+      "knownBaselineDefects": 8,
       "overflow": [],
       "covered": [],
-      "tinyTarget": [],
+      "tinyTarget": [
+        "#nav-btn-quant \"Quant\" 61x34",
+        "#nav-btn-panels \"Panels\" 79x34",
+        "#qt-collapsed-trigger \"معاملات مجازی\" 112x36"
+      ],
       "untranslated": [],
       "clipped": [],
       "consoleErr": []
