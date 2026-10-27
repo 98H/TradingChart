@@ -17,3 +17,4 @@ screenshots/qa_cycles/admin/
 screenshots/qa_cycles/admin_e2e/
 .sdd/worktrees/
 .sdd/retrofit/*.log
+.sdd/out/
