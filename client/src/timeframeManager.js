@@ -130,11 +130,14 @@ export class TimeframeManager {
               + ${isFa ? 'ساخت تایم‌فریم سفارشی' : 'Add Custom Interval'}
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="number" id="input-custom-tf-val" value="10" min="1" max="1000" class="num-ltr" style="width: 80px; height: 34px; text-align: center; font-size: 13px;" />
-              <select id="select-custom-tf-unit" style="flex: 1; height: 34px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; font-size: 12px;">
-                <option value="m">${isFa ? 'دقیقه (Minutes)' : 'Minutes'}</option>
+              <input type="number" id="input-custom-tf-val" value="10" min="1" max="1440" class="num-ltr" style="width: 80px; height: 34px; text-align: center; font-size: 13px;" />
+              <select id="custom-tf-unit" name="unit" class="custom-tf-units" style="flex: 1; height: 34px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; font-size: 12px;">
+                <option value="s">${isFa ? 'ثانیه (Seconds)' : 'Seconds'}</option>
+                <option value="m" selected>${isFa ? 'دقیقه (Minutes)' : 'Minutes'}</option>
                 <option value="h">${isFa ? 'ساعت (Hours)' : 'Hours'}</option>
                 <option value="D">${isFa ? 'روز (Days)' : 'Days'}</option>
+                <option value="W">${isFa ? 'هفته (Weeks)' : 'Weeks'}</option>
+                <option value="M">${isFa ? 'ماه (Months)' : 'Months'}</option>
               </select>
               <button id="btn-add-custom-tf" class="btn-primary" style="font-size: 12px; padding: 0 16px; height: 34px; font-weight: 700;">
                 + ${isFa ? 'افزودن' : 'Add'}
@@ -185,36 +188,67 @@ export class TimeframeManager {
 
     // Add custom timeframe
     this.modalEl.querySelector('#btn-add-custom-tf')?.addEventListener('click', () => {
+      const valInput = this.modalEl.querySelector('#input-custom-tf-val');
+      const unitSelect = this.modalEl.querySelector('#custom-tf-unit, #select-custom-tf-unit, select[name=unit]');
+      const rawVal = parseInt(valInput?.value, 10) || 1;
+      const unit = unitSelect?.value || 'm';
+
+      // TradingView parity: second-based intervals are Essential-tier and above.
+      if (unit === 's' && this.app?.auth && !this.app.auth.feature('secondIntervals')) {
+        this.app.auth.enforce('secondIntervals', 0, 'second-based intervals', 'تایم‌فریم‌های ثانیه‌ای');
+        this.app.auth.openPlansModal?.();
+        return;
+      }
+
       // TradingView parity: custom intervals are Essential-tier and above.
       if (this.app?.auth && !this.app.auth.feature('customIntervals')) {
         this.app.auth.enforce('customIntervals', 0, 'custom intervals', 'تایم‌فریم‌های سفارشی');
         this.app.auth.openPlansModal?.();
         return;
       }
-      const valInput = this.modalEl.querySelector('#input-custom-tf-val');
-      const unitSelect = this.modalEl.querySelector('#select-custom-tf-unit');
-      const val = parseInt(valInput?.value, 10) || 10;
-      const unit = unitSelect?.value || 'm';
 
       let id = '';
       let label = '';
-      if (unit === 'm') {
+      let category = 'minutes';
+      if (unit === 's') {
+        const val = Math.max(1, Math.min(59, rawVal));
+        id = `${val}s`;
+        label = `${val}s`;
+        category = 'seconds';
+      } else if (unit === 'm') {
+        const val = Math.max(1, Math.min(1440, rawVal));
         id = String(val);
         label = `${val}m`;
+        category = 'minutes';
       } else if (unit === 'h') {
+        const val = Math.max(1, Math.min(24, rawVal));
         id = String(val * 60);
         label = `${val}h`;
+        category = 'hours';
       } else if (unit === 'D') {
+        const val = Math.max(1, Math.min(365, rawVal));
         id = val === 1 ? 'D' : `${val}D`;
         label = `${val}D`;
+        category = 'days';
+      } else if (unit === 'W') {
+        const val = Math.max(1, Math.min(52, rawVal));
+        id = val === 1 ? 'W' : `${val}W`;
+        label = `${val}W`;
+        category = 'weeks';
+      } else if (unit === 'M') {
+        const val = Math.max(1, Math.min(12, rawVal));
+        id = val === 1 ? 'M' : `${val}M`;
+        label = `${val}M`;
+        category = 'months';
       }
 
       if (!this.customTimeframes.find(x => x.id === id)) {
         this.customTimeframes.push({
           id,
           label,
-          name: `${val} ${unit}`,
-          nameFa: `${val} ${unit}`
+          category,
+          name: `${rawVal} ${unit}`,
+          nameFa: `${rawVal} ${unit}`
         });
         this.saveCustomTimeframes();
       }

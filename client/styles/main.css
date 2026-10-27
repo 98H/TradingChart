@@ -3215,3 +3215,66 @@ body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right
 /* Demo-data feeds: route tag in amber so it never reads as a live feed */
 .is-demo-feed #topbar-source-route { background: rgba(251,191,36,0.18) !important; color: #fbbf24; }
 .is-demo-feed .source-pulse-dot { background: #fbbf24 !important; box-shadow: none !important; }
+
+/* ── Chart Feed Notices (FR-012) ────────────────────────────────────────── */
+.tc-chart-notice,
+.chart-feed-notice,
+.notice-banner {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  max-width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tc-chart-notice[data-notice-id="no_data"] {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+.tc-chart-notice[data-notice-id="cache_stale"] {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fcd34d;
+}
+
+body.theme-light .tc-chart-notice[data-notice-id="no_data"] {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #991b1b;
+}
+
+body.theme-light .tc-chart-notice[data-notice-id="cache_stale"] {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+@media (max-width: 600px) {
+  .tc-chart-notice,
+  .chart-feed-notice,
+  .notice-banner {
+    top: 42px;
+    font-size: 11.5px;
+    padding: 8px 12px;
+    max-width: 94%;
+  }
+}
+

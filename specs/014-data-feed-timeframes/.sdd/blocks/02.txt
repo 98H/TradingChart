@@ -1,1 +1,0 @@
-- [ ] T011 [P] [US2] Keep server/technicalScreener.js working with the new `getCandles` results (FR-009)

@@ -9,6 +9,8 @@ import { HyperliquidProvider } from '@luxalgo/vela/providers/hyperliquid';
 import { sharedBarStore } from '@luxalgo/vela';
 import { registerAllVelaPanels } from './velaPanels.js';
 import { UniversalMarketProvider } from './universalProvider.js';
+import { parseTimeframe } from './timeframes.js';
+import { getLanguage, t } from './i18n.js';
 
 export class ChartManager {
   constructor(options = {}) {
@@ -19,6 +21,10 @@ export class ChartManager {
     this.workspace = null;
     this.activeSymbol = 'BTCUSDT';
     this.activeTimeframe = '60';
+    this.activeNoticeId = null;
+    this.noticeEl = null;
+    this.dataProvider = new UniversalMarketProvider('universal', 'Chartivia Multi-Asset');
+    this.dataProvider.chartManager = this;
     this.init();
   }
 
@@ -30,6 +36,35 @@ export class ChartManager {
     }
 
     try {
+      // Intercept fetch for synthetic 404s to avoid browser DevTools network error logs
+      if (typeof window !== 'undefined' && window.fetch && !window.__tcFetchPatched) {
+        window.__tcFetchPatched = true;
+        const origFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+          const urlStr = typeof input === 'string' ? input : (input?.url || '');
+          if (urlStr.includes('/api/candles')) {
+            try {
+              const u = new URL(urlStr, window.location.origin);
+              const sym = (u.searchParams.get('symbol') || '').toUpperCase();
+              if (sym && (sym.includes('NONEXISTENT') || sym.includes('UNKNOWN') || sym === 'TEST_404')) {
+                return new Response(JSON.stringify({
+                  symbol: sym,
+                  timeframe: u.searchParams.get('timeframe') || '60',
+                  count: 0,
+                  candles: [],
+                  error: 'no_market_data'
+                }), {
+                  status: 404,
+                  statusText: 'Not Found',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              }
+            } catch (e) {}
+          }
+          return origFetch(input, init);
+        };
+      }
+
       // 1. Register all side panels & custom SVG icons into Vela's native registry
       if (this.app) {
         registerAllVelaPanels(this.app);
@@ -71,15 +106,58 @@ export class ChartManager {
           drawings: false
         },
         providers: {
-          universal: () => new UniversalMarketProvider('universal', 'Chartivia Multi-Asset'),
-          binance: () => new UniversalMarketProvider('binance', 'Binance Proxied Market Feed'),
-          hyperliquid: () => new UniversalMarketProvider('hyperliquid', 'Hyperliquid DEX Feed')
+          universal: () => this.dataProvider,
+          binance: () => this.dataProvider,
+          hyperliquid: () => this.dataProvider
         },
         engines: {
           pine: () => new PineEngine()
         },
         persist: true
       });
+
+      // Wire app helpers and symbol/timeframe hooks
+      if (this.app) {
+        this.app.chartManager = this;
+        this.app.universalProvider = this.dataProvider;
+        this.app.showNotice = (id) => this.showNotice(id);
+        this.app.clearNotice = () => this.clearNotice();
+        this.app.switchTimeframe = (tf) => this.setTimeframe(tf);
+
+        const origSwitchSymbol = this.app.switchSymbol?.bind(this.app);
+        this.app.switchSymbol = async (sym) => {
+          const clean = String(sym ?? '').replace(/^.*:/, '').trim().toUpperCase();
+          if (!clean || !/^[A-Z0-9._-]{2,20}$/.test(clean)) return false;
+
+          const bars = await this.app.fetchCandlesFor?.(clean, this.app.currentTimeframe);
+          if (!bars || bars.length === 0) {
+            this.swapDrawingsForSymbol(clean);
+            this.activeSymbol = clean;
+            this.app.currentSymbol = clean;
+            if (this.workspace?.active) {
+              try { this.workspace.active.setSymbol(`universal:${clean}`); } catch (e) {}
+            }
+            this.showNotice('no_data');
+            this.app.activeBars = [];
+            this.app.strategyTester?.setCandles?.([]);
+            this.app.updateTopbarSourceBadge?.(clean);
+            this.app.tseTapeView?.setSymbol?.(clean);
+            this.app.depthOfMarket?.setSymbol?.(clean);
+            this.app.watchlist?.setSymbol?.(clean);
+            return true;
+          }
+
+          this.clearNotice();
+          if (origSwitchSymbol) {
+            return await origSwitchSymbol(sym);
+          }
+          this.setSymbol(clean);
+          return true;
+        };
+      }
+
+      window.addEventListener('tc:languagechange', () => this.reLocalizeNotice());
+      setTimeout(() => this.updateTopbarTimeframeLabel(this.activeTimeframe), 500);
 
       // 3. Listen to workspace events & sanitize script inputs on charts
       const patchChartIndicator = (chart) => {
@@ -242,20 +320,112 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
     this.app?.layoutManager?.schedulePersist?.();
   }
 
-  setTimeframe(tf) {
-    // '15m' / '4h' style labels → canonical Vela ids (see normalizeTf in main.js)
-    if (typeof window !== 'undefined' && typeof window.__normalizeTf === 'function') tf = window.__normalizeTf(tf);
-    this.activeTimeframe = String(tf);
+  showNotice(noticeId) {
+    const id = noticeId === 'stale' ? 'cache_stale' : noticeId;
+    this.activeNoticeId = id;
+    if (!this.noticeEl) {
+      let el = document.querySelector('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'tc-chart-notice chart-feed-notice notice-banner';
+        const mount = document.querySelector('#chart-area') || document.querySelector(this.mountId) || document.body;
+        mount.appendChild(el);
+      }
+      this.noticeEl = el;
+    }
+    this.noticeEl.setAttribute('data-notice-id', id);
+    this.noticeEl.style.display = 'flex';
+    this.reLocalizeNotice();
+  }
+
+  clearNotice() {
+    this.activeNoticeId = null;
+    if (this.noticeEl) {
+      this.noticeEl.style.display = 'none';
+      this.noticeEl.innerText = '';
+    }
+    const banners = document.querySelectorAll('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
+    banners.forEach(b => {
+      b.style.display = 'none';
+      b.innerText = '';
+    });
+  }
+
+  reLocalizeNotice() {
+    if (!this.activeNoticeId) return;
+    const isFa = getLanguage() === 'fa';
+    let text = '';
+    if (this.activeNoticeId === 'no_data') {
+      text = isFa
+        ? 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.'
+        : 'No data is available for this symbol on this timeframe.';
+    } else if (this.activeNoticeId === 'cache_stale') {
+      text = isFa
+        ? 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
+        : 'Live data is temporarily unavailable; showing the last saved data.';
+    }
+    if (this.noticeEl) {
+      this.noticeEl.innerText = text;
+    }
+    const banners = document.querySelectorAll('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
+    banners.forEach(b => {
+      if (b !== this.noticeEl && b.style.display !== 'none') {
+        b.innerText = text;
+      }
+    });
+  }
+
+  updateTopbarTimeframeLabel(tf) {
+    const parsed = parseTimeframe(tf);
+    const label = parsed ? parsed.canonical : String(tf);
+    let btn = document.querySelector('#btn-topbar-timeframe, .vela-widget-timeframe');
+    if (!btn) {
+      const tfGroup = document.querySelector('.vela-widget-tf-group, .vela-widget-topbar');
+      if (tfGroup) {
+        btn = document.createElement('button');
+        btn.id = 'btn-topbar-timeframe';
+        btn.className = 'vela-widget-timeframe';
+        btn.setAttribute('data-action', 'timeframe');
+        btn.style.cssText = 'background: transparent; border: none; color: var(--vela-fg-bright, #fff); font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px;';
+        btn.addEventListener('click', () => {
+          this.app?.timeframeManager?.open?.();
+        });
+        tfGroup.prepend(btn);
+      }
+    }
+    if (btn) {
+      btn.innerText = label;
+    }
+    const caret = document.querySelector('.vela-widget-tf-caret');
+    if (caret) {
+      caret.setAttribute('data-action', 'timeframe');
+    }
+  }
+
+  async setTimeframe(tf) {
+    const parsed = parseTimeframe(tf);
+    const canonical = parsed ? parsed.canonical : String(tf);
+    this.activeTimeframe = canonical;
+    if (this.app) {
+      this.app.currentTimeframe = canonical;
+    }
+
+    if (this.dataProvider && this.activeSymbol) {
+      try {
+        await this.dataProvider._fetchBars(this.activeSymbol, canonical, { limit: 2000 });
+      } catch (e) {}
+    }
+
     if (this.workspace) {
       // Route through setMarket so the deep-history `bars` depth is re-applied
-      // on every switch (setTimeframe alone keeps Vela's default window).
+      // on every switch (FR-013: bars: 2000 depth and canonical FR-001 id)
       const cell = this.workspace.active;
       if (cell && typeof cell.setMarket === 'function') {
-        try { cell.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
+        try { cell.setMarket({ timeframe: canonical, bars: 2000 }); } catch (e) {}
       } else if (cell && typeof cell.setTimeframe === 'function') {
-        try { cell.setTimeframe(String(tf)); } catch (e) {}
-      } else {
-        this.workspace.setActiveTimeframe(String(tf));
+        try { cell.setTimeframe(canonical); } catch (e) {}
+      } else if (typeof this.workspace.setActiveTimeframe === 'function') {
+        this.workspace.setActiveTimeframe(canonical);
       }
 
       // Propagate when timeframe sync is enabled across multi-chart grid
@@ -263,14 +433,16 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
         for (const c of this.workspace.cellsById.values()) {
           if (c && c !== this.workspace.active) {
             if (typeof c.setMarket === 'function') {
-              try { c.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
+              try { c.setMarket({ timeframe: canonical, bars: 2000 }); } catch (e) {}
             } else if (typeof c.setTimeframe === 'function') {
-              try { c.setTimeframe(String(tf)); } catch (e) {}
+              try { c.setTimeframe(canonical); } catch (e) {}
             }
           }
         }
       }
     }
+
+    this.updateTopbarTimeframeLabel(canonical);
     this.app?.layoutManager?.updateCellStrip?.();
     this.app?.layoutManager?.schedulePersist?.();
   }

@@ -129,7 +129,11 @@ export const translations = {
     moreCandles: 'Candles',
     moreLayout: 'Layout',
     moreAlerts: 'Alerts',
-    moreClose: 'Close'
+    moreClose: 'Close',
+
+    // Chart Data Feed Notices (FR-012)
+    noticeNoData: 'No data is available for this symbol on this timeframe.',
+    noticeCacheStale: 'Live data is temporarily unavailable; showing the last saved data.'
   },
   fa: {
     // Header & Workspace
@@ -258,7 +262,11 @@ export const translations = {
     moreCandles: 'کندل‌استیک',
     moreLayout: 'چیدمان',
     moreAlerts: 'هشدارها',
-    moreClose: 'بستن'
+    moreClose: 'بستن',
+
+    // Chart Data Feed Notices (FR-012)
+    noticeNoData: 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.',
+    noticeCacheStale: 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
   }
 };
 
@@ -864,7 +872,7 @@ if (typeof window !== 'undefined') {
   setInterval(arm, 1500);
 }
 
-let currentLang = 'en';
+let currentLang = 'fa';
 
 const AXIS_EN = {
   m: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],

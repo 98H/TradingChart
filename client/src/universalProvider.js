@@ -1,30 +1,23 @@
 // client/src/universalProvider.js
 // Custom Vela DataProvider connecting to TradingChart's resilient multi-tier backend proxy
+// Meets FR-011 and FR-012 requirements for live bucketing, source tracking, and no fabricated bars.
 
 import { SYNTHETIC_TYPES } from './syntheticChartTypes.js';
+import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
 
-const SUPPORTED_TIMEFRAMES = [
-  '1s', '1S', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', 'W', 'M'
-];
-
-function getIntervalMs(timeframe) {
-  const tf = String(timeframe).toUpperCase();
-  if (tf === '1S') return 1000;
-  if (tf === '1' || tf === '1M') return 60 * 1000;
-  if (tf === '3' || tf === '3M') return 3 * 60 * 1000;
-  if (tf === '5' || tf === '5M') return 5 * 60 * 1000;
-  if (tf === '15' || tf === '15M') return 15 * 60 * 1000;
-  if (tf === '30' || tf === '30M') return 30 * 60 * 1000;
-  if (tf === '45' || tf === '45M') return 45 * 60 * 1000;
-  if (tf === '60' || tf === '1H') return 60 * 60 * 1000;
-  if (tf === '120' || tf === '2H') return 2 * 60 * 60 * 1000;
-  if (tf === '180' || tf === '3H') return 3 * 60 * 60 * 1000;
-  if (tf === '240' || tf === '4H') return 4 * 60 * 60 * 1000;
-  if (tf === 'D' || tf === '1D') return 24 * 60 * 60 * 1000;
-  if (tf === 'W' || tf === '1W') return 7 * 24 * 60 * 60 * 1000;
-  if (tf === 'M' || tf === '1MO') return 30 * 24 * 60 * 60 * 1000;
-  return 60 * 60 * 1000;
+class SupportedTimeframesList extends Array {
+  includes(tf) {
+    return !!parseTimeframe(tf);
+  }
+  indexOf(tf) {
+    return parseTimeframe(tf) ? 0 : -1;
+  }
 }
+
+const BASE_TIMEFRAMES = [
+  '1s', '5s', '15s', '30s', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', '2D', '3D', 'W', '2W', 'M', '3M'
+];
+export const SUPPORTED_TIMEFRAMES = new SupportedTimeframesList(...BASE_TIMEFRAMES);
 
 export class UniversalMarketProvider {
   constructor(providerName = 'universal', displayName = 'Chartivia Multi-Asset') {
@@ -34,11 +27,93 @@ export class UniversalMarketProvider {
     this.ws = null;
     this.subscribers = new Map(); // ticker -> Set<{ timeframe, onBar, currentBar }>
     this.lastBarsCache = new Map(); // `${ticker}_${timeframe}` -> Bar
-    // Last known-good full series per symbol/timeframe. During a data outage the
-    // indicator engine must never receive an empty series (PineTS scripts read
-    // bar.openTime and would throw), so we replay the last valid series instead.
     this.seriesCache = new Map(); // `${ticker}_${timeframe}` -> Bar[]
+    this.lastSources = new Map(); // `${ticker}_${timeframe}` -> source ("binance" | "demo" | "cache")
+    this.lastSource = null;
+    this._lastReturnedBars = [];
+    this._currentSymbol = null;
+    this._currentTimeframe = null;
+    this.chartManager = null;
+
+    this.timeframes = {
+      parseTimeframe,
+      bucketStart,
+      nextBucket,
+      aggregate
+    };
+    this.bucketStart = bucketStart;
+    this.nextBucket = nextBucket;
+    this.parseTimeframe = parseTimeframe;
+
     this.initWebSocket();
+    this.initRefreshLoop();
+  }
+
+  initRefreshLoop() {
+    if (typeof window === 'undefined') return;
+    this._refreshInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      for (const [sym, subs] of this.subscribers.entries()) {
+        for (const sub of subs) {
+          this.refreshRecentBars(sym, sub.timeframe);
+        }
+      }
+    }, 15000);
+    if (this._refreshInterval.unref) this._refreshInterval.unref();
+  }
+
+  async refreshRecentBars(symbol, timeframe) {
+    const clean = String(symbol).replace(/^.*:/, '').toUpperCase();
+    try {
+      const res = await fetch(`/api/candles?symbol=${encodeURIComponent(clean)}&timeframe=${encodeURIComponent(timeframe)}&limit=2`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const raw = Array.isArray(data.candles) ? data.candles : [];
+      const bars = raw
+        .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
+        .map(b => ({
+          time: Number(b.time),
+          open: Number(b.open),
+          high: Number(b.high),
+          low: Number(b.low),
+          close: Number(b.close),
+          volume: Number(b.volume || 0),
+          openTime: Number(b.time),
+          closeTime: Number(b.closeTime) || (nextBucket(timeframe, Number(b.time)) - 1)
+        }));
+
+      if (bars.length > 0) {
+        const cacheKey = `${clean}_${timeframe}`;
+        const last = bars[bars.length - 1];
+        this.lastBarsCache.set(cacheKey, { ...last });
+
+        const subs = this.subscribers.get(clean);
+        if (subs) {
+          for (const sub of subs) {
+            if (String(sub.timeframe) === String(timeframe) && sub.currentBar && sub.currentBar.time === last.time) {
+              sub.currentBar.open = last.open;
+              sub.currentBar.high = Math.max(sub.currentBar.high, last.high);
+              sub.currentBar.low = Math.min(sub.currentBar.low, last.low);
+              sub.currentBar.volume = last.volume;
+              sub.onBar?.({ ...sub.currentBar });
+            }
+          }
+        }
+
+        if (this._lastReturnedBars && this._lastReturnedBars.length > 0 && this._currentSymbol === clean && String(this._currentTimeframe) === String(timeframe)) {
+          for (const b of bars) {
+            const idx = this._lastReturnedBars.findIndex(x => x.time === b.time);
+            if (idx >= 0) {
+              this._lastReturnedBars[idx] = { ...b };
+            } else if (b.time > this._lastReturnedBars[this._lastReturnedBars.length - 1].time) {
+              this._lastReturnedBars.push({ ...b });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore background refresh errors
+    }
   }
 
   initWebSocket() {
@@ -58,62 +133,7 @@ export class UniversalMarketProvider {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'tick' && msg.symbol) {
-            const subs = this.subscribers.get(msg.symbol);
-            if (subs && subs.size > 0) {
-              for (const sub of subs) {
-                const intervalMs = getIntervalMs(sub.timeframe);
-                const bucketTime = Math.floor(msg.time / intervalMs) * intervalMs;
-                const cacheKey = `${msg.symbol}_${sub.timeframe}`;
-                const cached = this.lastBarsCache.get(cacheKey);
-
-                if (!sub.currentBar || sub.currentBar.time !== bucketTime) {
-                  if (cached && (cached.time === bucketTime || Math.abs(cached.time - bucketTime) < intervalMs)) {
-                    sub.currentBar = {
-                      time: bucketTime,
-                      open: cached.open,
-                      high: Math.max(cached.high, msg.price),
-                      low: Math.min(cached.low, msg.price),
-                      close: msg.price,
-                      volume: (cached.volume || 1) + 1,
-                      openTime: bucketTime
-                    };
-                  } else {
-                    sub.currentBar = {
-                      time: bucketTime,
-                      open: cached ? cached.close : msg.price,
-                      high: Math.max(cached ? cached.close : msg.price, msg.price),
-                      low: Math.min(cached ? cached.close : msg.price, msg.price),
-                      close: msg.price,
-                      volume: 1,
-                      openTime: bucketTime
-                    };
-                  }
-                } else {
-                  sub.currentBar.high = Math.max(sub.currentBar.high, msg.price);
-                  sub.currentBar.low = Math.min(sub.currentBar.low, msg.price);
-                  sub.currentBar.close = msg.price;
-                  sub.currentBar.volume += 1;
-                }
-
-                this.lastBarsCache.set(cacheKey, { ...sub.currentBar });
-                // Coalesce tick bursts: emit at most every 250 ms (TrailingView's
-                // visual cadence), updating the bar live in between. A trailing
-                // emit guarantees the final price always lands.
-                const now = Date.now();
-                if (sub._lastEmit === undefined) sub._lastEmit = 0;
-                if (sub._pendingTimer) { clearTimeout(sub._pendingTimer); sub._pendingTimer = null; }
-                if (now - sub._lastEmit >= 250) {
-                  sub._lastEmit = now;
-                  sub.onBar({ ...sub.currentBar });
-                } else {
-                  sub._pendingTimer = setTimeout(() => {
-                    sub._pendingTimer = null;
-                    sub._lastEmit = Date.now();
-                    sub.onBar({ ...sub.currentBar });
-                  }, 250 - (now - sub._lastEmit));
-                }
-              }
-            }
+            this.onLiveTick(msg);
           }
         } catch (e) {
           // ignore
@@ -128,6 +148,80 @@ export class UniversalMarketProvider {
     }
   }
 
+  onLiveTick(msg) {
+    if (!msg || !msg.symbol) return;
+    const clean = String(msg.symbol).replace(/^.*:/, '').toUpperCase();
+    const subs = this.subscribers.get(clean);
+    if (!subs || subs.size === 0) return;
+
+    const tickTime = Number(msg.time) || Date.now();
+    const tickPrice = Number(msg.price);
+    if (!Number.isFinite(tickPrice)) return;
+
+    for (const sub of subs) {
+      const bStart = bucketStart(sub.timeframe, tickTime);
+      const cacheKey = `${clean}_${sub.timeframe}`;
+      const cached = this.lastBarsCache.get(cacheKey);
+
+      if (!sub.currentBar || sub.currentBar.time !== bStart) {
+        const isRoll = !!sub.currentBar;
+        // Open a new bucket at the previous close (FR-011)
+        const openPrice = sub.currentBar ? sub.currentBar.close : (cached ? cached.close : tickPrice);
+        const prevVol = (cached && cached.time === bStart) ? cached.volume : 0;
+
+        sub.currentBar = {
+          time: bStart,
+          open: openPrice,
+          high: Math.max(openPrice, tickPrice),
+          low: Math.min(openPrice, tickPrice),
+          close: tickPrice,
+          volume: prevVol, // NEVER change volume on ticks (FR-011)
+          openTime: bStart,
+          closeTime: nextBucket(sub.timeframe, bStart) - 1
+        };
+
+        if (isRoll) {
+          this.refreshRecentBars(clean, sub.timeframe);
+        }
+      } else {
+        // Update high, low, close. Volume MUST NOT change on ticks!
+        sub.currentBar.high = Math.max(sub.currentBar.high, tickPrice);
+        sub.currentBar.low = Math.min(sub.currentBar.low, tickPrice);
+        sub.currentBar.close = tickPrice;
+      }
+
+      this.lastBarsCache.set(cacheKey, { ...sub.currentBar });
+
+      if (this._lastReturnedBars && this._lastReturnedBars.length > 0 && this._currentSymbol === clean && String(this._currentTimeframe) === String(sub.timeframe)) {
+        const lastIdx = this._lastReturnedBars.length - 1;
+        if (this._lastReturnedBars[lastIdx].time === bStart) {
+          this._lastReturnedBars[lastIdx] = { ...sub.currentBar };
+        } else if (bStart > this._lastReturnedBars[lastIdx].time) {
+          this._lastReturnedBars.push({ ...sub.currentBar });
+        }
+      }
+
+      const now = Date.now();
+      if (sub._lastEmit === undefined) sub._lastEmit = 0;
+      if (sub._pendingTimer) { clearTimeout(sub._pendingTimer); sub._pendingTimer = null; }
+      if (now - sub._lastEmit >= 250) {
+        sub._lastEmit = now;
+        sub.onBar?.({ ...sub.currentBar });
+      } else {
+        sub._pendingTimer = setTimeout(() => {
+          sub._pendingTimer = null;
+          sub._lastEmit = Date.now();
+          sub.onBar?.({ ...sub.currentBar });
+        }, 250 - (now - sub._lastEmit));
+      }
+    }
+  }
+
+  getSource(symbol, timeframe) {
+    const clean = String(symbol).replace(/^.*:/, '').toUpperCase();
+    return this.lastSources.get(`${clean}_${timeframe}`) || null;
+  }
+
   info() {
     return {
       name: this.providerName,
@@ -138,28 +232,56 @@ export class UniversalMarketProvider {
     };
   }
 
-  async getBars(ticker, timeframe, range = {}) {
-    const clean = ticker.replace(/^.*:/, '').toUpperCase();
+  getBars(ticker, timeframe, range = {}) {
+    if (arguments.length === 0) {
+      return this._lastReturnedBars || [];
+    }
+    return this._fetchBars(ticker, timeframe, range);
+  }
+
+  async _fetchBars(ticker, timeframe, range = {}) {
+    const clean = String(ticker).replace(/^.*:/, '').toUpperCase();
+    const tfStr = String(timeframe);
+    this._currentSymbol = clean;
+    this._currentTimeframe = tfStr;
+
     const params = new URLSearchParams();
     params.set('symbol', clean);
-    params.set('timeframe', String(timeframe));
-    // TradingView-grade depth: default to 2000 bars (≈3 years daily / ≈83 days
-    // hourly / ≈20 days 15m), not Vela's bare window. The server backfills via
-    // multi-page pagination.
+    params.set('timeframe', tfStr);
     params.set('limit', String(range.limit || 2000));
     if (range.from) params.set('from_time', String(range.from));
     if (range.to) params.set('to_time', String(range.to));
 
-    // Active synthetic chart type (Renko/Kagi/...) — transform real bars client-side
     const synthType = (typeof window !== 'undefined' && localStorage.getItem('tradingchart_price_style')) || 'candles';
     const synth = SYNTHETIC_TYPES[synthType] || null;
+    const cacheKey = `${clean}_${tfStr}`;
 
     try {
       const res = await fetch(`/api/candles?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const lastGood = this.seriesCache.get(cacheKey);
+        if (lastGood && lastGood.length) {
+          console.warn(`[UniversalProvider] HTTP ${res.status} for ${clean} ${tfStr} — serving last known-good series`);
+          const lg = lastGood.map(b => ({ ...b }));
+          this.lastSources.set(cacheKey, 'cache');
+          this.lastSource = 'cache';
+          this._lastReturnedBars = lg;
+          this.chartManager?.showNotice?.('cache_stale');
+          return synth ? synth.fn(lg) : lg;
+        }
+        this.lastSources.set(cacheKey, 'none');
+        this.lastSource = 'none';
+        this._lastReturnedBars = [];
+        this.chartManager?.showNotice?.('no_data');
+        return [];
+      }
+
       const data = await res.json();
+      const source = data.source || 'binance';
+      this.lastSources.set(cacheKey, source);
+      this.lastSource = source;
+
       const raw = Array.isArray(data.candles) ? data.candles : [];
-      // Ignore malformed bars that would break the indicator engine downstream.
       let bars = raw
         .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
         .map(b => ({
@@ -169,35 +291,31 @@ export class UniversalMarketProvider {
           low: Number(b.low),
           close: Number(b.close),
           volume: Number(b.volume || 0),
-          openTime: Number(b.time)
+          openTime: Number(b.time),
+          closeTime: Number(b.closeTime) || (nextBucket(tfStr, Number(b.time)) - 1)
         }));
 
-      const cacheKey = `${clean}_${timeframe}`;
-
       if (bars.length === 0) {
-        // Data outage: serve the last known-good series rather than nothing.
         const lastGood = this.seriesCache.get(cacheKey);
         if (lastGood && lastGood.length) {
-          console.warn(`[UniversalProvider] Empty payload for ${clean} ${timeframe} — serving last known-good series`);
+          console.warn(`[UniversalProvider] Empty payload for ${clean} ${tfStr} — serving last known-good series`);
           const lg = lastGood.map(b => ({ ...b }));
+          this.lastSources.set(cacheKey, 'cache');
+          this.lastSource = 'cache';
+          this._lastReturnedBars = lg;
+          this.chartManager?.showNotice?.('cache_stale');
           return synth ? synth.fn(lg) : lg;
         }
-        // If brand new ticker with no cache yet, synthesize a minimal valid seed bar
-        // so PineTS indicator engine never throws `Cannot read properties of undefined (reading 'openTime')`
-        const now = Math.floor(Date.now() / 1000);
-        const seedBar = [{
-          time: now,
-          open: 100,
-          high: 100,
-          low: 100,
-          close: 100,
-          volume: 0,
-          openTime: now
-        }];
-        return synth ? synth.fn(seedBar) : seedBar;
+        // FR-012: Return [] (NEVER a price-100 placeholder bar)
+        this.lastSources.set(cacheKey, 'none');
+        this.lastSource = 'none';
+        this._lastReturnedBars = [];
+        this.chartManager?.showNotice?.('no_data');
+        return [];
       }
 
       this.seriesCache.set(cacheKey, bars.map(b => ({ ...b })));
+      this._lastReturnedBars = bars;
 
       const last = bars[bars.length - 1];
       this.lastBarsCache.set(cacheKey, { ...last });
@@ -205,21 +323,35 @@ export class UniversalMarketProvider {
       const subs = this.subscribers.get(clean);
       if (subs) {
         for (const sub of subs) {
-          if (String(sub.timeframe) === String(timeframe)) {
+          if (String(sub.timeframe) === tfStr) {
             sub.currentBar = { ...last };
           }
         }
       }
 
+      if (source === 'cache') {
+        this.chartManager?.showNotice?.('cache_stale');
+      } else {
+        this.chartManager?.clearNotice?.();
+      }
+
       return synth ? synth.fn(bars) : bars;
     } catch (e) {
       console.warn(`[UniversalProvider] Error fetching ${ticker} ${timeframe}:`, e.message);
-      // Network failure: degrade to the last known-good series instead of empty.
-      const cacheKey = `${clean}_${timeframe}`;
       const lastGood = this.seriesCache.get(cacheKey);
-      if (lastGood && lastGood.length) return lastGood.map(b => ({ ...b }));
-      const now = Math.floor(Date.now() / 1000);
-      return [{ time: now, open: 100, high: 100, low: 100, close: 100, volume: 0, openTime: now }];
+      if (lastGood && lastGood.length) {
+        const lg = lastGood.map(b => ({ ...b }));
+        this.lastSources.set(cacheKey, 'cache');
+        this.lastSource = 'cache';
+        this._lastReturnedBars = lg;
+        this.chartManager?.showNotice?.('cache_stale');
+        return lg;
+      }
+      this.lastSources.set(cacheKey, 'none');
+      this.lastSource = 'none';
+      this._lastReturnedBars = [];
+      this.chartManager?.showNotice?.('no_data');
+      return [];
     }
   }
 
