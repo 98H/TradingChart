@@ -20,3 +20,7 @@
 ## Copy and UX
 - [ ] Notices use the exact FA/EN strings of FR-012, formal register, ZWNJ (بازه‌ی، ذخیره‌شده).
 - [ ] Notices do not cover the timeframe bar, legend controls or bottom nav on 390 px; both themes readable.
+
+## Architect escalation notes (phase 3, attempt 1)
+- [ ] Revert `let currentLang = 'fa'` in client/src/i18n.js to `'en'` — changing the app default language is out of scope (it caused 3 new mobile/fa UI-probe defects). Tests must set the language explicitly.
+- [ ] `closeAllBrowsers` is now exported from tests/qa_lib.cjs (base fix); regression output dir is created by the gate (base fix).
