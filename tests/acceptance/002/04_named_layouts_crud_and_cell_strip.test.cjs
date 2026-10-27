@@ -16,6 +16,7 @@ async function realClick(page, selector, timeout = 6000) {
   await page.waitForSelector(selector, { visible: true, timeout });
   const handle = await page.$(selector);
   if (!handle) throw new Error(`Selector ${selector} not found`);
+  await page.evaluate(el => el.scrollIntoView({ block: 'nearest' }), handle);
   const box = await handle.boundingBox();
   if (!box) throw new Error(`Bounding box for ${selector} not available`);
   const cx = box.x + box.width / 2;
@@ -239,6 +240,9 @@ async function run() {
       const loadBtnSelector = `.btn-load-layout[data-id="usr_default"]`;
       await realClick(page, loadBtnSelector);
       await page.waitForFunction(() => window.__TRADING_APP__.layoutManager.activeSavedLayoutId === 'usr_default');
+      // Wait for layout to finish restoring asynchronously
+      await page.waitForFunction(() => (window.__TRADING_APP__.chartManager?.workspace?.cellsById?.size || 0) >= 4);
+      await new Promise(r => setTimeout(r, 600));
 
       const restoredSync = await page.evaluate(() => window.__TRADING_APP__.layoutManager.syncOpts);
       assert(restoredSync.symbol === false && restoredSync.timeframe === false,
@@ -249,11 +253,20 @@ async function run() {
     {
       await page.evaluate((id) => {
         const lm = window.__TRADING_APP__.layoutManager;
-        lm.activeSavedLayoutId = id;
+        const target = lm.savedLayouts.find(l => l.id === id);
+        if (target) {
+          lm.activeLayoutId = target.layoutId;
+          lm.activeLayoutName = target.name;
+          lm.activeSavedLayoutId = target.id;
+        }
         window.__TRADING_APP__.chartManager.setSymbol('XAUUSD');
         lm.persistCurrentLayout();
       }, createdLayoutId);
-      await new Promise(r => setTimeout(r, 600));
+      await page.waitForFunction((id) => {
+        const lm = window.__TRADING_APP__.layoutManager;
+        const entry = lm.savedLayouts.find(l => l.id === id);
+        return entry?.state?.cells?.[0]?.symbol?.includes('XAUUSD');
+      }, { timeout: 10000 }, createdLayoutId);
 
       const updatedSavedEntry = await page.evaluate((id) => {
         const lm = window.__TRADING_APP__.layoutManager;

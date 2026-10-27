@@ -1,0 +1,3 @@
+PASS 002-multi-chart-layouts  FRs=25 tasks done=50 open=0
+
+SPECS=1 PASS=1 FAIL=0

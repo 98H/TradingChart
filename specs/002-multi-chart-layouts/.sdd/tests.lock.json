@@ -1,0 +1,10 @@
+{
+  "spec": "002",
+  "frozenAt": "2026-10-27T14:19:34.090Z",
+  "files": {
+    "tests/acceptance/002/01_cloud_state_http_api.test.cjs": "172cbdb3e0d1e5887a6ac3a1ff2255fc6e2f0813658038f42d6f536bb2985930",
+    "tests/acceptance/002/02_layout_studio_grid_and_sync.test.cjs": "2674ad139ce0a959a75257c55d9409bfc1d1e45bdd85b70944bf40613f81d9d5",
+    "tests/acceptance/002/03_workspace_persistence_and_deeplink.test.cjs": "ded9213fcb02788feb7a06415e0f3d88cf8749b0f44595c0e6eeb18cb11dc90a",
+    "tests/acceptance/002/04_named_layouts_crud_and_cell_strip.test.cjs": "69d1a980d972a7a324818407a97160a749cfcf38fcbb00ddf96f83d4ae6a9124"
+  }
+}
