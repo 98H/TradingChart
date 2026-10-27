@@ -20,7 +20,7 @@
       "defects": 2,
       "overflow": [],
       "covered": [
-        "#vela-tool-vela-widget-undo \"Undo\" under div.qt-content \"SELL\n80,520.56\n−\n+\nBTC\nSPREAD\n\"",
+        "#vela-tool-vela-widget-undo \"Undo\" under div.qt-content \"SELL\n80,495.69\n−\n+\nBTC\nSPREAD\n\"",
         "a.vela-attribution \"Charting by Vela\" under svg \"\""
       ],
       "tinyTarget": [],
@@ -47,7 +47,7 @@
       "defects": 2,
       "overflow": [],
       "covered": [
-        "#vela-tool-vela-widget-undo \"واگرد\" under div.qt-content \"فروش\n80,487.46\n−\n+\nBTC\nاسپرد\n$\"",
+        "#vela-tool-vela-widget-undo \"واگرد\" under div.qt-content \"فروش\n80,470.90\n−\n+\nBTC\nاسپرد\n$\"",
         "a.vela-attribution \"Charting by Vela\" under svg \"\""
       ],
       "tinyTarget": [],

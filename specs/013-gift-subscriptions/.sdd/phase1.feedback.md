@@ -1,4 +1,4 @@
-# Gate feedback — 013-gift-subscriptions phase 1, attempt 1
+# Gate feedback — 013-gift-subscriptions phase 1, attempt 2
 
 Result: FAIL
 
