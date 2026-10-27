@@ -7,12 +7,12 @@ demo engine; acceptance files covering FR-006 therefore run from Phase 2.
 
 ## Phase 1: Server timeframe core, honest crypto history, memory safety
 
-- [ ] T001 [US1] Create server/timeframes.js with `parseTimeframe`, `bucketStart`, `nextBucket`, `aggregate` per the data-model parsing table and FR-002 alignment (pure ESM, no Node APIs) (FR-001, FR-002)
-- [ ] T002 [US1] In server/index.js validate `timeframe` with `parseTimeframe` (400 `invalid_timeframe` otherwise) and return `timeframe` canonical, `intervalMs`, `source` and header `X-Data-Source` (FR-001, FR-005)
-- [ ] T003 [US1] In server/dataFeed.js map canonical timeframes to the Binance native interval or aggregate from the largest dividing native interval (3D from 1d), ≤ 20 pages, dropping a partially covered oldest bucket (FR-003)
-- [ ] T004 [US3] In server/dataFeed.js stop pagination at an empty/short page and return collected real bars; never call the demo generator for crypto (FR-004)
-- [ ] T005 [US3] In server/dataFeed.js read `TC_BINANCE_BASES`, keep a last-good series per (symbol, canonical tf) up to 24 h, serve it as `source:"cache"`, else signal `upstream_unavailable` → 503 in server/index.js (FR-005)
-- [ ] T006 [P] [US5] Create server/lru.js (cost-bounded LRU 300 000 bars + in-flight dedupe) and use it for every candle cache in server/dataFeed.js, removing the unbounded `candleCache` (FR-010)
+- [x] T001 [US1] Create server/timeframes.js with `parseTimeframe`, `bucketStart`, `nextBucket`, `aggregate` per the data-model parsing table and FR-002 alignment (pure ESM, no Node APIs) (FR-001, FR-002)
+- [x] T002 [US1] In server/index.js validate `timeframe` with `parseTimeframe` (400 `invalid_timeframe` otherwise) and return `timeframe` canonical, `intervalMs`, `source` and header `X-Data-Source` (FR-001, FR-005)
+- [x] T003 [US1] In server/dataFeed.js map canonical timeframes to the Binance native interval or aggregate from the largest dividing native interval (3D from 1d), ≤ 20 pages, dropping a partially covered oldest bucket (FR-003)
+- [x] T004 [US3] In server/dataFeed.js stop pagination at an empty/short page and return collected real bars; never call the demo generator for crypto (FR-004)
+- [x] T005 [US3] In server/dataFeed.js read `TC_BINANCE_BASES`, keep a last-good series per (symbol, canonical tf) up to 24 h, serve it as `source:"cache"`, else signal `upstream_unavailable` → 503 in server/index.js (FR-005)
+- [x] T006 [P] [US5] Create server/lru.js (cost-bounded LRU 300 000 bars + in-flight dedupe) and use it for every candle cache in server/dataFeed.js, removing the unbounded `candleCache` (FR-010)
 
 ## Phase 2: Demo engine — sessions, deterministic path, one price everywhere
 
