@@ -8,22 +8,28 @@
 // 5. Tehran Stock Exchange (TSETMC) Engine with adjusted data & market tape microstructure
 
 import { SYMBOL_CATALOG, getSymbolMeta } from './symbolCatalog.js';
+import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
+import { candleLru, dedupeInFlight } from './lru.js';
 
-const BINANCE_VISION_BASE = 'https://data-api.binance.vision/api/v3';
-const BINANCE_API_BASE = 'https://api.binance.com/api/v3';
-const BINANCE_US_BASE = 'https://api.binance.us/api/v3';
+export function getBinanceBases() {
+  const envBases = process.env.TC_BINANCE_BASES;
+  if (typeof envBases === 'string' && envBases.trim().length > 0) {
+    return envBases.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
+  }
+  return [
+    'https://data-api.binance.vision/api/v3',
+    'https://api.binance.com/api/v3',
+    'https://api.binance.us/api/v3'
+  ];
+}
 
 const KNOWN_SYMBOLS = new Set(SYMBOL_CATALOG.map(s => String(s.symbol).toUpperCase()));
 export function isKnownSymbol(sym) {
   const clean = String(sym || '').replace(/^.*:/, '').toUpperCase();
   if (!clean) return false;
   if (KNOWN_SYMBOLS.has(clean)) return true;
-  return clean.endsWith('USDT');
+  return clean.endsWith('USDT') || clean.endsWith('BTC');
 }
-
-// Micro-cache for candle requests
-const candleCache = new Map();
-const CACHE_TTL_MS = 3000;
 
 export const INTERVAL_MAP = {
   '1s': '1s',
@@ -63,6 +69,10 @@ export function normalizeInterval(interval) {
 }
 
 export function getIntervalSeconds(interval) {
+  const parsed = parseTimeframe(interval);
+  if (parsed) {
+    return Math.round(parsed.intervalMs / 1000);
+  }
   const norm = normalizeInterval(interval);
   if (norm.endsWith('m')) return parseInt(norm, 10) * 60;
   if (norm.endsWith('h')) return parseInt(norm, 10) * 3600;
@@ -73,45 +83,22 @@ export function getIntervalSeconds(interval) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. CRYPTO WATERFALL: Binance Direct API with Multi-Page Backfill
+// 1. CRYPTO WATERFALL: Binance Direct API with Multi-Page Backfill (FR-003, FR-004, FR-005)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function fetchBinanceKlines(symbol, interval, limit = 500, startTime = null, endTime = null) {
-  const cleanSymbol = symbol.replace(/^.*:/, '').toUpperCase();
-  const normInterval = normalizeInterval(interval);
 
-  const PAGE = 1000;
-  if (limit > PAGE) {
-    const collected = new Map();
-    let end = endTime || Date.now();
-    let guard = 0;
-    while (collected.size < limit && guard++ < 20) {
-      const page = await fetchBinanceKlines(cleanSymbol, interval, Math.min(PAGE, limit - collected.size + 1), null, end);
-      if (!page.length) break;
-      for (const b of page) collected.set(b.time, b);
-      const oldest = page[0].time;
-      if (page.length < 2 || oldest >= end) break;
-      end = oldest - 1;
-    }
-    const merged = Array.from(collected.values()).sort((a, b) => a.time - b.time);
-    return merged.slice(-limit);
-  }
-
-  const endpoints = [
-    `${BINANCE_VISION_BASE}/klines`,
-    `${BINANCE_API_BASE}/klines`,
-    `${BINANCE_US_BASE}/klines`
-  ];
-
+async function fetchSingleBinancePage(cleanSymbol, normInterval, limit = 1000, startTime = null, endTime = null) {
+  const bases = getBinanceBases();
   let lastError = null;
   let marketNotFound = false;
-  for (const ep of endpoints) {
+
+  for (const base of bases) {
     try {
-      const url = new URL(ep);
+      const url = new URL(`${base}/klines`);
       url.searchParams.set('symbol', cleanSymbol);
       url.searchParams.set('interval', normInterval);
       url.searchParams.set('limit', String(Math.min(limit, 1000)));
-      if (startTime) url.searchParams.set('startTime', String(startTime));
-      if (endTime) url.searchParams.set('endTime', String(endTime));
+      if (startTime !== null && startTime !== undefined) url.searchParams.set('startTime', String(startTime));
+      if (endTime !== null && endTime !== undefined) url.searchParams.set('endTime', String(endTime));
 
       const res = await fetch(url.toString(), {
         signal: AbortSignal.timeout(5000),
@@ -120,7 +107,7 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
 
       if (res.ok) {
         const raw = await res.json();
-        if (Array.isArray(raw) && raw.length > 0) {
+        if (Array.isArray(raw)) {
           return raw.map(b => ({
             time: Number(b[0]),
             open: parseFloat(b[1]),
@@ -134,6 +121,8 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
       } else if (res.status === 400 || res.status === 404) {
         marketNotFound = true;
         lastError = new Error(`market "${cleanSymbol}" not found (HTTP ${res.status})`);
+      } else {
+        lastError = new Error(`HTTP ${res.status} from ${base}`);
       }
     } catch (e) {
       lastError = e;
@@ -146,7 +135,145 @@ export async function fetchBinanceKlines(symbol, interval, limit = 500, startTim
     throw err;
   }
 
-  throw new Error(`Failed to fetch Binance klines for ${cleanSymbol}: ${lastError?.message || 'Unknown error'}`);
+  const err = new Error(`upstream_unavailable: ${lastError?.message || 'All Binance bases failed'}`);
+  err.code = 'UPSTREAM_UNAVAILABLE';
+  throw err;
+}
+
+export async function fetchBinanceKlines(symbol, interval, limit = 500, startTime = null, endTime = null) {
+  const cleanSymbol = symbol.replace(/^.*:/, '').toUpperCase();
+  const normInterval = normalizeInterval(interval);
+  const PAGE = 1000;
+
+  if (limit <= PAGE && startTime && endTime) {
+    return await fetchSingleBinancePage(cleanSymbol, normInterval, limit, startTime, endTime);
+  }
+
+  if (limit <= PAGE && !startTime) {
+    return await fetchSingleBinancePage(cleanSymbol, normInterval, limit, null, endTime);
+  }
+
+  const collected = new Map();
+  let end = endTime || Date.now();
+  let guard = 0;
+
+  while (collected.size < limit && guard++ < 20) {
+    const pageSize = Math.min(PAGE, limit - collected.size);
+    const page = await fetchSingleBinancePage(cleanSymbol, normInterval, pageSize, startTime, end);
+    if (!page || page.length === 0) break;
+    for (const b of page) collected.set(b.time, b);
+
+    if (page.length < pageSize || page.length < PAGE) break;
+
+    const oldest = page[0].time;
+    if (startTime !== null && startTime !== undefined && oldest <= startTime) break;
+    if (oldest >= end) break;
+    end = oldest - 1;
+  }
+
+  let merged = Array.from(collected.values()).sort((a, b) => a.time - b.time);
+  if (startTime !== null && startTime !== undefined) {
+    merged = merged.filter(b => b.time >= startTime);
+  }
+  if (endTime !== null && endTime !== undefined) {
+    merged = merged.filter(b => b.time <= endTime);
+  }
+  return merged.slice(-limit);
+}
+
+// Native Binance intervals whose boundaries equal FR-002
+const NATIVE_INTERVAL_MAP = {
+  '1s': '1s',
+  '1': '1m',
+  '3': '3m',
+  '5': '5m',
+  '15': '15m',
+  '30': '30m',
+  '60': '1h',
+  '120': '2h',
+  '240': '4h',
+  '360': '6h',
+  '480': '8h',
+  '720': '12h',
+  'D': '1d',
+  'W': '1w',
+  'M': '1M'
+};
+
+const SUBDAY_NATIVE_CHOICES = [
+  { interval: '12h', count: 720 },
+  { interval: '8h', count: 480 },
+  { interval: '6h', count: 360 },
+  { interval: '4h', count: 240 },
+  { interval: '2h', count: 120 },
+  { interval: '1h', count: 60 },
+  { interval: '30m', count: 30 },
+  { interval: '15m', count: 15 },
+  { interval: '5m', count: 5 },
+  { interval: '3m', count: 3 },
+  { interval: '1m', count: 1 }
+];
+
+function getDividingNativeInterval(tfParsed) {
+  if (tfParsed.unit === 'M') {
+    return { nativeInterval: '1M', factor: tfParsed.count };
+  }
+  if (tfParsed.unit === 'W') {
+    return { nativeInterval: '1w', factor: tfParsed.count };
+  }
+  if (tfParsed.unit === 'D') {
+    return { nativeInterval: '1d', factor: tfParsed.count };
+  }
+  if (tfParsed.unit === 'm') {
+    for (const choice of SUBDAY_NATIVE_CHOICES) {
+      if (tfParsed.count % choice.count === 0) {
+        return { nativeInterval: choice.interval, factor: tfParsed.count / choice.count };
+      }
+    }
+    return { nativeInterval: '1m', factor: tfParsed.count };
+  }
+  if (tfParsed.unit === 's') {
+    return { nativeInterval: '1s', factor: tfParsed.count };
+  }
+  return { nativeInterval: '1m', factor: 1 };
+}
+
+async function fetchCryptoCandles(cleanSymbol, tfParsed, limit, fromTime, toTime) {
+  const isNative = tfParsed.canonical in NATIVE_INTERVAL_MAP;
+
+  if (isNative) {
+    const nativeInterval = NATIVE_INTERVAL_MAP[tfParsed.canonical];
+    const rawBars = await fetchBinanceKlines(cleanSymbol, nativeInterval, limit, fromTime, toTime);
+    let finalBars = rawBars.map(b => ({
+      ...b,
+      closeTime: nextBucket(tfParsed, b.time) - 1
+    }));
+    if (fromTime !== null && fromTime !== undefined) {
+      finalBars = finalBars.filter(b => b.time >= fromTime);
+    }
+    if (toTime !== null && toTime !== undefined) {
+      finalBars = finalBars.filter(b => b.time <= toTime);
+    }
+    return finalBars.slice(-limit);
+  }
+
+  // Not native (e.g. 45m, 3D, 2W, 3M, 5s) -> aggregate from dividing native interval (FR-003)
+  const { nativeInterval, factor } = getDividingNativeInterval(tfParsed);
+  const nativeLimit = Math.min(20000, Math.ceil((limit + 2) * factor));
+  const nativeStartTime = fromTime !== null && fromTime !== undefined ? bucketStart(tfParsed, fromTime) : null;
+  const nativeEndTime = toTime !== null && toTime !== undefined ? toTime : null;
+
+  const rawBars = await fetchBinanceKlines(cleanSymbol, nativeInterval, nativeLimit, nativeStartTime, nativeEndTime);
+  const aggregated = aggregate(rawBars, tfParsed, { dropPartialOldest: true });
+
+  let finalBars = aggregated;
+  if (fromTime !== null && fromTime !== undefined) {
+    finalBars = finalBars.filter(b => b.time >= fromTime);
+  }
+  if (toTime !== null && toTime !== undefined) {
+    finalBars = finalBars.filter(b => b.time <= toTime);
+  }
+  return finalBars.slice(-limit);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -438,43 +565,91 @@ export function generateContinuousBars(symbol, interval, limit = 500, endTime = 
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getCandles(symbol, timeframe, limit = 500, fromTime = null, toTime = null) {
   const cleanSymbol = symbol.replace(/^.*:/, '').toUpperCase();
-  const cacheKey = `${cleanSymbol}_${timeframe}_${limit}_${fromTime || 0}_${toTime || 0}`;
-
-  const cached = candleCache.get(cacheKey);
-  if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-    return cached.data;
+  const tf = typeof timeframe === 'object' && timeframe !== null && timeframe.canonical
+    ? timeframe
+    : parseTimeframe(timeframe);
+  if (!tf) {
+    const err = new Error('invalid_timeframe');
+    err.code = 'INVALID_TIMEFRAME';
+    throw err;
   }
+  const canonical = tf.canonical;
 
-  let candles = [];
   const meta = getSymbolMeta(cleanSymbol);
   const isCrypto = meta.category === 'crypto' || cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC');
   const known = isKnownSymbol(cleanSymbol);
 
-  // 1. Crypto: Primary Binance Vision Gateway
+  // 1. Crypto: Primary Binance Gateway
   if (isCrypto) {
-    try {
-      candles = await fetchBinanceKlines(cleanSymbol, timeframe, limit, fromTime, toTime);
-    } catch (e) {
-      if (e.code === 'MARKET_NOT_FOUND' || !known) {
-        console.warn(`[DataFeed] Unknown symbol "${cleanSymbol}" rejected: ${e.message}`);
-        candleCache.set(cacheKey, { ts: Date.now(), data: [] });
-        return [];
-      }
-      console.warn(`[DataFeed] Binance primary fetch error for ${cleanSymbol}: ${e.message}, falling back to high-fidelity feed`);
-      candles = generateContinuousBars(cleanSymbol, timeframe, limit, toTime || Date.now());
-    }
-  } else {
-    // 2. Known non-crypto assets (Iran Gold, TSE, Forex, Metals, Commodities, Indices, Stocks)
     if (!known) {
-      console.warn(`[DataFeed] Unknown non-crypto symbol "${cleanSymbol}" rejected`);
-      candleCache.set(cacheKey, { ts: Date.now(), data: [] });
-      return [];
+      const empty = [];
+      empty.source = 'binance';
+      empty.candles = empty;
+      return empty;
     }
-    candles = generateContinuousBars(cleanSymbol, timeframe, limit, toTime || Date.now());
+
+    const dedupeKey = `crypto:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+    return dedupeInFlight(dedupeKey, async () => {
+      const respKey = `resp:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+      const cached = candleLru.get(respKey);
+      if (cached) {
+        return cached;
+      }
+
+      const lastGoodKey = `last_good:${cleanSymbol}:${canonical}`;
+      try {
+        const candles = await fetchCryptoCandles(cleanSymbol, tf, limit, fromTime, toTime);
+        const result = [...candles];
+        result.source = 'binance';
+        result.candles = result;
+
+        candleLru.set(respKey, result, candles.length, 3000);
+        candleLru.set(lastGoodKey, candles, candles.length, 24 * 60 * 60 * 1000);
+
+        return result;
+      } catch (err) {
+        if (err.code === 'MARKET_NOT_FOUND') {
+          const empty = [];
+          empty.source = 'binance';
+          empty.candles = empty;
+          return empty;
+        }
+
+        const lastGood = candleLru.get(lastGoodKey);
+        if (lastGood && lastGood.length > 0) {
+          const result = [...lastGood];
+          result.source = 'cache';
+          result.candles = result;
+          return result;
+        }
+
+        const outageErr = new Error('upstream_unavailable');
+        outageErr.code = 'UPSTREAM_UNAVAILABLE';
+        throw outageErr;
+      }
+    });
   }
 
-  candleCache.set(cacheKey, { ts: Date.now(), data: candles });
-  return candles;
+  // 2. Known non-crypto assets (demo series)
+  if (!known) {
+    const empty = [];
+    empty.source = 'demo';
+    empty.candles = empty;
+    return empty;
+  }
+
+  const demoKey = `demo:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+  const cachedDemo = candleLru.get(demoKey);
+  if (cachedDemo) {
+    return cachedDemo;
+  }
+
+  const rawBars = generateContinuousBars(cleanSymbol, canonical, limit, toTime || Date.now());
+  const result = [...rawBars];
+  result.source = 'demo';
+  result.candles = result;
+  candleLru.set(demoKey, result, result.length, 3000);
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -484,30 +659,33 @@ export async function get24hTicker(symbol) {
   const clean = symbol.replace(/^.*:/, '').toUpperCase();
   const meta = getSymbolMeta(clean);
 
-  // 1. Crypto via Binance Vision
-  if (clean.endsWith('USDT')) {
-    try {
-      const res = await fetch(`${BINANCE_VISION_BASE}/ticker/24hr?symbol=${clean}`, {
-        signal: AbortSignal.timeout(4000)
-      });
-      if (res.ok) {
-        const d = await res.json();
-        return {
-          symbol: clean,
-          lastPrice: parseFloat(d.lastPrice),
-          priceChange: parseFloat(d.priceChange),
-          priceChangePercent: parseFloat(d.priceChangePercent),
-          highPrice: parseFloat(d.highPrice),
-          lowPrice: parseFloat(d.lowPrice),
-          volume: parseFloat(d.volume),
-          quoteVolume: parseFloat(d.quoteVolume),
-          exchange: meta.exchange,
-          category: meta.category,
-          currency: meta.currency
-        };
+  // 1. Crypto via Binance
+  if (clean.endsWith('USDT') || meta.category === 'crypto') {
+    const bases = getBinanceBases();
+    for (const base of bases) {
+      try {
+        const res = await fetch(`${base}/ticker/24hr?symbol=${clean}`, {
+          signal: AbortSignal.timeout(4000)
+        });
+        if (res.ok) {
+          const d = await res.json();
+          return {
+            symbol: clean,
+            lastPrice: parseFloat(d.lastPrice),
+            priceChange: parseFloat(d.priceChange),
+            priceChangePercent: parseFloat(d.priceChangePercent),
+            highPrice: parseFloat(d.highPrice),
+            lowPrice: parseFloat(d.lowPrice),
+            volume: parseFloat(d.volume),
+            quoteVolume: parseFloat(d.quoteVolume),
+            exchange: meta.exchange,
+            category: meta.category,
+            currency: meta.currency
+          };
+        }
+      } catch (e) {
+        // try next base
       }
-    } catch (e) {
-      // fallback to continuous model
     }
   }
 
@@ -612,10 +790,17 @@ let binanceProbe = { at: 0, ok: false, ms: null };
 async function probeBinance() {
   if (Date.now() - binanceProbe.at < 30000) return binanceProbe;
   const t0 = Date.now();
-  try {
-    const r = await fetch(`${BINANCE_VISION_BASE}/ping`, { signal: AbortSignal.timeout(4000) });
-    binanceProbe = { at: Date.now(), ok: r.ok, ms: Date.now() - t0 };
-  } catch (e) { binanceProbe = { at: Date.now(), ok: false, ms: null }; }
+  const bases = getBinanceBases();
+  for (const base of bases) {
+    try {
+      const r = await fetch(`${base}/ping`, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) {
+        binanceProbe = { at: Date.now(), ok: true, ms: Date.now() - t0 };
+        return binanceProbe;
+      }
+    } catch (e) {}
+  }
+  binanceProbe = { at: Date.now(), ok: false, ms: null };
   return binanceProbe;
 }
 

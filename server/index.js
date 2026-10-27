@@ -8,6 +8,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus } from './dataFeed.js';
+import { parseTimeframe } from './timeframes.js';
 import { searchSymbols, getSymbolMeta } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
 import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
@@ -84,11 +85,17 @@ app.get('/api/candles', async (req, res) => {
   try {
     const symbol = cleanSymbol(req.query.symbol, 'BTCUSDT');
     if (!symbol) return bad(res, 'invalid_symbol');
-    const timeframe = String(req.query.timeframe || '60');
-    if (!/^[0-9]{1,4}[smhdwSMHDW]?$|^[DWM]$/.test(timeframe)) return bad(res, 'invalid_timeframe');
-    const fromTime = optTimestamp(req.query.from_time);
-    const toTime = optTimestamp(req.query.to_time);
+
+    const tfParsed = parseTimeframe(req.query.timeframe || '60');
+    if (!tfParsed) return bad(res, 'invalid_timeframe');
+    const timeframe = tfParsed.canonical;
+
+    let fromTime = optTimestamp(req.query.from_time);
+    let toTime = optTimestamp(req.query.to_time);
     if (fromTime === undefined || toTime === undefined) return bad(res, 'invalid_time');
+    if (fromTime !== null && fromTime < 1e11) fromTime *= 1000;
+    if (toTime !== null && toTime < 1e11) toTime *= 1000;
+    if (fromTime !== null && toTime !== null && fromTime > toTime) return bad(res, 'invalid_time');
 
     const histCap = req.user
       ? (PLANS[effectivePlanId(req.user)]?.histBars ?? PLANS.basic.histBars)
@@ -96,12 +103,29 @@ app.get('/api/candles', async (req, res) => {
     const limit = clampInt(req.query.limit, 500, 1, histCap);
     res.setHeader('X-History-Limit', String(histCap));
 
-    const candles = await getCandles(symbol, timeframe, limit, fromTime, toTime);
+    const result = await getCandles(symbol, tfParsed, limit, fromTime, toTime);
+    const candles = Array.isArray(result) ? result : (result?.candles || []);
+    const source = result?.source || 'binance';
+
     if (candles.length === 0) {
       return res.status(404).json({ symbol, timeframe, count: 0, candles: [], error: 'no_market_data' });
     }
-    res.json({ symbol, timeframe, count: candles.length, candles });
-  } catch (error) { serverError(res, '/api/candles', error); }
+
+    res.setHeader('X-Data-Source', source);
+    res.json({
+      symbol,
+      timeframe,
+      intervalMs: tfParsed.intervalMs,
+      source,
+      count: candles.length,
+      candles
+    });
+  } catch (error) {
+    if (error?.code === 'UPSTREAM_UNAVAILABLE' || error?.message === 'upstream_unavailable') {
+      return res.status(503).json({ ok: false, error: 'upstream_unavailable' });
+    }
+    serverError(res, '/api/candles', error);
+  }
 });
 
 // 3. 24hr Ticker Overview (max 40 symbols per call)

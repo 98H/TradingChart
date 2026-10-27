@@ -1,0 +1,1 @@
+- [ ] T006 [P] [US5] Create server/lru.js (cost-bounded LRU 300 000 bars + in-flight dedupe) and use it for every candle cache in server/dataFeed.js, removing the unbounded `candleCache` (FR-010)
