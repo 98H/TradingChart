@@ -1,13 +1,10 @@
-# Gate feedback — 013-gift-subscriptions phase 1, attempt 7
+# Gate feedback — 013-gift-subscriptions phase 1, attempt 8
 
-Result: FAIL
+Result: PASS
 
 ## PASS lock — ok
 
-## FAIL scope — exit 1
-```
-SCOPE FAIL
-```
+## PASS scope — ok
 
 ## PASS build — ok
 
@@ -15,10 +12,7 @@ SCOPE FAIL
 
 ## PASS serve — up on :18089
 
-## FAIL acceptance — exit 1
-```
-❌ Suspended user blocked despite having gift: Expected 401/403 without user, got 200
-```
+## PASS acceptance — ok
 
 ## PASS ui — ok
 
