@@ -77,7 +77,8 @@
     "minTouchTarget": 44,
     "interactiveSelector": "button, a[href], input, select, textarea, [role=button]",
     "untranslatedPattern": "",
-    "chromePath": "/usr/bin/chromium"
+    "chromePath": "/usr/bin/chromium",
+    "baseline": ".sdd/baseline/ui_probe_2026-10-23.json"
   },
   "worktreeSetup": "ln -s /root/TradingChart/node_modules node_modules && mkdir -p server/data && cp -r /root/TradingChart/server/data/. server/data/ 2>/dev/null; true",
   "serve": "./node_modules/.bin/vite build >/dev/null && PORT=$SDD_PORT node server/index.js",
