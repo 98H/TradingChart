@@ -47,5 +47,6 @@
   ],
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
-  "escalate": false
+  "escalate": true,
+  "reason": "PASS but touches high-risk paths: client/src/authManager.js — architect review of phase3.diff required before merge"
 }
