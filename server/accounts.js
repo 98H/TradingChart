@@ -692,24 +692,11 @@ export function mountAccountSystem(app) {
           removeSessionById(row.id); scheduleFlush();
         } else {
           const u = users().users.find(x => x.id === row.userId);
-          if (u) {
+          if (u && !u.suspended) {
             req.user = u; req.sessionRow = row;
-            if (!u.suspended) {
-              row.lastSeen = Date.now();
-            }
+            row.lastSeen = Date.now();
           }
         }
-      }
-    }
-    next();
-  });
-
-  // Guard against suspended accounts making authenticated API requests
-  app.use((req, res, next) => {
-    if (req.user && req.user.suspended) {
-      if (req.path === '/api/auth/logout' || req.path === '/logout') return next();
-      if (req.path.startsWith('/api/auth/') || req.path.startsWith('/api/user/')) {
-        return res.status(403).json({ ok: false, error: 'account_suspended' });
       }
     }
     next();

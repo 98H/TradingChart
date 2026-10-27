@@ -278,6 +278,7 @@ export function mountAdminApi(app, d) {
         if (s) {
           u.suspendedAt = Date.now();
           u.suspendReason = String(b.suspendReason || '').slice(0, 200);
+          d.revokeAllForUser(u.id);
         } else { u.suspendedAt = null; u.suspendReason = ''; }
       }
     }
@@ -453,7 +454,7 @@ export function mountAdminApi(app, d) {
       const u = findUser(String(id));
       if (!u) { skipped++; continue; }
       if (isSelf(req, u) && (action === 'suspend' || action === 'delete')) { skipped++; continue; }
-      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); }
+      if (action === 'suspend') { if (u.suspended) { skipped++; continue; } u.suspended = true; u.suspendedAt = Date.now(); d.revokeAllForUser(u.id); }
       else if (action === 'unsuspend') { if (!u.suspended) { skipped++; continue; } u.suspended = false; u.suspendedAt = null; u.suspendReason = ''; }
       else if (action === 'plan') { if (u.plan === plan) { skipped++; continue; } u.plan = plan; u.planSince = Date.now(); if (u.planRequest?.plan === plan) u.planRequest = null; }
       else if (action === 'verify') { if (u.emailVerified) { skipped++; continue; } u.emailVerified = true; u.verifyCode = null; }
