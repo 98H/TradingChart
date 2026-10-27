@@ -1,0 +1,47 @@
+{
+  "feature": "013-gift-subscriptions",
+  "phase": 1,
+  "attempt": 1,
+  "pass": false,
+  "at": "2026-10-27T16:05:39.113Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18089"
+    },
+    "acceptance": {
+      "pass": false,
+      "summary": "exit 1"
+    },
+    "ui": {
+      "pass": false,
+      "summary": "exit 1"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    }
+  },
+  "highRisk": [
+    "server/accounts.js",
+    "server/tradeRelayApi.js"
+  ],
+  "knownGapsSkipped": [],
+  "escalate": false
+}
