@@ -158,11 +158,16 @@ async function run() {
       'FR-012 client gate auth.plan() reflects effective plan premium',
       `Expected premium, got ${clientEffectivePlan}`);
 
+    // Architect amendment (phase-3 review): the app default language is English; select Persian explicitly
+    // instead of relying on a default (the spec never changes the default language).
+    await page.evaluate(() => window.__TRADING_APP__?.switchLanguage?.('fa'));
+    await new Promise(r => setTimeout(r, 500));
+
     // Open Avatar Menu
     await realClick(page, '.user-avatar-badge');
     await page.waitForFunction(() => !!document.querySelector('#tc-account-menu'), { timeout: 6000 });
 
-    // Avatar Menu verification in Persian default:
+    // Avatar Menu verification in Persian:
     // MUST show effective plan, gift badge «اشتراک هدیه» and «تا <تاریخ>» with Persian digits (FR-012, FR-013)
     const menuFaState = await page.evaluate(() => {
       const menu = document.querySelector('#tc-account-menu');
