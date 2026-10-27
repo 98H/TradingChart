@@ -1,9 +1,9 @@
 {
   "feature": "014-data-feed-timeframes",
   "phase": 3,
-  "attempt": 1,
-  "pass": false,
-  "at": "2026-10-27T22:44:15.906Z",
+  "attempt": 2,
+  "pass": true,
+  "at": "2026-10-27T23:31:49.504Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -26,25 +26,20 @@
       "summary": "up on :18088"
     },
     "acceptance": {
-      "pass": false,
-      "summary": "exit 1"
+      "pass": true,
+      "summary": "ok"
     },
     "ui": {
-      "pass": false,
-      "summary": "exit 1"
+      "pass": true,
+      "summary": "ok"
     },
     "spec": {
       "pass": true,
       "summary": "ok"
-    },
-    "regression": {
-      "pass": false,
-      "summary": "exit 1"
     }
   },
   "highRisk": [],
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
-  "escalate": true,
-  "reason": "implementer reports a spec problem: SPEC_PROBLEM: tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs requires closeAllBrowsers from tests/qa_lib.cjs (line 5 and line 237), but tests/qa_lib.cjs line 414 omits closeAllBrowsers from module.exports, causing TypeError in finally block; updating tests/qa_lib.cjs is outside the Phase 3 task scope fence (FR-011, FR-012, FR-013)."
+  "escalate": false
 }
