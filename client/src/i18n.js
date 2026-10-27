@@ -872,7 +872,7 @@ if (typeof window !== 'undefined') {
   setInterval(arm, 1500);
 }
 
-let currentLang = 'fa';
+let currentLang = 'en';
 
 const AXIS_EN = {
   m: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],

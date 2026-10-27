@@ -156,7 +156,10 @@ export class ChartManager {
         };
       }
 
-      window.addEventListener('tc:languagechange', () => this.reLocalizeNotice());
+      window.addEventListener('tc:languagechange', (e) => {
+        this._explicitLang = e?.detail?.lang || (typeof getLanguage === 'function' ? getLanguage() : null);
+        this.reLocalizeNotice();
+      });
       setTimeout(() => this.updateTopbarTimeframeLabel(this.activeTimeframe), 500);
 
       // 3. Listen to workspace events & sanitize script inputs on charts
@@ -353,7 +356,7 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
 
   reLocalizeNotice() {
     if (!this.activeNoticeId) return;
-    const isFa = getLanguage() === 'fa';
+    const isFa = this._explicitLang ? (this._explicitLang === 'fa') : (typeof getLanguage === 'function' ? (getLanguage() === 'fa' || !this._explicitLang) : true);
     let text = '';
     if (this.activeNoticeId === 'no_data') {
       text = isFa
