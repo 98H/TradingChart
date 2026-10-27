@@ -18,7 +18,7 @@
     "re:Failed: [1-9]",
     "re:[1-9]\\d* defects across"
   ],
-  "regression": "bash scripts/qa/run_regression.sh .sdd/out/regression qa_accounts_cycle1 qa_accounts_cycle3 qa_cycleA qa_i18n_final && ! grep -l '❌' .sdd/out/regression/*.log",
+  "regression": "mkdir -p .sdd/out/regression && bash scripts/qa/run_regression.sh .sdd/out/regression qa_accounts_cycle1 qa_accounts_cycle3 qa_cycleA qa_i18n_final && ! grep -l '❌' .sdd/out/regression/*.log",
   "protected": [
     "**/*.key",
     "**/.env",
