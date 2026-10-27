@@ -1669,7 +1669,7 @@ export class AuthManager {
       const expiryText = isGiftPlan ? formatGiftExpiry(gift.expiresAt, isFa) : '';
 
       return `
-        <div class="plan-card plan-card-${p.id}" data-plan="${p.id}" style="border:1px solid ${isCurrent ? pColor : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; width:155px; min-width:155px; flex-shrink:0; box-sizing:border-box;">
+        <div class="plan-card plan-card-${p.id}" style="border:1px solid ${isCurrent ? pColor : 'var(--border-subtle)'}; border-radius:10px; padding:12px; background:${isCurrent ? 'rgba(0,242,176,0.05)' : 'var(--bg-surface,#0c1017)'}; display:flex; flex-direction:column; gap:8px; width:155px; min-width:155px; flex-shrink:0; box-sizing:border-box;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
             <strong style="font-size:13px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${getPlanName(p)}</strong>
             ${isCurrent ? `<span style="font-size:9px; background:${pColor}; color:#04121e; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${isFa ? 'پلن فعلی' : 'CURRENT'}</span>` : (pBadge ? `<span style="font-size:9px; background:${pColor}22; color:${pColor}; padding:2px 7px; border-radius:12px; font-weight:800; flex-shrink:0;">${escapeHtml(pBadge)}</span>` : '')}

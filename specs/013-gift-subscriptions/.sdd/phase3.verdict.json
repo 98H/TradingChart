@@ -1,0 +1,51 @@
+{
+  "feature": "013-gift-subscriptions",
+  "phase": 3,
+  "attempt": 1,
+  "pass": false,
+  "at": "2026-10-27T18:42:49.555Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18089"
+    },
+    "acceptance": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "ui": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "regression": {
+      "pass": false,
+      "summary": "exit 1"
+    }
+  },
+  "highRisk": [
+    "client/src/authManager.js"
+  ],
+  "knownGapsSkipped": [],
+  "deferredToLaterPhase": [],
+  "escalate": false
+}
