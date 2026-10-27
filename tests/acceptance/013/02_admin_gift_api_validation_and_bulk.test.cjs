@@ -395,8 +395,12 @@ async function run() {
   assert(suspendedUserRes.body?.user?.gift?.plan === 'basic', 'Gift retained on suspended user', 'Gift was lost');
   // Verify suspended user is blocked from making authenticated requests
   const blockedReq = await request('/api/auth/me', { headers: { Cookie: userCookie } });
-  assert(blockedReq.status === 403 && blockedReq.body?.error === 'account_suspended',
-    'Suspended user blocked despite having gift', `Expected 403 account_suspended, got ${blockedReq.status}`);
+  // Architect amendment (phase-1 review): the spec only requires that suspension blocks access. The product
+  // revokes all sessions on suspend, so the old session no longer identifies the user (/me answers as guest,
+  // user: null) and any authenticated route refuses it.
+  assert(blockedReq.body?.user == null, 'Suspended user blocked despite having gift', `Expected no user for the old session, got ${blockedReq.body?.user?.id}`);
+  const blockedState = await request('/api/user/state', { headers: { Cookie: userCookie } });
+  assert(blockedState.status === 401 || blockedState.status === 403, 'Suspended user cannot read synced state', `Expected 401/403, got ${blockedState.status}`);
 
   console.log('✅ [013 Acceptance Suite 02] Admin Gift API, Validation & Bulk passed.');
 }
