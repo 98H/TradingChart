@@ -99,12 +99,6 @@ export class AuthManager {
     await this.refreshPlans();
     // 3. Sync direction: cloud → local on boot (logged-in), local → cloud after
     if (this.user) {
-      try {
-        const saved = JSON.parse(localStorage.getItem('tradingchart_user_settings') || '{}');
-        if (!saved.language && getLanguage() !== 'fa') {
-          this.app?.switchLanguage?.('fa');
-        }
-      } catch (e) {}
       await this.pullCloudState();
       this.syncAuthUserToProfile();
     }
@@ -1353,8 +1347,8 @@ export class AuthManager {
         : `<button id="acc-verify-btn" style="background:rgba(0,242,176,0.12); color:var(--accent-cyan,#00F2B0); border:none; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;">${isFa ? 'تأیید ایمیل' : 'Verify email'}</button>`;
       const since = u.planSince ? new Date(u.planSince).toLocaleDateString(isFa ? 'fa-IR' : 'en-US') : '—';
       const gift = this.giftInfo();
-      const planNameMap = { basic: isFa ? 'پایه' : 'Basic', essential: isFa ? 'اسنشیال' : 'Essential', plus: isFa ? 'پلاس' : 'Plus', premium: isFa ? 'پریمیوم' : 'Premium', ultimate: isFa ? 'آلتیمیت' : 'Ultimate' };
-      const basePlanName = planNameMap[u.plan] || u.plan || (isFa ? 'پایه' : 'Basic');
+      const baseP = PLANS[u.plan || 'basic'];
+      const basePlanName = (baseP && (isFa ? (baseP.nameFa || baseP.nameEn) : (baseP.nameEn || baseP.nameFa))) || u.plan || (isFa ? 'پایه' : 'Basic');
       let giftAccountHtml = '';
       if (gift) {
         const expiryText = formatGiftExpiry(gift.expiresAt, isFa);
