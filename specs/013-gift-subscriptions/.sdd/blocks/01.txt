@@ -1,2 +1,1 @@
-- [ ] T009 [US1] Add the gift card (current gift, Grant/Replace dialog with plan, expiry date vs Unlimited, note; Revoke with confirmation) to the user drawer overview in client/admin/admin.js (FR-010, FR-013)
-- [ ] T010 [US4] Add the gift badge + expiry in the users table and mobile cards, the "Gift" status filter, the "Grant gift" bulk action and the "Active gifts" dashboard KPI in client/admin/admin.js (FR-011, FR-009, FR-013)
+- [ ] T012 [US3] Make `plan()` and entitlements use `user.effectivePlan`, and show the «اشتراک هدیه» / "Gift subscription" badge with «تا <تاریخ>» / "until <date>" or «نامحدود» / "Unlimited" in the avatar menu, account dialog and plans dialog in client/src/authManager.js (FR-012, FR-013)
