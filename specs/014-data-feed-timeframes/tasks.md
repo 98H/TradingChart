@@ -32,3 +32,11 @@ Architect note (escalation of attempt 1): this phase's code already exists in th
 - [ ] T015 [US3] Show and clear the FR-012 «no data» / «stale data» notices over the active chart cell in client/src/chartManager.js with strings in client/src/i18n.js and styles in client/styles/main.css; re-localize on language switch (FR-012)
 - [ ] T016 [US1] Offer seconds, minutes, hours, days, weeks and months in the custom-timeframe builder of client/src/timeframeManager.js producing FR-001 ids, keeping the `secondIntervals`/`customIntervals` gates (FR-013)
 - [ ] T017 [US1] Ensure every timeframe switch in client/src/chartManager.js re-applies `bars: 2000` and renders the FR-001 timeframe so spacing matches for standard and custom ids (FR-013)
+
+## Phase 4: Converge — bounded demo-path memory (post-merge production audit)
+
+Architect note: after phase 3 merged, the production sweep (all symbols × 17 timeframes, limit 1500, 8 concurrent) crashed the 256 MB server with heap OOM (reproduced: NATGAS `240` grows heap past 111 MB alone). Cause: `dailyLayerCache`, `minuteCache` and `secondCache` in server/demoPath.js are unbounded `Map`s, and higher intraday timeframes materialise every minute of every covered day. New locked test tests/acceptance/014/05_full_sweep_memory_bound.test.cjs reproduces it.
+
+- [ ] T018 [US5] In server/demoPath.js replace the unbounded `minuteCache`/`secondCache` with the shared cost-bounded LRU of server/lru.js (cost = bars; shared 300 000 budget) and bound `dailyLayerCache` (LRU, ≤ 80 symbols) (FR-010)
+- [ ] T019 [US5] In server/demoPath.js build intraday buckets of ≥ 60 minutes by streaming aggregation per day (do not retain per-minute arrays for days that are only aggregated; keep only the aggregated bars) so a 1500-bar `240` request allocates O(bars), not O(minutes) (FR-010, FR-007)
+- [ ] T020 [US5] Keep exact consistency: aggregates must remain identical to the 1-minute path (tests 03 still pass) (FR-007, FR-010)
