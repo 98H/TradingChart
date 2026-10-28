@@ -1,9 +1,9 @@
 {
   "feature": "014-data-feed-timeframes",
   "phase": 3,
-  "attempt": 3,
+  "attempt": 1,
   "pass": false,
-  "at": "2026-10-28T00:32:30.087Z",
+  "at": "2026-10-28T01:08:08.566Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -46,5 +46,5 @@
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
   "escalate": true,
-  "reason": "implementer reports a spec problem: SPEC_PROBLEM: tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs (lines 114-124) asserts Persian notice (FR-012) on boot without setting language, but architect note (review-checklist.md:25) mandates client/src/i18n.js currentLang='en' ('Tests must set the language explicitly') and reviewer rejects forcing Persian via !this._explicitLang in client/src/chartManager.js; modifying locked test 04 to set language explicitly is outside Phase 3 task scope fence."
+  "reason": "implementer reports a spec problem: SPEC_PROBLEM: tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs (line 129) asserts zero console errors during 404 no-data state via ctx.logs without filtering 'Failed to load resource', capturing Chromium's internal HTTP 404 network log; contract market-data-api.md and FR-012 mandate 404 for unknown symbols and review-checklist.md forbids fetch monkey-patching and test-input branching, making passing impossible without amending test 04."
 }

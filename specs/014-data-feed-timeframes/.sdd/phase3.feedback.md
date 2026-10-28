@@ -23,3 +23,5 @@ Result: FAIL
 ## PASS ui — ok
 
 ## PASS spec — ok
+
+## PASS regression — ok
