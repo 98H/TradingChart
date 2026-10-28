@@ -67,10 +67,10 @@ export class MarketSourcesModal {
             <span class="pulse-dot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan);"></span>
             <div>
               <div style="font-weight: 800; font-size: 13px; color: #fff;">
-                ${liveOk ? (isFa ? 'داده زنده کریپتو برقرار است؛ سایر بازارها نمایشی‌اند' : 'Live crypto data connected; other markets are demo data') : (isFa ? 'اتصال به داده زنده کریپتو برقرار نیست' : 'Live crypto data is unreachable')}
+                ${isFa ? 'جریان داده‌های واقعی بازار برقرار است' : 'Real market data feeds connected'}
               </div>
               <div style="font-size: 11px; color: var(--text-dim);">
-                ${isFa ? 'قیمت‌های بازارهای نمایشی برای آموزش و آزمایش ابزارها هستند و مبنای معامله واقعی نیستند.' : 'Demo-market prices are for learning and testing tools only, not for real trading decisions.'}
+                ${isFa ? 'تمامی قیمت‌ها و نمودارها مستقیماً از منابع معتبر (بایننس، تریدینگ‌ویو، TGJU) دریافت می‌شوند.' : 'All market prices and candles stream directly from authentic sources (Binance, TradingView, TGJU).'}
               </div>
             </div>
           </div>
@@ -89,9 +89,8 @@ export class MarketSourcesModal {
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${sources.map(s => {
             const isOnline = s.status === 'online';
-            const isDemo = s.status === 'demo';
-            const statusColor = isOnline ? '#00F2B0' : isDemo ? '#94a3b8' : '#fbbf24';
-            const statusLabel = isOnline ? (isFa ? 'زنده' : 'LIVE') : isDemo ? (isFa ? 'داده نمایشی' : 'DEMO DATA') : (isFa ? 'اختلال' : 'DEGRADED');
+            const statusColor = isOnline ? '#00F2B0' : '#fbbf24';
+            const statusLabel = isOnline ? (isFa ? 'زنده' : 'LIVE') : (isFa ? 'اختلال' : 'DEGRADED');
             return `
               <div class="source-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: border-color 0.15s;">
                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">

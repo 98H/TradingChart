@@ -104,6 +104,7 @@ class TradingChartApp {
     this.timeframeManager = null;
     this.goldBubbleView = null;
     this.tseTapeView = null;
+    this.tseEnabled = false;
     this.marketSourcesModal = null;
     // Last known-good candle series per symbol/timeframe, used to guarantee the
     // chart and indicator engine never receive an empty series during an outage.
@@ -269,6 +270,40 @@ class TradingChartApp {
 
     // 8. Initial Data Load
     this.loadActiveCandles();
+    this.checkTseAvailability();
+  }
+
+  async checkTseAvailability() {
+    try {
+      const res = await fetch('/api/market-sources');
+      if (res.ok) {
+        const data = await res.json();
+        const sources = Array.isArray(data?.sources) ? data.sources : [];
+        this.tseEnabled = sources.some(s => s.id === 'brsapi' || s.id === 'tsetmc_proxy' || s.marketsCovered?.includes('TSE') || s.marketsCoveredFa?.includes('بورس تهران'));
+        if (!this.tseEnabled) {
+          this.hideTseElements();
+        }
+      } else {
+        this.tseEnabled = false;
+        this.hideTseElements();
+      }
+    } catch (e) {
+      this.tseEnabled = false;
+      this.hideTseElements();
+    }
+  }
+
+  hideTseElements() {
+    document.querySelectorAll('.rail-btn[data-panel="tse"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.panel-tab[data-view="tse"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.panel-menu-item[data-panel="tse"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sym-cat-btn[data-cat="iran_tse"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('option[value="iran_tse"], option[value="tsetmc"]').forEach(el => el.style.display = 'none');
+    const tseView = document.querySelector('#view-tse');
+    if (tseView) tseView.style.display = 'none';
+    if (this.activeBottomView === 'tse') {
+      this.switchBottomView('terminal');
+    }
   }
 
   initDesktopBottomSuite() {
@@ -1827,6 +1862,9 @@ class TradingChartApp {
     if (this.goldBubbleView?.data) this.goldBubbleView.updateUI?.();
     this.tseTapeView?.render?.();
     if (this.tseTapeView?.data) this.tseTapeView.updateUI?.();
+    if (!this.tseEnabled) {
+      this.hideTseElements();
+    }
     if (document.querySelector('#modal-market-sources')?.classList.contains('open')) {
       this.marketSourcesModal?.renderContent?.();
     }

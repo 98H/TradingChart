@@ -11,6 +11,7 @@ import { aggregate } from './timeframes.js';
 
 export const TGJU_SLUG_MAP = {
   'IR:USD_FREE': 'price_dollar_rl',
+  'IR:USDT_FREE': 'crypto-tether-irr',
   'IR:EUR_FREE': 'price_eur',
   'IR:AED_FREE': 'price_aed',
   'IR:COIN_EMAMI': 'sekee',
@@ -19,6 +20,7 @@ export const TGJU_SLUG_MAP = {
   'IR:COIN_ROB': 'rob',
   'IR:COIN_GERMI': 'gerami',
   'IR:GOLD_18K': 'geram18',
+  'IR:GOLD_24K': 'geram24',
   'IR:GOLD_MESGHAL': 'mesghal',
   'IR:GOLD_ABSHODEH': 'mesghal'
 };
@@ -28,6 +30,22 @@ export const TGJU_ENTRIES = [
     symbol: 'IR:USD_FREE',
     name: 'US Dollar (Tehran Free Market)',
     nameFa: 'دلار آمریکا (بازار آزاد تهران)',
+    exchange: 'TGJU',
+    type: 'currency',
+    category: 'iran_fx',
+    currency: 'TMN',
+    source: 'tgju',
+    dataStatus: 'live',
+    delaySec: 0,
+    timeframes: ['D', 'W', 'M'],
+    precision: 0,
+    minTick: 10,
+    lotSize: 1
+  },
+  {
+    symbol: 'IR:USDT_FREE',
+    name: 'Tether / IRR (Tehran Free Market)',
+    nameFa: 'تتر به ریال / تومان (بازار آزاد)',
     exchange: 'TGJU',
     type: 'currency',
     category: 'iran_fx',
@@ -156,6 +174,22 @@ export const TGJU_ENTRIES = [
     symbol: 'IR:GOLD_18K',
     name: 'Gold 18 Karat (per gram)',
     nameFa: 'طلای ۱۸ عیار (هر گرم)',
+    exchange: 'TGJU',
+    type: 'gold',
+    category: 'iran_gold',
+    currency: 'TMN',
+    source: 'tgju',
+    dataStatus: 'live',
+    delaySec: 0,
+    timeframes: ['D', 'W', 'M'],
+    precision: 0,
+    minTick: 100,
+    lotSize: 1
+  },
+  {
+    symbol: 'IR:GOLD_24K',
+    name: 'Gold 24 Karat (per gram)',
+    nameFa: 'طلای ۲۴ عیار (هر گرم)',
     exchange: 'TGJU',
     type: 'gold',
     category: 'iran_gold',

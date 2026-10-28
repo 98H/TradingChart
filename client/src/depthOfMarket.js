@@ -8,11 +8,18 @@ export class DepthOfMarketView {
   constructor(options = {}) {
     this.container = options.container;
     this.app = options.app || null;
-    this.symbol = 'BTCUSDT';
+    this.symbol = 'BINANCE:BTCUSDT';
     this.orderQty = 0.1;
     this.data = null;
     this.pollTimer = null;
     this.isLoading = false;
+    this.isUnavailable = false;
+
+    if (this.container) {
+      this.container.classList.add('depth-panel');
+      this.container.setAttribute('data-testid', 'dom-panel');
+      if (!this.container.id) this.container.id = 'depth-of-market-panel';
+    }
 
     this.render();
     this.fetchDepth();
@@ -24,7 +31,7 @@ export class DepthOfMarketView {
   }
 
   setSymbol(symbol) {
-    this.symbol = symbol.replace(/^.*:/, '').toUpperCase();
+    this.symbol = symbol || 'BINANCE:BTCUSDT';
     this.fetchDepth();
   }
 
@@ -45,32 +52,83 @@ export class DepthOfMarketView {
     if (this._inflight) return;
     this._inflight = true;
     try {
-      const res = await fetch(`/api/depth?symbol=${this.symbol}&levels=12`);
+      const res = await fetch(`/api/depth?symbol=${encodeURIComponent(this.symbol)}&levels=12`);
       if (res.ok) {
+        this.isUnavailable = false;
         this.data = await res.json();
         this.updateLadder();
         this.updateSourceBadge();
+      } else {
+        this.isUnavailable = true;
+        this.data = null;
+        this.renderUnavailable();
       }
     } catch (e) {
       if (!silent) console.warn('[DOM] Fetch depth error:', e);
+      this.isUnavailable = true;
+      this.renderUnavailable();
     } finally {
       this._inflight = false;
     }
   }
 
-  /** Honest provenance: real exchange book vs simulated ladder. */
+  /** Honest provenance: real Binance order book or unavailable (FR-008). */
   updateSourceBadge() {
     const b = this.container?.querySelector('#dom-source-badge');
-    if (!b || !this.data) return;
+    if (!b) return;
     const isFa = getLanguage() === 'fa';
-    const sim = this.data.simulated !== false;
+    if (this.isUnavailable) {
+      b.style.display = 'inline-block';
+      b.textContent = isFa ? 'عدم دسترسی' : 'Unavailable';
+      b.style.color = '#ef4444';
+      b.style.background = 'rgba(239, 68, 68, 0.12)';
+      b.title = isFa ? 'دفتر سفارش برای این نماد در دسترس نیست.' : 'Order book unavailable for this symbol.';
+      return;
+    }
+    if (!this.data) return;
     b.style.display = 'inline-block';
-    b.textContent = sim ? (isFa ? 'شبیه‌سازی‌شده' : 'Simulated') : (isFa ? 'زنده · بایننس' : 'Live · Binance');
-    b.style.color = sim ? 'var(--accent-gold, #f59e0b)' : 'var(--accent-green)';
-    b.style.background = sim ? 'rgba(245,158,11,0.12)' : 'rgba(14,203,129,0.12)';
-    b.title = sim
-      ? (isFa ? 'برای این نماد دفتر سفارش عمومی در دسترس نیست؛ پله‌ها نمایشی هستند.' : 'No public order book for this instrument; levels are illustrative.')
-      : (isFa ? 'دفتر سفارش واقعی بایننس (به‌روزرسانی هر ۱٫۵ ثانیه)' : 'Real Binance order book (≈1.5 s refresh)');
+    b.textContent = isFa ? 'زنده · بایننس' : 'Live · Binance';
+    b.style.color = 'var(--accent-green)';
+    b.style.background = 'rgba(14,203,129,0.12)';
+    b.title = isFa ? 'دفتر سفارش واقعی بایننس (به‌روزرسانی هر ۱٫۵ ثانیه)' : 'Real Binance order book (≈1.5 s refresh)';
+  }
+
+  renderUnavailable() {
+    if (!this.container) return;
+    const isFa = getLanguage() === 'fa';
+    const symEl = this.container.querySelector('#dom-symbol');
+    if (symEl) symEl.textContent = this.symbol;
+
+    this.updateSourceBadge();
+
+    const priceEl = this.container.querySelector('#dom-last-price');
+    const spreadEl = this.container.querySelector('#dom-spread');
+    const midSpreadEl = this.container.querySelector('#dom-mid-spread');
+    if (priceEl) priceEl.textContent = '—';
+    if (spreadEl) spreadEl.textContent = '—';
+    if (midSpreadEl) {
+      midSpreadEl.textContent = isFa ? 'دفتر سفارش در دسترس نیست' : 'Order book unavailable';
+    }
+
+    const asksContainer = this.container.querySelector('#dom-asks-list');
+    const bidsContainer = this.container.querySelector('#dom-bids-list');
+    if (asksContainer) asksContainer.innerHTML = '';
+    if (bidsContainer) bidsContainer.innerHTML = '';
+
+    const ladderScroll = this.container.querySelector('.dom-ladder-scroll');
+    if (ladderScroll) {
+      ladderScroll.innerHTML = `
+        <div class="dom-unavailable-notice" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 220px; padding: 24px; text-align: center; color: var(--text-dim); gap: 10px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-gold, #f59e0b); opacity: 0.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div style="font-size: 13px; font-weight: 700; color: #e6e9f0;">
+            ${isFa ? 'دفتر سفارش برای این نماد در دسترس نیست' : 'Order book unavailable for this symbol'}
+          </div>
+          <div style="font-size: 11px; max-width: 260px; line-height: 1.6; color: var(--text-muted, #94a3b8);">
+            ${isFa ? 'دفتر سفارش عمق بازار تنها برای جفت‌ارزهای کریپتو بایننس به‌صورت زنده فراهم است.' : 'Depth of market order book is only available live for Binance crypto pairs.'}
+          </div>
+        </div>
+      `;
+    }
   }
 
   render() {
@@ -78,7 +136,7 @@ export class DepthOfMarketView {
     const isFa = getLanguage() === 'fa';
 
     this.container.innerHTML = `
-      <div class="dom-wrapper" style="display: flex; flex-direction: column; height: 100%; background: var(--bg-surface); overflow: hidden; font-family: var(--font-sans);">
+      <div class="dom-wrapper depth-panel" id="depth-of-market-panel" data-testid="dom-panel" style="display: flex; flex-direction: column; height: 100%; background: var(--bg-surface); overflow: hidden; font-family: var(--font-sans);">
         <!-- DOM Header Strip -->
         <div style="padding: 10px 14px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -148,7 +206,12 @@ export class DepthOfMarketView {
     // Re-hydrate from the last snapshot: render() runs on language switches and re-mounts,
     // and polling is visibility-gated, so without this the ladder stays blank until the next
     // on-screen poll.
-    if (this.data) { this.updateLadder(); this.updateSourceBadge(); }
+    if (this.data) {
+      this.updateLadder();
+      this.updateSourceBadge();
+    } else if (this.isUnavailable) {
+      this.renderUnavailable();
+    }
   }
 
   bindEvents() {

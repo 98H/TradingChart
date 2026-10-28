@@ -1,12 +1,8 @@
 // server/depthFeed.js
 // Level 2 Depth of Market (DOM) / Order Book for TradingChart.
-//
-// Binance-listed symbols get the REAL order book (public market-data mirror,
-// reachable from restricted regions). Instruments without a public book
-// (Tehran bazaar, TSE, OTC FX) get a clearly-flagged SIMULATED ladder — the
-// payload carries `source` + `simulated` so the UI can label it honestly.
+// Binance-listed symbols get the REAL order book (public market-data mirror).
+// Instruments without a real order book answer 404 depth_unavailable (FR-008).
 
-import { get24hTicker } from './dataFeed.js';
 import { getSymbolMeta } from './symbolCatalog.js';
 
 const BOOK_BASES = [
@@ -62,81 +58,38 @@ export async function getOrderBookDepth(symbol, levels = 15) {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
 
-  const meta = getSymbolMeta(clean) || {};
-  let data = null;
-
-  if (meta.exchange === 'Binance' || meta.market === 'crypto') {
-    const j = await realBook(clean, n);
-    if (j) {
-      const bids = ladder(j.bids, n);
-      const asks = ladder(j.asks, n);
-      const bestBid = bids[0].price, bestAsk = asks[0].price;
-      const mid = (bestBid + bestAsk) / 2;
-      const spread = bestAsk - bestBid;
-      data = {
-        symbol: clean,
-        lastPrice: mid,
-        spread: Number(spread.toFixed(8)),
-        spreadPct: Number(((spread / mid) * 100).toFixed(5)),
-        bids,
-        asks,
-        maxDepth: Math.max(bids.at(-1).total, asks.at(-1).total),
-        source: 'binance',
-        simulated: false,
-        timestamp: Date.now()
-      };
-    }
+  const meta = getSymbolMeta(clean) || getSymbolMeta(symbol) || {};
+  const isBinance = meta.exchange === 'Binance' || meta.source === 'binance' || meta.market === 'crypto' || String(symbol || '').startsWith('BINANCE:');
+  if (!isBinance) {
+    const err = new Error('depth_unavailable');
+    err.code = 'DEPTH_UNAVAILABLE';
+    throw err;
   }
 
-  if (!data) {
-    // Simulated ladder around the real last price (deterministic sizes per
-    // level so the book does not flicker randomly on every poll).
-    const ticker = await get24hTicker(clean);
-    const lastPrice = Number(ticker?.lastPrice) || 0;
-    const tickSize = meta.minTick || (lastPrice > 1000 ? 0.5 : 0.01);
-    const precision = meta.precision ?? 2;
-    const halfSpread = tickSize * 1.5;
-    const bestBid = lastPrice - halfSpread;
-    const bestAsk = lastPrice + halfSpread;
-    const bids = [], asks = [];
-    let cb = 0, ca = 0;
-    for (let i = 0; i < n; i++) {
-      const bp = Number((bestBid - i * tickSize * (1 + i * 0.1)).toFixed(precision));
-      const ap = Number((bestAsk + i * tickSize * (1 + i * 0.1)).toFixed(precision));
-      const bs = Number((Math.abs(Math.sin((i + 1) * 1.7)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
-      const as = Number((Math.abs(Math.cos((i + 1) * 1.3)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
-      cb += bs; ca += as;
-      bids.push({
-        0: bp,
-        1: bs,
-        level: i + 1,
-        price: bp,
-        size: bs,
-        total: Number(cb.toFixed(3))
-      });
-      asks.push({
-        0: ap,
-        1: as,
-        level: i + 1,
-        price: ap,
-        size: as,
-        total: Number(ca.toFixed(3))
-      });
-    }
-    const spread = Number((bestAsk - bestBid).toFixed(precision));
-    data = {
-      symbol: clean,
-      lastPrice,
-      spread,
-      spreadPct: lastPrice ? Number(((spread / lastPrice) * 100).toFixed(4)) : 0,
-      bids,
-      asks,
-      maxDepth: Math.max(cb, ca),
-      source: 'simulated',
-      simulated: true,
-      timestamp: Date.now()
-    };
+  const j = await realBook(clean, n);
+  if (!j) {
+    const err = new Error('depth_unavailable');
+    err.code = 'DEPTH_UNAVAILABLE';
+    throw err;
   }
+
+  const bids = ladder(j.bids, n);
+  const asks = ladder(j.asks, n);
+  const bestBid = bids[0].price, bestAsk = asks[0].price;
+  const mid = (bestBid + bestAsk) / 2;
+  const spread = bestAsk - bestBid;
+  const data = {
+    symbol: clean,
+    lastPrice: mid,
+    spread: Number(spread.toFixed(8)),
+    spreadPct: Number(((spread / mid) * 100).toFixed(5)),
+    bids,
+    asks,
+    maxDepth: Math.max(bids.at(-1)?.total || 0, asks.at(-1)?.total || 0),
+    source: 'binance',
+    simulated: false,
+    timestamp: Date.now()
+  };
 
   cache.set(key, { at: Date.now(), data });
   if (cache.size > 200) cache.delete(cache.keys().next().value);

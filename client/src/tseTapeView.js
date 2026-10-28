@@ -12,15 +12,20 @@ export class TseTapeView {
     this.data = null;
     this.pollInterval = null;
     this.isLoading = false;
+    this.isUnavailable = false;
 
     this.render();
-    this.fetchData();
   }
 
   mount() {
+    if (this.app && this.app.tseEnabled === false) {
+      this.isUnavailable = true;
+      this.renderUnavailable();
+      return;
+    }
     this.fetchData();
     if (!this.pollInterval) {
-      this.pollInterval = setInterval(() => { if (!document.hidden) this.fetchData(true); }, 3000);
+      this.pollInterval = setInterval(() => { if (!document.hidden && !this.isUnavailable) this.fetchData(true); }, 3000);
     }
   }
 
@@ -34,23 +39,53 @@ export class TseTapeView {
   setSymbol(sym) {
     this.activeSymbol = String(sym || 'FOOLAD').replace(/^.*:/, '').toUpperCase();
     this.renderActiveSymbolChip();
-    this.fetchData();
+    if (this.app?.tseEnabled) {
+      this.fetchData();
+    }
   }
 
   async fetchData(silent = false) {
+    if (this.app && this.app.tseEnabled === false) {
+      this.isUnavailable = true;
+      this.renderUnavailable();
+      return;
+    }
     if (this.isLoading) return;
     this.isLoading = true;
     try {
-      const res = await fetch(`/api/tse-tape?symbol=${this.activeSymbol}`);
+      const res = await fetch(`/api/tse-tape?symbol=${encodeURIComponent(this.activeSymbol)}`);
       if (res.ok) {
+        this.isUnavailable = false;
         this.data = await res.json();
         this.updateUI();
+      } else {
+        this.isUnavailable = true;
+        this.data = null;
+        this.renderUnavailable();
       }
     } catch (e) {
-      console.warn('[TseTapeView] Error fetching tape:', e.message);
+      if (!silent) console.warn('[TseTapeView] Error fetching tape:', e.message);
+      this.isUnavailable = true;
+      this.renderUnavailable();
     } finally {
       this.isLoading = false;
     }
+  }
+
+  renderUnavailable() {
+    if (!this.container) return;
+    const isFa = getLanguage() === 'fa';
+    this.container.innerHTML = `
+      <div class="tse-unavailable-notice" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 240px; padding: 32px; text-align: center; color: var(--text-dim); gap: 12px; ${isFa ? 'direction: rtl;' : ''}">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-gold, #f59e0b); opacity: 0.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="font-size: 14px; font-weight: 700; color: #fff;">
+          ${isFa ? 'داده‌های تابلوی بورس تهران در دسترس نیست' : 'Tehran Stock Exchange market tape is unavailable'}
+        </div>
+        <div style="font-size: 11px; max-width: 320px; line-height: 1.6; color: var(--text-muted, #94a3b8);">
+          ${isFa ? 'به دلیل عدم تنظیم درگاه داده بورس ایران (BrsApi یا رله داخلی)، تابلوخوانی بورس موقتاً غیرفعال است.' : 'TSE market tape is unavailable because no active TSE source is configured.'}
+        </div>
+      </div>
+    `;
   }
 
   formatNum(num) {
@@ -62,6 +97,10 @@ export class TseTapeView {
 
   render() {
     if (!this.container) return;
+    if (this.isUnavailable) {
+      this.renderUnavailable();
+      return;
+    }
     const isFa = getLanguage() === 'fa';
 
     const QUICK_SYMBOLS = [

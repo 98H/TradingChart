@@ -196,6 +196,8 @@ export const LEGACY_ALIASES = {
   'QQQ': 'NASDAQ:QQQ',
   // Tehran / Iran
   'GOLD_18K': 'IR:GOLD_18K',
+  'GOLD_24K': 'IR:GOLD_24K',
+  'GERAM24': 'IR:GOLD_24K',
   'COIN_EMAMI': 'IR:COIN_EMAMI',
   'COIN_BAHAR': 'IR:COIN_BAHAR',
   'COIN_NIM': 'IR:COIN_NIM',
@@ -203,8 +205,13 @@ export const LEGACY_ALIASES = {
   'COIN_GERMI': 'IR:COIN_GERMI',
   'USD_TEHRAN': 'IR:USD_FREE',
   'USD_FREE': 'IR:USD_FREE',
+  'USDT_FREE': 'IR:USDT_FREE',
+  'USDT_IRR': 'IR:USDT_FREE',
   'GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
-  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL'
+  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
+  'GOLD_MESGHAL': 'IR:GOLD_MESGHAL',
+  'MESGHAL': 'IR:GOLD_MESGHAL',
+  'ABSHODEH': 'IR:GOLD_MESGHAL'
 };
 
 // Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
@@ -286,22 +293,30 @@ export function getSymbolMeta(symbol) {
   const tgjuEntry = TGJU_ENTRIES.find(e => e.symbol === canonical || e.symbol === raw);
   if (tgjuEntry) return tgjuEntry;
 
-  const isCrypto = bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH');
-  return {
-    symbol: canonical,
-    name: bare,
-    nameFa: bare,
-    category: isCrypto ? 'crypto' : 'stocks',
-    base: bare.replace(/(USDT|USD|EUR|BTC|IRR|TMN)$/, ''),
-    quote: isCrypto ? 'USDT' : 'USD',
-    precision: 2,
-    minTick: 0.01,
-    lotSize: 1,
-    exchange: isCrypto ? 'Binance' : 'Global',
-    market: isCrypto ? 'crypto' : 'stocks',
-    currency: isCrypto ? 'USDT' : 'USD',
-    syntheticFallback: true
-  };
+  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL)
+  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
+    const parts = canonical.split(':');
+    const exch = parts[0];
+    const ticker = parts[1];
+    return {
+      symbol: canonical,
+      name: ticker,
+      nameFa: ticker,
+      category: 'stocks',
+      exchange: exch,
+      type: 'stock',
+      currency: 'USD',
+      source: 'tradingview',
+      dataStatus: 'delayed',
+      delaySec: 600,
+      timeframes: STANDARD_TIMEFRAMES,
+      precision: 2,
+      minTick: 0.01,
+      lotSize: 1
+    };
+  }
+
+  return null;
 }
 
 export function isKnownSymbol(sym) {

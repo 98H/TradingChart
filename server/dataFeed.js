@@ -10,7 +10,6 @@
 import { SYMBOL_CATALOG, getSymbolMeta, isKnownSymbol as catalogIsKnownSymbol } from './symbolCatalog.js';
 import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
 import { candleLru, dedupeInFlight } from './lru.js';
-import { demoBars, demoPrice, dailyLayer } from './demoPath.js';
 import { tvClient } from './tradingviewClient.js';
 import { tgjuClient } from './tgjuClient.js';
 import { tseSource } from './tseSource.js';
@@ -479,93 +478,15 @@ export async function getGoldMarketSnapshot() {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. TEHRAN STOCK EXCHANGE (TSETMC) ENGINE (iran_tse.py port)
 // ─────────────────────────────────────────────────────────────────────────────
-const TSE_BASE_PRICES = {
-  'FOOLAD': { base: 4850, name: 'فولاد مبارکه اصفهان' },
-  'FAMELI': { base: 6320, name: 'ملی صنایع مس ایران' },
-  'KHODRO': { base: 2980, name: 'ایران خودرو' },
-  'SAIPA': { base: 2420, name: 'سایپا' },
-  'SHASTA': { base: 1320, name: 'سرمایه‌گذاری تامین اجتماعی' },
-  'AHRAM': { base: 22450, name: 'صندوق اهرمی کاریزما' },
-  'AGAS': { base: 41200, name: 'صندوق سرمایه‌گذاری آگاه' },
-  'TALA': { base: 31500, name: 'صندوق طلای لوتوس' },
-  'AYAR': { base: 28900, name: 'صندوق طلای عیار مفید' },
-  'TAVAN': { base: 19800, name: 'صندوق اهرمی توان مفید' },
-  'SHPNA': { base: 3850, name: 'پالایش نفت اصفهان' },
-  'SHETRAN': { base: 2750, name: 'پالایش نفت تهران' },
-  'DARAYEKOM': { base: 14200, name: 'صندوق واسطه‌گری مالی یکم' },
-  'PALAYESH': { base: 11800, name: 'صندوق پالایشی یکم' },
-  'VABANKE': { base: 8900, name: 'سرمایه‌گذاری گروه توسعه ملی' },
-  'FARABOURSE': { base: 4150, name: 'فرابورس ایران' }
-};
 
 /** Get live TSETMC market tape, individual vs institutional volume & smart money ratio */
-export function getTseMarketTape(symbol = 'FOOLAD') {
-  if (tseSource.isTseEnabled()) {
-    return tseSource.getTape(symbol);
+export function getTseMarketTape(symbol = 'TSE:FOOLAD') {
+  if (!tseSource.isTseEnabled()) {
+    const err = new Error('tse_unavailable');
+    err.code = 'TSE_UNAVAILABLE';
+    throw err;
   }
-
-  // Preserved during Phase 3 until Phase 4 (T013 & T016) hides TSE tape on client
-  const clean = symbol.replace(/^.*:/, '').toUpperCase();
-  const cfg = TSE_BASE_PRICES[clean] || { base: 5000, name: clean };
-  const base = cfg.base;
-
-  const minuteSeed = Math.floor(Date.now() / 60000);
-  const hash = (clean.charCodeAt(0) * 31 + minuteSeed * 17) % 1000;
-  const variance = (hash / 1000 - 0.48) * 0.04;
-
-  const lastPrice = Math.round(base * (1 + variance));
-  const closePrice = Math.round(base * (1 + variance * 0.9));
-  const yesterdayPrice = base;
-  const highPrice = Math.round(Math.max(lastPrice, base * 1.025));
-  const lowPrice = Math.round(Math.min(lastPrice, base * 0.975));
-
-  const volume = Math.round(25000000 + (hash * 45000));
-  const value = Math.round(volume * lastPrice);
-  const tradesCount = Math.round(3500 + hash * 5);
-
-  const indBuyVol = Math.round(volume * (0.68 + (hash % 15) * 0.01));
-  const indSellVol = Math.round(volume * (0.60 + (hash % 12) * 0.01));
-  const indBuyCount = Math.max(1, Math.round(1400 + hash * 2));
-  const indSellCount = Math.max(1, Math.round(1900 + hash * 1.5));
-
-  const instBuyVol = Math.max(0, volume - indBuyVol);
-  const instSellVol = Math.max(0, volume - indSellVol);
-
-  const buyPerCapitaToman = Math.round(((indBuyVol * lastPrice) / indBuyCount) / 10);
-  const sellPerCapitaToman = Math.round(((indSellVol * lastPrice) / indSellCount) / 10);
-  const buyerPowerRatio = Number((buyPerCapitaToman / Math.max(1, sellPerCapitaToman)).toFixed(2));
-  const smartMoneyInflow = buyerPowerRatio >= 1.25;
-
-  const change = lastPrice - yesterdayPrice;
-  const changePercent = Number(((change / yesterdayPrice) * 100).toFixed(2));
-
-  return {
-    symbol: clean,
-    nameFa: cfg.name,
-    timestamp: new Date().toISOString(),
-    lastPrice,
-    closePrice,
-    yesterdayPrice,
-    highPrice,
-    lowPrice,
-    volume,
-    value,
-    tradesCount,
-    change,
-    changePercent,
-    individualBuyVolume: indBuyVol,
-    individualSellVolume: indSellVol,
-    individualBuyCount: indBuyCount,
-    individualSellCount: indSellCount,
-    institutionalBuyVolume: instBuyVol,
-    institutionalSellVolume: instSellVol,
-    buyPerCapitaToman,
-    sellPerCapitaToman,
-    buyerPowerRatio,
-    smartMoneyInflow,
-    suspiciousVolumeRatio: Number((volume / 18000000).toFixed(2)),
-    queueStatus: changePercent >= 2.8 ? 'صف خرید (Buy Queue)' : changePercent <= -2.8 ? 'صف فروش (Sell Queue)' : 'متعادل (Balanced)'
-  };
+  return tseSource.getTape(symbol);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -661,12 +582,9 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
 
   if (isCrypto) {
     if (!known) {
-      const empty = [];
-      empty.source = 'binance';
-      empty.exchange = 'Binance';
-      empty.delaySec = 0;
-      empty.candles = empty;
-      return empty;
+      const err = new Error('unknown_symbol');
+      err.code = 'UNKNOWN_SYMBOL';
+      throw err;
     }
 
     const dedupeKey = `crypto:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
@@ -682,7 +600,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         const candles = await fetchCryptoCandles(cleanSymbol, tf, limit, fromTime, toTime);
         const result = [...candles];
         result.source = 'binance';
-        result.exchange = meta.exchange || 'Binance';
+        result.exchange = meta?.exchange || 'Binance';
         result.delaySec = 0;
         result.candles = result;
 
@@ -692,19 +610,16 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         return result;
       } catch (err) {
         if (err.code === 'MARKET_NOT_FOUND') {
-          const empty = [];
-          empty.source = 'binance';
-          empty.exchange = 'Binance';
-          empty.delaySec = 0;
-          empty.candles = empty;
-          return empty;
+          const errNotFound = new Error('unknown_symbol');
+          errNotFound.code = 'UNKNOWN_SYMBOL';
+          throw errNotFound;
         }
 
         const lastGood = candleLru.get(lastGoodKey);
         if (lastGood && lastGood.length > 0) {
           const result = [...lastGood];
           result.source = 'cache';
-          result.exchange = meta.exchange || 'Binance';
+          result.exchange = meta?.exchange || 'Binance';
           result.delaySec = 0;
           result.candles = result;
           return result;
@@ -717,30 +632,10 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
     });
   }
 
-  // 3. Known non-crypto assets (demo series)
-  if (!known) {
-    const empty = [];
-    empty.source = 'demo';
-    empty.exchange = 'Demo';
-    empty.delaySec = 0;
-    empty.candles = empty;
-    return empty;
-  }
-
-  const demoKey = `demo:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
-  const cachedDemo = candleLru.get(demoKey);
-  if (cachedDemo) {
-    return cachedDemo;
-  }
-
-  const rawBars = demoBars(cleanSymbol, tf, { limit, from: fromTime, to: toTime });
-  const result = [...rawBars];
-  result.source = 'demo';
-  result.exchange = meta.exchange || 'Demo';
-  result.delaySec = 0;
-  result.candles = result;
-  candleLru.set(demoKey, result, result.length, 3000);
-  return result;
+  // Any instrument without a real source MUST return unknown_symbol (FR-008)
+  const unknownErr = new Error('unknown_symbol');
+  unknownErr.code = 'UNKNOWN_SYMBOL';
+  throw unknownErr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -826,68 +721,14 @@ export async function get24hTicker(symbol) {
     }
   }
 
-  // 3. Unknown check
-  if (!isKnownSymbol(clean) && !isKnownSymbol(resolved)) {
-    return { unknown: true, symbol };
-  }
-
-  // 4. All non-crypto demo markets: derived from demoPath (FR-009)
-  const now = Date.now();
-  const lastPrice = demoPrice(clean, now);
-  const precision = meta.precision ?? 2;
-  const t24h = now - 24 * 3600 * 1000;
-  const bars24h = demoBars(clean, '1', { from: t24h, to: now, limit: 1440 });
-
-  let openPrice = lastPrice;
-  let highPrice = lastPrice;
-  let lowPrice = lastPrice;
-  let volume = 0;
-
-  if (bars24h.length > 0) {
-    openPrice = bars24h[0].open;
-    highPrice = Math.max(lastPrice, ...bars24h.map(b => b.high));
-    lowPrice = Math.min(lastPrice, ...bars24h.map(b => b.low));
-    volume = Math.round(bars24h.reduce((s, b) => s + b.volume, 0));
-  } else {
-    // If market was closed all 24h, fallback to last daily bar
-    const days = dailyLayer(clean);
-    const lastDay = days[days.length - 1];
-    if (lastDay) {
-      openPrice = lastDay.open;
-      highPrice = Math.max(lastPrice, lastDay.high);
-      lowPrice = Math.min(lastPrice, lastDay.low);
-      volume = lastDay.volume;
-    }
-  }
-
-  const priceChange = Number((lastPrice - openPrice).toFixed(precision));
-  const priceChangePercent = openPrice > 0 ? Number(((priceChange / openPrice) * 100).toFixed(2)) : 0;
-  const quoteVolume = Math.round(volume * lastPrice);
-
-  return {
-    symbol: clean,
-    lastPrice,
-    priceChange,
-    priceChangePercent,
-    highPrice,
-    lowPrice,
-    volume,
-    quoteVolume,
-    exchange: meta.exchange,
-    category: meta.category,
-    currency: meta.currency,
-    source: 'demo',
-    dataStatus: 'demo',
-    delaySec: 0,
-    time: now
-  };
+  // 3. Unknown check & demo removal: no demo tickers remain (FR-008)
+  return { unknown: true, symbol };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. DATA SOURCES STATUS & WATERFALL TELEMETRY
 // ─────────────────────────────────────────────────────────────────────────────
-// Real Binance reachability (cached 30s). Every other feed below is a
-// modelled/demo series and is reported as such — never as "online".
+// Real Binance reachability (cached 30s). Real market sources only (Binance, TradingView, TGJU, and TSE when enabled).
 let binanceProbe = { at: 0, ok: false, ms: null };
 async function probeBinance() {
   if (Date.now() - binanceProbe.at < 30000) return binanceProbe;

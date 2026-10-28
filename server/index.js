@@ -164,19 +164,25 @@ app.get('/api/tickers', async (req, res) => {
   try {
     const raw = String(req.query.symbols || 'BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:SOLUSDT,OANDA:XAUUSD,OANDA:EURUSD');
     const rawSymbols = raw.split(',').map(s => s.trim()).filter(Boolean);
-    const symbols = [...new Set(rawSymbols.map(s => resolveSymbolAlias(cleanSymbol(s))).filter(Boolean))].slice(0, 40);
-    if (!symbols.length) return bad(res, 'invalid_symbol');
+    if (!rawSymbols.length) return bad(res, 'invalid_symbol');
 
-    const results = await Promise.all(symbols.map(s => get24hTicker(s)));
+    const results = await Promise.all(rawSymbols.map(rawSym => {
+      const cleaned = cleanSymbol(rawSym);
+      if (!cleaned) return Promise.resolve({ unknown: true, symbol: rawSym });
+      const resolved = resolveSymbolAlias(cleaned);
+      if (!isKnownSymbol(resolved)) return Promise.resolve({ unknown: true, symbol: rawSym });
+      return get24hTicker(resolved);
+    }));
+
     const tickers = [];
     const unknown = [];
 
-    for (let i = 0; i < symbols.length; i++) {
+    for (let i = 0; i < rawSymbols.length; i++) {
       const t = results[i];
       if (t && !t.unknown && typeof t.lastPrice === 'number' && Number.isFinite(t.lastPrice)) {
         tickers.push(t);
       } else {
-        unknown.push(symbols[i]);
+        unknown.push(rawSymbols[i]);
       }
     }
 
@@ -201,9 +207,12 @@ app.get('/api/symbols', async (req, res) => {
 
 // 5. Symbol Metadata
 app.get('/api/symbol-info', (req, res) => {
-  const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
-  if (!raw) return bad(res, 'invalid_symbol');
+  const raw = cleanSymbol(req.query.symbol);
+  if (!raw) return res.status(404).json({ ok: false, error: 'unknown_symbol' });
   const symbol = resolveSymbolAlias(raw);
+  if (!isKnownSymbol(symbol)) {
+    return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+  }
   const meta = getSymbolMeta(symbol);
   if (!meta || meta.syntheticFallback) {
     return res.status(404).json({ ok: false, error: 'unknown_symbol' });
@@ -233,7 +242,10 @@ app.get('/api/gold-snapshot', async (req, res) => {
 // 5d. Tehran Stock Exchange tape
 app.get('/api/tse-tape', (req, res) => {
   try {
-    const raw = cleanSymbol(req.query.symbol, 'FOOLAD');
+    if (!tseSource.isTseEnabled()) {
+      return res.status(404).json({ ok: false, error: 'tse_unavailable' });
+    }
+    const raw = cleanSymbol(req.query.symbol, 'TSE:FOOLAD');
     if (!raw) return bad(res, 'invalid_symbol');
     const symbol = resolveSymbolAlias(raw);
     res.json(getTseMarketTape(symbol));
@@ -275,11 +287,27 @@ app.get('/api/screener', async (req, res) => {
 // 6d. Depth of Market
 app.get('/api/depth', async (req, res) => {
   try {
-    const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
-    if (!raw) return bad(res, 'invalid_symbol');
+    const raw = cleanSymbol(req.query.symbol);
+    if (!raw) return res.status(404).json({ ok: false, error: 'unknown_symbol' });
     const symbol = resolveSymbolAlias(raw);
+    if (!isKnownSymbol(symbol)) {
+      return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+    }
+    const meta = getSymbolMeta(symbol);
+    const isBinance = symbol.startsWith('BINANCE:') || meta?.source === 'binance' || meta?.exchange === 'Binance';
+    if (!isBinance) {
+      return res.status(404).json({ ok: false, error: 'depth_unavailable' });
+    }
     res.json(await getOrderBookDepth(symbol, clampInt(req.query.levels || req.query.limit, 15, 1, 50)));
-  } catch (error) { serverError(res, '/api/depth', error); }
+  } catch (error) {
+    if (error?.code === 'DEPTH_UNAVAILABLE' || error?.message === 'depth_unavailable') {
+      return res.status(404).json({ ok: false, error: 'depth_unavailable' });
+    }
+    if (error?.code === 'UNKNOWN_SYMBOL' || error?.message === 'unknown_symbol') {
+      return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+    }
+    serverError(res, '/api/depth', error);
+  }
 });
 
 // 6e. Market News
