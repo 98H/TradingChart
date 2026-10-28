@@ -10,6 +10,7 @@
 import { getSymbolMeta } from './symbolCatalog.js';
 import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
 import { isSessionDay, sessionWindows, isSessionTime } from './marketSessions.js';
+import { candleLru } from './lru.js';
 
 // Epoch ms for 2000-01-03 00:00:00 UTC (Monday)
 export const START_DAY_MS = 946857600000;
@@ -114,11 +115,31 @@ function mulberry32(seed) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. MEMOIZED DAILY LAYER (since 2000-01-03 on session days)
 // ─────────────────────────────────────────────────────────────────────────────
+const DAILY_LAYER_MAX = 80;
 const dailyLayerCache = new Map(); // symbol -> array of closed session day bars
+
+function getDailyLayer(clean) {
+  if (!dailyLayerCache.has(clean)) return undefined;
+  const bars = dailyLayerCache.get(clean);
+  dailyLayerCache.delete(clean);
+  dailyLayerCache.set(clean, bars);
+  return bars;
+}
+
+function setDailyLayer(clean, bars) {
+  if (dailyLayerCache.has(clean)) {
+    dailyLayerCache.delete(clean);
+  }
+  dailyLayerCache.set(clean, bars);
+  while (dailyLayerCache.size > DAILY_LAYER_MAX) {
+    const oldestKey = dailyLayerCache.keys().next().value;
+    dailyLayerCache.delete(oldestKey);
+  }
+}
 
 export function dailyLayer(symbol) {
   const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
-  const cached = dailyLayerCache.get(clean);
+  const cached = getDailyLayer(clean);
   if (cached) return cached;
 
   const cfg = getSymbolConfig(clean);
@@ -172,20 +193,18 @@ export function dailyLayer(symbol) {
     curPrice = close;
   }
 
-  dailyLayerCache.set(clean, bars);
+  setDailyLayer(clean, bars);
   return bars;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. MINUTE BROWNIAN-BRIDGE LAYER (aggregates exactly to daily bar)
 // ─────────────────────────────────────────────────────────────────────────────
-const minuteCache = new Map(); // `${symbol}:${dayMs}` -> Array<minuteBar>
-
-export function minuteBars(symbol, dayMs) {
+export function minuteBars(symbol, dayMs, options = {}) {
   const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
   const t = bucketStart('D', dayMs);
-  const cacheKey = `${clean}:${t}`;
-  const hit = minuteCache.get(cacheKey);
+  const cacheKey = `demo:min:${clean}:${t}`;
+  const hit = candleLru.get(cacheKey);
   if (hit) return hit;
 
   if (!isSessionDay(clean, t)) return [];
@@ -333,10 +352,9 @@ export function minuteBars(symbol, dayMs) {
     }
   }
 
-  minuteCache.set(cacheKey, result);
-  if (minuteCache.size > 500) {
-    const firstKey = minuteCache.keys().next().value;
-    minuteCache.delete(firstKey);
+  const noCache = typeof options === 'boolean' ? options : !!options?.noCache;
+  if (!noCache) {
+    candleLru.set(cacheKey, result, result.length);
   }
 
   return result;
@@ -345,13 +363,11 @@ export function minuteBars(symbol, dayMs) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. SECOND BROWNIAN-BRIDGE LAYER (aggregates exactly to minute bar)
 // ─────────────────────────────────────────────────────────────────────────────
-const secondCache = new Map(); // `${symbol}:${minuteMs}` -> Array<secondBar>
-
 export function secondBars(symbol, minuteMs) {
   const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
   const mTime = bucketStart('1', minuteMs);
-  const cacheKey = `${clean}:${mTime}`;
-  const hit = secondCache.get(cacheKey);
+  const cacheKey = `demo:sec:${clean}:${mTime}`;
+  const hit = candleLru.get(cacheKey);
   if (hit) return hit;
 
   const dayMs = bucketStart('D', mTime);
@@ -456,12 +472,7 @@ export function secondBars(symbol, minuteMs) {
     });
   }
 
-  secondCache.set(cacheKey, result);
-  if (secondCache.size > 500) {
-    const firstKey = secondCache.keys().next().value;
-    secondCache.delete(firstKey);
-  }
-
+  candleLru.set(cacheKey, result, result.length);
   return result;
 }
 
@@ -560,24 +571,61 @@ export function demoBars(symbol, tf, options = {}) {
 
   // Case B: Minute & Hourly timeframes (unit 'm')
   if (parsed.unit === 'm') {
+    if (parsed.count >= 60) {
+      // Intraday buckets >= 60 minutes: stream aggregation per day (T019)
+      const dayChunks = [];
+      let totalAgg = 0;
+
+      let scanDay = bucketStart('D', effectiveTo);
+      while (scanDay >= START_DAY_MS && totalAgg < limit + 10) {
+        if (from !== null && scanDay + DAY_MS < from) break;
+
+        if (isSessionDay(clean, scanDay)) {
+          // Do not retain per-minute arrays in cache for days that are only aggregated
+          let mins = minuteBars(clean, scanDay, { noCache: true });
+          mins = mins.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+          if (mins.length > 0) {
+            const dayAgg = aggregate(mins, parsed);
+            if (dayAgg.length > 0) {
+              dayChunks.push(dayAgg);
+              totalAgg += dayAgg.length;
+            }
+          }
+        }
+        scanDay -= DAY_MS;
+      }
+
+      if (dayChunks.length === 0) return [];
+
+      dayChunks.reverse();
+      const aggregated = dayChunks.flat();
+      let filtered = aggregated.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+      return filtered.slice(-limit);
+    }
+
     const needed = (limit + 10) * parsed.count;
-    const collectedMinutes = [];
+    const dayChunks = [];
+    let collectedCount = 0;
 
     let scanDay = bucketStart('D', effectiveTo);
-    while (scanDay >= START_DAY_MS && collectedMinutes.length < needed) {
+    while (scanDay >= START_DAY_MS && collectedCount < needed) {
       if (from !== null && scanDay + DAY_MS < from) break;
 
       if (isSessionDay(clean, scanDay)) {
         let mins = minuteBars(clean, scanDay);
         mins = mins.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
         if (mins.length > 0) {
-          collectedMinutes.unshift(...mins);
+          dayChunks.push(mins);
+          collectedCount += mins.length;
         }
       }
       scanDay -= DAY_MS;
     }
 
-    if (collectedMinutes.length === 0) return [];
+    if (dayChunks.length === 0) return [];
+
+    dayChunks.reverse();
+    const collectedMinutes = dayChunks.flat();
 
     if (parsed.canonical === '1') {
       return collectedMinutes.slice(-limit);
@@ -613,10 +661,11 @@ export function demoBars(symbol, tf, options = {}) {
     }
 
     const neededSeconds = (limit + 10) * parsed.count;
-    const collectedSeconds = [];
+    const chunkList = [];
+    let collectedSecondsCount = 0;
 
     let scanMin = bucketStart('1', anchorTime);
-    while (scanMin >= START_DAY_MS && collectedSeconds.length < neededSeconds) {
+    while (scanMin >= START_DAY_MS && collectedSecondsCount < neededSeconds) {
       if (from !== null && scanMin + 60000 < from) break;
 
       const scanDay = bucketStart('D', scanMin);
@@ -624,13 +673,17 @@ export function demoBars(symbol, tf, options = {}) {
         const secs = secondBars(clean, scanMin);
         const valid = secs.filter(b => b.time <= anchorTime && (from === null || b.time >= from));
         if (valid.length > 0) {
-          collectedSeconds.unshift(...valid);
+          chunkList.push(valid);
+          collectedSecondsCount += valid.length;
         }
       }
       scanMin -= 60000;
     }
 
-    if (collectedSeconds.length === 0) return [];
+    if (chunkList.length === 0) return [];
+
+    chunkList.reverse();
+    const collectedSeconds = chunkList.flat();
 
     if (parsed.canonical === '1s') {
       return collectedSeconds.slice(-limit);
