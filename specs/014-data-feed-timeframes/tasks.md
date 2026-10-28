@@ -26,12 +26,12 @@ demo engine; acceptance files covering FR-006 therefore run from Phase 2.
 
 Architect note (escalation of attempt 1): this phase's code already exists in the worktree and all four 014 acceptance suites passed. Keep `let currentLang = 'en'` in client/src/i18n.js (changing the default language is out of scope). Test 04 now selects Persian explicitly (architect amendment). Notices must use t('noticeNoData') / t('noticeCacheStale') for the current language only; no test-specific symbol branches or fetch monkey-patching. `closeAllBrowsers` export (tests/qa_lib.cjs) and the regression output dir are fixed on the base branch; do not touch them.
 
-- [ ] T012 [US4] Create client/src/timeframes.js with the same logic as server/timeframes.js (FR-011)
-- [ ] T013 [US4] In client/src/universalProvider.js bucket ticks with `bucketStart`, open a new bucket at the previous close, never change volume on ticks, refresh the last 2 bars every 15 s and on bucket roll, record the last `source` per (symbol, tf), derive `supportedTimeframes` from the grammar (FR-011)
-- [ ] T014 [US3] In client/src/universalProvider.js return `[]` (or the real cached series) instead of the price-100 seed bar on 404/503/network errors (FR-012)
-- [ ] T015 [US3] Show and clear the FR-012 «no data» / «stale data» notices over the active chart cell in client/src/chartManager.js with strings in client/src/i18n.js and styles in client/styles/main.css; re-localize on language switch (FR-012)
-- [ ] T016 [US1] Offer seconds, minutes, hours, days, weeks and months in the custom-timeframe builder of client/src/timeframeManager.js producing FR-001 ids, keeping the `secondIntervals`/`customIntervals` gates (FR-013)
-- [ ] T017 [US1] Ensure every timeframe switch in client/src/chartManager.js re-applies `bars: 2000` and renders the FR-001 timeframe so spacing matches for standard and custom ids (FR-013)
+- [x] T012 [US4] Create client/src/timeframes.js with the same logic as server/timeframes.js (FR-011)
+- [x] T013 [US4] In client/src/universalProvider.js bucket ticks with `bucketStart`, open a new bucket at the previous close, never change volume on ticks, refresh the last 2 bars every 15 s and on bucket roll, record the last `source` per (symbol, tf), derive `supportedTimeframes` from the grammar (FR-011)
+- [x] T014 [US3] In client/src/universalProvider.js return `[]` (or the real cached series) instead of the price-100 seed bar on 404/503/network errors (FR-012)
+- [x] T015 [US3] Show and clear the FR-012 «no data» / «stale data» notices over the active chart cell in client/src/chartManager.js with strings in client/src/i18n.js and styles in client/styles/main.css; re-localize on language switch (FR-012)
+- [x] T016 [US1] Offer seconds, minutes, hours, days, weeks and months in the custom-timeframe builder of client/src/timeframeManager.js producing FR-001 ids, keeping the `secondIntervals`/`customIntervals` gates (FR-013)
+- [x] T017 [US1] Ensure every timeframe switch in client/src/chartManager.js re-applies `bars: 2000` and renders the FR-001 timeframe so spacing matches for standard and custom ids (FR-013)
 
 ## Phase 4: Converge — bounded demo-path memory (post-merge production audit)
 
