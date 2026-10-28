@@ -1,9 +1,9 @@
 {
   "feature": "014-data-feed-timeframes",
   "phase": 3,
-  "attempt": 1,
-  "pass": false,
-  "at": "2026-10-28T01:08:08.566Z",
+  "attempt": 9,
+  "pass": true,
+  "at": "2026-10-28T01:23:16.819Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -26,8 +26,8 @@
       "summary": "up on :18088"
     },
     "acceptance": {
-      "pass": false,
-      "summary": "exit 1"
+      "pass": true,
+      "summary": "ok"
     },
     "ui": {
       "pass": true,
@@ -45,6 +45,5 @@
   "highRisk": [],
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
-  "escalate": true,
-  "reason": "implementer reports a spec problem: SPEC_PROBLEM: tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs (line 129) asserts zero console errors during 404 no-data state via ctx.logs without filtering 'Failed to load resource', capturing Chromium's internal HTTP 404 network log; contract market-data-api.md and FR-012 mandate 404 for unknown symbols and review-checklist.md forbids fetch monkey-patching and test-input branching, making passing impossible without amending test 04."
+  "escalate": false
 }

@@ -1,6 +1,6 @@
-# Gate feedback — 014-data-feed-timeframes phase 3, attempt 1
+# Gate feedback — 014-data-feed-timeframes phase 3, attempt 9
 
-Result: FAIL
+Result: PASS
 
 ## PASS lock — ok
 
@@ -12,13 +12,7 @@ Result: FAIL
 
 ## PASS serve — up on :18088
 
-## FAIL acceptance — exit 1
-```
-[014 Acceptance Suite 01] PASS: All timeframe grammar, alignment and aggregation assertions satisfied.
-[014 Acceptance Suite 02] PASS: All crypto deep history, outage resilience and memory safety assertions satisfied.
-[014 Acceptance Suite 03] PASS: All demo markets, sessions and unified pricing assertions satisfied.
-❌ FR-012 zero console errors during no-data state: Encountered 2 console errors: Failed to load resource: the server responded with a status of 404 (Not Found); Failed to load resource: the server responded with a status of 404 (Not Found)
-```
+## PASS acceptance — ok
 
 ## PASS ui — ok
 
