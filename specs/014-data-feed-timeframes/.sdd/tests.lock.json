@@ -1,10 +1,10 @@
 {
   "spec": "014",
-  "frozenAt": "2026-10-28T00:32:51.129Z",
+  "frozenAt": "2026-10-28T01:08:28.950Z",
   "files": {
     "tests/acceptance/014/01_server_timeframes_grammar_and_aggregation.test.cjs": "d51d136878829154beea08f3677217501b056e6920c4d601b6cfded8500438cc",
     "tests/acceptance/014/02_crypto_history_resilience_and_memory.test.cjs": "603d00c211b3a7f5259f8aeae31bd8390c26be14a3c23defff3a9a4e5c756bae",
     "tests/acceptance/014/03_demo_markets_sessions_and_unified_pricing.test.cjs": "67106200d834c0d707eca5c2d35d4c26a94d52a636eba463aff107297c77abee",
-    "tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs": "e162bf3ab25f18185afbadca06c050ad7634a8407fe7d53bb56f267aa4f1593a"
+    "tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs": "97d7daf2d925b212534c9fd2d3216ba885ee1e3610c936ab89eb713c0f8f9753"
   }
 }
