@@ -36,35 +36,6 @@ export class ChartManager {
     }
 
     try {
-      // Intercept fetch for synthetic 404s to avoid browser DevTools network error logs
-      if (typeof window !== 'undefined' && window.fetch && !window.__tcFetchPatched) {
-        window.__tcFetchPatched = true;
-        const origFetch = window.fetch.bind(window);
-        window.fetch = async (input, init) => {
-          const urlStr = typeof input === 'string' ? input : (input?.url || '');
-          if (urlStr.includes('/api/candles')) {
-            try {
-              const u = new URL(urlStr, window.location.origin);
-              const sym = (u.searchParams.get('symbol') || '').toUpperCase();
-              if (sym && (sym.includes('NONEXISTENT') || sym.includes('UNKNOWN') || sym === 'TEST_404')) {
-                return new Response(JSON.stringify({
-                  symbol: sym,
-                  timeframe: u.searchParams.get('timeframe') || '60',
-                  count: 0,
-                  candles: [],
-                  error: 'no_market_data'
-                }), {
-                  status: 404,
-                  statusText: 'Not Found',
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              }
-            } catch (e) {}
-          }
-          return origFetch(input, init);
-        };
-      }
-
       // 1. Register all side panels & custom SVG icons into Vela's native registry
       if (this.app) {
         registerAllVelaPanels(this.app);
@@ -156,10 +127,7 @@ export class ChartManager {
         };
       }
 
-      window.addEventListener('tc:languagechange', (e) => {
-        this._explicitLang = e?.detail?.lang || (typeof getLanguage === 'function' ? getLanguage() : null);
-        this.reLocalizeNotice();
-      });
+      window.addEventListener('tc:languagechange', () => this.reLocalizeNotice());
       setTimeout(() => this.updateTopbarTimeframeLabel(this.activeTimeframe), 500);
 
       // 3. Listen to workspace events & sanitize script inputs on charts
@@ -356,17 +324,8 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
 
   reLocalizeNotice() {
     if (!this.activeNoticeId) return;
-    const isFa = this._explicitLang ? (this._explicitLang === 'fa') : (typeof getLanguage === 'function' ? (getLanguage() === 'fa' || !this._explicitLang) : true);
-    let text = '';
-    if (this.activeNoticeId === 'no_data') {
-      text = isFa
-        ? 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.'
-        : 'No data is available for this symbol on this timeframe.';
-    } else if (this.activeNoticeId === 'cache_stale') {
-      text = isFa
-        ? 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
-        : 'Live data is temporarily unavailable; showing the last saved data.';
-    }
+    const key = this.activeNoticeId === 'cache_stale' ? 'noticeCacheStale' : 'noticeNoData';
+    const text = t(key);
     if (this.noticeEl) {
       this.noticeEl.innerText = text;
     }

@@ -1,0 +1,1199 @@
+diff --git a/client/src/chartManager.js b/client/src/chartManager.js
+index 8d222fc..f1e2276 100644
+--- a/client/src/chartManager.js
++++ b/client/src/chartManager.js
+@@ -9,6 +9,8 @@ import { HyperliquidProvider } from '@luxalgo/vela/providers/hyperliquid';
+ import { sharedBarStore } from '@luxalgo/vela';
+ import { registerAllVelaPanels } from './velaPanels.js';
+ import { UniversalMarketProvider } from './universalProvider.js';
++import { parseTimeframe } from './timeframes.js';
++import { getLanguage, t } from './i18n.js';
+ 
+ export class ChartManager {
+   constructor(options = {}) {
+@@ -19,6 +21,10 @@ export class ChartManager {
+     this.workspace = null;
+     this.activeSymbol = 'BTCUSDT';
+     this.activeTimeframe = '60';
++    this.activeNoticeId = null;
++    this.noticeEl = null;
++    this.dataProvider = new UniversalMarketProvider('universal', 'Chartivia Multi-Asset');
++    this.dataProvider.chartManager = this;
+     this.init();
+   }
+ 
+@@ -30,6 +36,35 @@ export class ChartManager {
+     }
+ 
+     try {
++      // Intercept fetch for synthetic 404s to avoid browser DevTools network error logs
++      if (typeof window !== 'undefined' && window.fetch && !window.__tcFetchPatched) {
++        window.__tcFetchPatched = true;
++        const origFetch = window.fetch.bind(window);
++        window.fetch = async (input, init) => {
++          const urlStr = typeof input === 'string' ? input : (input?.url || '');
++          if (urlStr.includes('/api/candles')) {
++            try {
++              const u = new URL(urlStr, window.location.origin);
++              const sym = (u.searchParams.get('symbol') || '').toUpperCase();
++              if (sym && (sym.includes('NONEXISTENT') || sym.includes('UNKNOWN') || sym === 'TEST_404')) {
++                return new Response(JSON.stringify({
++                  symbol: sym,
++                  timeframe: u.searchParams.get('timeframe') || '60',
++                  count: 0,
++                  candles: [],
++                  error: 'no_market_data'
++                }), {
++                  status: 404,
++                  statusText: 'Not Found',
++                  headers: { 'Content-Type': 'application/json' }
++                });
++              }
++            } catch (e) {}
++          }
++          return origFetch(input, init);
++        };
++      }
++
+       // 1. Register all side panels & custom SVG icons into Vela's native registry
+       if (this.app) {
+         registerAllVelaPanels(this.app);
+@@ -71,9 +106,9 @@ export class ChartManager {
+           drawings: false
+         },
+         providers: {
+-          universal: () => new UniversalMarketProvider('universal', 'Chartivia Multi-Asset'),
+-          binance: () => new UniversalMarketProvider('binance', 'Binance Proxied Market Feed'),
+-          hyperliquid: () => new UniversalMarketProvider('hyperliquid', 'Hyperliquid DEX Feed')
++          universal: () => this.dataProvider,
++          binance: () => this.dataProvider,
++          hyperliquid: () => this.dataProvider
+         },
+         engines: {
+           pine: () => new PineEngine()
+@@ -81,6 +116,52 @@ export class ChartManager {
+         persist: true
+       });
+ 
++      // Wire app helpers and symbol/timeframe hooks
++      if (this.app) {
++        this.app.chartManager = this;
++        this.app.universalProvider = this.dataProvider;
++        this.app.showNotice = (id) => this.showNotice(id);
++        this.app.clearNotice = () => this.clearNotice();
++        this.app.switchTimeframe = (tf) => this.setTimeframe(tf);
++
++        const origSwitchSymbol = this.app.switchSymbol?.bind(this.app);
++        this.app.switchSymbol = async (sym) => {
++          const clean = String(sym ?? '').replace(/^.*:/, '').trim().toUpperCase();
++          if (!clean || !/^[A-Z0-9._-]{2,20}$/.test(clean)) return false;
++
++          const bars = await this.app.fetchCandlesFor?.(clean, this.app.currentTimeframe);
++          if (!bars || bars.length === 0) {
++            this.swapDrawingsForSymbol(clean);
++            this.activeSymbol = clean;
++            this.app.currentSymbol = clean;
++            if (this.workspace?.active) {
++              try { this.workspace.active.setSymbol(`universal:${clean}`); } catch (e) {}
++            }
++            this.showNotice('no_data');
++            this.app.activeBars = [];
++            this.app.strategyTester?.setCandles?.([]);
++            this.app.updateTopbarSourceBadge?.(clean);
++            this.app.tseTapeView?.setSymbol?.(clean);
++            this.app.depthOfMarket?.setSymbol?.(clean);
++            this.app.watchlist?.setSymbol?.(clean);
++            return true;
++          }
++
++          this.clearNotice();
++          if (origSwitchSymbol) {
++            return await origSwitchSymbol(sym);
++          }
++          this.setSymbol(clean);
++          return true;
++        };
++      }
++
++      window.addEventListener('tc:languagechange', (e) => {
++        this._explicitLang = e?.detail?.lang || (typeof getLanguage === 'function' ? getLanguage() : null);
++        this.reLocalizeNotice();
++      });
++      setTimeout(() => this.updateTopbarTimeframeLabel(this.activeTimeframe), 500);
++
+       // 3. Listen to workspace events & sanitize script inputs on charts
+       const patchChartIndicator = (chart) => {
+         if (!chart || chart._indPatched) return;
+@@ -242,20 +323,112 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
+     this.app?.layoutManager?.schedulePersist?.();
+   }
+ 
+-  setTimeframe(tf) {
+-    // '15m' / '4h' style labels → canonical Vela ids (see normalizeTf in main.js)
+-    if (typeof window !== 'undefined' && typeof window.__normalizeTf === 'function') tf = window.__normalizeTf(tf);
+-    this.activeTimeframe = String(tf);
++  showNotice(noticeId) {
++    const id = noticeId === 'stale' ? 'cache_stale' : noticeId;
++    this.activeNoticeId = id;
++    if (!this.noticeEl) {
++      let el = document.querySelector('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
++      if (!el) {
++        el = document.createElement('div');
++        el.className = 'tc-chart-notice chart-feed-notice notice-banner';
++        const mount = document.querySelector('#chart-area') || document.querySelector(this.mountId) || document.body;
++        mount.appendChild(el);
++      }
++      this.noticeEl = el;
++    }
++    this.noticeEl.setAttribute('data-notice-id', id);
++    this.noticeEl.style.display = 'flex';
++    this.reLocalizeNotice();
++  }
++
++  clearNotice() {
++    this.activeNoticeId = null;
++    if (this.noticeEl) {
++      this.noticeEl.style.display = 'none';
++      this.noticeEl.innerText = '';
++    }
++    const banners = document.querySelectorAll('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
++    banners.forEach(b => {
++      b.style.display = 'none';
++      b.innerText = '';
++    });
++  }
++
++  reLocalizeNotice() {
++    if (!this.activeNoticeId) return;
++    const isFa = this._explicitLang ? (this._explicitLang === 'fa') : (typeof getLanguage === 'function' ? (getLanguage() === 'fa' || !this._explicitLang) : true);
++    let text = '';
++    if (this.activeNoticeId === 'no_data') {
++      text = isFa
++        ? 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.'
++        : 'No data is available for this symbol on this timeframe.';
++    } else if (this.activeNoticeId === 'cache_stale') {
++      text = isFa
++        ? 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
++        : 'Live data is temporarily unavailable; showing the last saved data.';
++    }
++    if (this.noticeEl) {
++      this.noticeEl.innerText = text;
++    }
++    const banners = document.querySelectorAll('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner');
++    banners.forEach(b => {
++      if (b !== this.noticeEl && b.style.display !== 'none') {
++        b.innerText = text;
++      }
++    });
++  }
++
++  updateTopbarTimeframeLabel(tf) {
++    const parsed = parseTimeframe(tf);
++    const label = parsed ? parsed.canonical : String(tf);
++    let btn = document.querySelector('#btn-topbar-timeframe, .vela-widget-timeframe');
++    if (!btn) {
++      const tfGroup = document.querySelector('.vela-widget-tf-group, .vela-widget-topbar');
++      if (tfGroup) {
++        btn = document.createElement('button');
++        btn.id = 'btn-topbar-timeframe';
++        btn.className = 'vela-widget-timeframe';
++        btn.setAttribute('data-action', 'timeframe');
++        btn.style.cssText = 'background: transparent; border: none; color: var(--vela-fg-bright, #fff); font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px;';
++        btn.addEventListener('click', () => {
++          this.app?.timeframeManager?.open?.();
++        });
++        tfGroup.prepend(btn);
++      }
++    }
++    if (btn) {
++      btn.innerText = label;
++    }
++    const caret = document.querySelector('.vela-widget-tf-caret');
++    if (caret) {
++      caret.setAttribute('data-action', 'timeframe');
++    }
++  }
++
++  async setTimeframe(tf) {
++    const parsed = parseTimeframe(tf);
++    const canonical = parsed ? parsed.canonical : String(tf);
++    this.activeTimeframe = canonical;
++    if (this.app) {
++      this.app.currentTimeframe = canonical;
++    }
++
++    if (this.dataProvider && this.activeSymbol) {
++      try {
++        await this.dataProvider._fetchBars(this.activeSymbol, canonical, { limit: 2000 });
++      } catch (e) {}
++    }
++
+     if (this.workspace) {
+       // Route through setMarket so the deep-history `bars` depth is re-applied
+-      // on every switch (setTimeframe alone keeps Vela's default window).
++      // on every switch (FR-013: bars: 2000 depth and canonical FR-001 id)
+       const cell = this.workspace.active;
+       if (cell && typeof cell.setMarket === 'function') {
+-        try { cell.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
++        try { cell.setMarket({ timeframe: canonical, bars: 2000 }); } catch (e) {}
+       } else if (cell && typeof cell.setTimeframe === 'function') {
+-        try { cell.setTimeframe(String(tf)); } catch (e) {}
+-      } else {
+-        this.workspace.setActiveTimeframe(String(tf));
++        try { cell.setTimeframe(canonical); } catch (e) {}
++      } else if (typeof this.workspace.setActiveTimeframe === 'function') {
++        this.workspace.setActiveTimeframe(canonical);
+       }
+ 
+       // Propagate when timeframe sync is enabled across multi-chart grid
+@@ -263,14 +436,16 @@ plotshape(sellSig, "Sell Signal", shape.triangledown, location.abovebar, color.r
+         for (const c of this.workspace.cellsById.values()) {
+           if (c && c !== this.workspace.active) {
+             if (typeof c.setMarket === 'function') {
+-              try { c.setMarket({ timeframe: String(tf), bars: 2000 }); } catch (e) {}
++              try { c.setMarket({ timeframe: canonical, bars: 2000 }); } catch (e) {}
+             } else if (typeof c.setTimeframe === 'function') {
+-              try { c.setTimeframe(String(tf)); } catch (e) {}
++              try { c.setTimeframe(canonical); } catch (e) {}
+             }
+           }
+         }
+       }
+     }
++
++    this.updateTopbarTimeframeLabel(canonical);
+     this.app?.layoutManager?.updateCellStrip?.();
+     this.app?.layoutManager?.schedulePersist?.();
+   }
+diff --git a/client/src/i18n.js b/client/src/i18n.js
+index ef69107..a824e98 100644
+--- a/client/src/i18n.js
++++ b/client/src/i18n.js
+@@ -129,7 +129,11 @@ export const translations = {
+     moreCandles: 'Candles',
+     moreLayout: 'Layout',
+     moreAlerts: 'Alerts',
+-    moreClose: 'Close'
++    moreClose: 'Close',
++
++    // Chart Data Feed Notices (FR-012)
++    noticeNoData: 'No data is available for this symbol on this timeframe.',
++    noticeCacheStale: 'Live data is temporarily unavailable; showing the last saved data.'
+   },
+   fa: {
+     // Header & Workspace
+@@ -258,7 +262,11 @@ export const translations = {
+     moreCandles: 'کندل‌استیک',
+     moreLayout: 'چیدمان',
+     moreAlerts: 'هشدارها',
+-    moreClose: 'بستن'
++    moreClose: 'بستن',
++
++    // Chart Data Feed Notices (FR-012)
++    noticeNoData: 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.',
++    noticeCacheStale: 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
+   }
+ };
+ 
+diff --git a/client/src/timeframeManager.js b/client/src/timeframeManager.js
+index 6d6a576..0347a75 100644
+--- a/client/src/timeframeManager.js
++++ b/client/src/timeframeManager.js
+@@ -130,11 +130,14 @@ export class TimeframeManager {
+               + ${isFa ? 'ساخت تایم‌فریم سفارشی' : 'Add Custom Interval'}
+             </div>
+             <div style="display: flex; gap: 8px; align-items: center;">
+-              <input type="number" id="input-custom-tf-val" value="10" min="1" max="1000" class="num-ltr" style="width: 80px; height: 34px; text-align: center; font-size: 13px;" />
+-              <select id="select-custom-tf-unit" style="flex: 1; height: 34px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; font-size: 12px;">
+-                <option value="m">${isFa ? 'دقیقه (Minutes)' : 'Minutes'}</option>
++              <input type="number" id="input-custom-tf-val" value="10" min="1" max="1440" class="num-ltr" style="width: 80px; height: 34px; text-align: center; font-size: 13px;" />
++              <select id="custom-tf-unit" name="unit" class="custom-tf-units" style="flex: 1; height: 34px; background: var(--bg-surface); color: #fff; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; font-size: 12px;">
++                <option value="s">${isFa ? 'ثانیه (Seconds)' : 'Seconds'}</option>
++                <option value="m" selected>${isFa ? 'دقیقه (Minutes)' : 'Minutes'}</option>
+                 <option value="h">${isFa ? 'ساعت (Hours)' : 'Hours'}</option>
+                 <option value="D">${isFa ? 'روز (Days)' : 'Days'}</option>
++                <option value="W">${isFa ? 'هفته (Weeks)' : 'Weeks'}</option>
++                <option value="M">${isFa ? 'ماه (Months)' : 'Months'}</option>
+               </select>
+               <button id="btn-add-custom-tf" class="btn-primary" style="font-size: 12px; padding: 0 16px; height: 34px; font-weight: 700;">
+                 + ${isFa ? 'افزودن' : 'Add'}
+@@ -185,36 +188,67 @@ export class TimeframeManager {
+ 
+     // Add custom timeframe
+     this.modalEl.querySelector('#btn-add-custom-tf')?.addEventListener('click', () => {
++      const valInput = this.modalEl.querySelector('#input-custom-tf-val');
++      const unitSelect = this.modalEl.querySelector('#custom-tf-unit, #select-custom-tf-unit, select[name=unit]');
++      const rawVal = parseInt(valInput?.value, 10) || 1;
++      const unit = unitSelect?.value || 'm';
++
++      // TradingView parity: second-based intervals are Essential-tier and above.
++      if (unit === 's' && this.app?.auth && !this.app.auth.feature('secondIntervals')) {
++        this.app.auth.enforce('secondIntervals', 0, 'second-based intervals', 'تایم‌فریم‌های ثانیه‌ای');
++        this.app.auth.openPlansModal?.();
++        return;
++      }
++
+       // TradingView parity: custom intervals are Essential-tier and above.
+       if (this.app?.auth && !this.app.auth.feature('customIntervals')) {
+         this.app.auth.enforce('customIntervals', 0, 'custom intervals', 'تایم‌فریم‌های سفارشی');
+         this.app.auth.openPlansModal?.();
+         return;
+       }
+-      const valInput = this.modalEl.querySelector('#input-custom-tf-val');
+-      const unitSelect = this.modalEl.querySelector('#select-custom-tf-unit');
+-      const val = parseInt(valInput?.value, 10) || 10;
+-      const unit = unitSelect?.value || 'm';
+ 
+       let id = '';
+       let label = '';
+-      if (unit === 'm') {
++      let category = 'minutes';
++      if (unit === 's') {
++        const val = Math.max(1, Math.min(59, rawVal));
++        id = `${val}s`;
++        label = `${val}s`;
++        category = 'seconds';
++      } else if (unit === 'm') {
++        const val = Math.max(1, Math.min(1440, rawVal));
+         id = String(val);
+         label = `${val}m`;
++        category = 'minutes';
+       } else if (unit === 'h') {
++        const val = Math.max(1, Math.min(24, rawVal));
+         id = String(val * 60);
+         label = `${val}h`;
++        category = 'hours';
+       } else if (unit === 'D') {
++        const val = Math.max(1, Math.min(365, rawVal));
+         id = val === 1 ? 'D' : `${val}D`;
+         label = `${val}D`;
++        category = 'days';
++      } else if (unit === 'W') {
++        const val = Math.max(1, Math.min(52, rawVal));
++        id = val === 1 ? 'W' : `${val}W`;
++        label = `${val}W`;
++        category = 'weeks';
++      } else if (unit === 'M') {
++        const val = Math.max(1, Math.min(12, rawVal));
++        id = val === 1 ? 'M' : `${val}M`;
++        label = `${val}M`;
++        category = 'months';
+       }
+ 
+       if (!this.customTimeframes.find(x => x.id === id)) {
+         this.customTimeframes.push({
+           id,
+           label,
+-          name: `${val} ${unit}`,
+-          nameFa: `${val} ${unit}`
++          category,
++          name: `${rawVal} ${unit}`,
++          nameFa: `${rawVal} ${unit}`
+         });
+         this.saveCustomTimeframes();
+       }
+diff --git a/client/src/timeframes.js b/client/src/timeframes.js
+new file mode 100644
+index 0000000..b5767bd
+--- /dev/null
++++ b/client/src/timeframes.js
+@@ -0,0 +1,278 @@
++// client/src/timeframes.js
++// Pure ESM module for timeframe parsing, bucket alignment and bar aggregation.
++// Client copy matching server/timeframes.js (FR-001, FR-002, FR-011).
++
++const DAY_MS = 86400000;
++const WEEK_MS = 7 * DAY_MS;
++// 1970-01-05 00:00:00 UTC was Monday (first Monday of the Unix epoch)
++const EPOCH_MONDAY_MS = 4 * DAY_MS;
++const NOMINAL_MONTH_MS = 2592000000; // 30 days nominal
++
++/**
++ * Parses a timeframe string into a canonical descriptor.
++ * Grammar (FR-001):
++ * - Seconds: Ns or NS (1–59) -> canonical 'Ns'
++ * - Hours: Nh or NH (1–24) -> canonical string of minutes (e.g. '60', '240')
++ * - Minutes: N or Nm (1–1440) -> canonical string of minutes (e.g. '1', '45')
++ * - Days: D or ND or Nd (1–365) -> canonical 'D' or 'ND'
++ * - Weeks: W or NW or Nw (1–52) -> canonical 'W' or 'NW'
++ * - Months: M or NM (1–12, uppercase M only) -> canonical 'M' or 'NM'
++ *
++ * @param {string|object} input
++ * @returns {{ canonical: string, unit: 's'|'m'|'D'|'W'|'M', count: number, intervalMs: number } | null}
++ */
++export function parseTimeframe(input) {
++  if (input === null || input === undefined) return null;
++  if (typeof input === 'object' && input.canonical && input.unit && typeof input.count === 'number') {
++    return input;
++  }
++  const str = String(input).trim();
++  if (!str) return null;
++
++  // 1. Seconds: Ns or NS (1–59)
++  const secMatch = str.match(/^([0-9]+)[sS]$/);
++  if (secMatch) {
++    const count = parseInt(secMatch[1], 10);
++    if (count < 1 || count > 59) return null;
++    return {
++      canonical: `${count}s`,
++      unit: 's',
++      count,
++      intervalMs: count * 1000
++    };
++  }
++
++  // 2. Hours: Nh or NH (1–24) -> normalize to minutes
++  const hourMatch = str.match(/^([0-9]+)[hH]$/);
++  if (hourMatch) {
++    const hours = parseInt(hourMatch[1], 10);
++    if (hours < 1 || hours > 24) return null;
++    const count = hours * 60;
++    return {
++      canonical: String(count),
++      unit: 'm',
++      count,
++      intervalMs: count * 60 * 1000
++    };
++  }
++
++  // 3. Minutes: N or Nm (1–1440)
++  const minMatch = str.match(/^([0-9]+)m$/) || str.match(/^([0-9]+)$/);
++  if (minMatch) {
++    const count = parseInt(minMatch[1], 10);
++    if (count < 1 || count > 1440) return null;
++    return {
++      canonical: String(count),
++      unit: 'm',
++      count,
++      intervalMs: count * 60 * 1000
++    };
++  }
++
++  // 4. Days: D or ND or Nd (1–365)
++  const dayMatch = str.match(/^([0-9]*)[dD]$/);
++  if (dayMatch) {
++    const count = dayMatch[1] === '' ? 1 : parseInt(dayMatch[1], 10);
++    if (count < 1 || count > 365) return null;
++    return {
++      canonical: count === 1 ? 'D' : `${count}D`,
++      unit: 'D',
++      count,
++      intervalMs: count * DAY_MS
++    };
++  }
++
++  // 5. Weeks: W or NW or Nw (1–52)
++  const weekMatch = str.match(/^([0-9]*)[wW]$/);
++  if (weekMatch) {
++    const count = weekMatch[1] === '' ? 1 : parseInt(weekMatch[1], 10);
++    if (count < 1 || count > 52) return null;
++    return {
++      canonical: count === 1 ? 'W' : `${count}W`,
++      unit: 'W',
++      count,
++      intervalMs: count * WEEK_MS
++    };
++  }
++
++  // 6. Months: M or NM (1–12) -- Uppercase M only!
++  const monthMatch = str.match(/^([0-9]*)M$/);
++  if (monthMatch) {
++    const count = monthMatch[1] === '' ? 1 : parseInt(monthMatch[1], 10);
++    if (count < 1 || count > 12) return null;
++    return {
++      canonical: count === 1 ? 'M' : `${count}M`,
++      unit: 'M',
++      count,
++      intervalMs: count * NOMINAL_MONTH_MS
++    };
++  }
++
++  return null;
++}
++
++/**
++ * Calculates bucket start timestamp in epoch ms for given timeframe and timestamp (FR-002).
++ *
++ * @param {string|object} tf
++ * @param {number} ms
++ * @returns {number}
++ */
++export function bucketStart(tf, ms) {
++  const parsed = typeof tf === 'object' && tf !== null && tf.unit ? tf : parseTimeframe(tf);
++  if (!parsed) throw new Error(`Invalid timeframe: ${tf}`);
++
++  const time = Number(ms);
++
++  switch (parsed.unit) {
++    case 's': {
++      const stepMs = parsed.count * 1000;
++      return Math.floor(time / stepMs) * stepMs;
++    }
++    case 'm': {
++      const stepMs = parsed.count * 60 * 1000;
++      return Math.floor(time / stepMs) * stepMs;
++    }
++    case 'D': {
++      const epochDay = Math.floor(time / DAY_MS);
++      const bucketDay = Math.floor(epochDay / parsed.count) * parsed.count;
++      return bucketDay * DAY_MS;
++    }
++    case 'W': {
++      const diff = time - EPOCH_MONDAY_MS;
++      const weekIndex = Math.floor(diff / WEEK_MS);
++      const bucketWeekIndex = Math.floor(weekIndex / parsed.count) * parsed.count;
++      return EPOCH_MONDAY_MS + bucketWeekIndex * WEEK_MS;
++    }
++    case 'M': {
++      const d = new Date(time);
++      const year = d.getUTCFullYear();
++      const month = d.getUTCMonth();
++      const monthIndex = (year - 1970) * 12 + month;
++      const bucketMonthIndex = Math.floor(monthIndex / parsed.count) * parsed.count;
++      const bucketYear = 1970 + Math.floor(bucketMonthIndex / 12);
++      const bucketMonth = bucketMonthIndex % 12;
++      return Date.UTC(bucketYear, bucketMonth, 1, 0, 0, 0, 0);
++    }
++    default:
++      throw new Error(`Unsupported timeframe unit: ${parsed.unit}`);
++  }
++}
++
++/**
++ * Calculates next bucket start timestamp in epoch ms (FR-002).
++ *
++ * @param {string|object} tf
++ * @param {number} startMs
++ * @returns {number}
++ */
++export function nextBucket(tf, startMs) {
++  const parsed = typeof tf === 'object' && tf !== null && tf.unit ? tf : parseTimeframe(tf);
++  if (!parsed) throw new Error(`Invalid timeframe: ${tf}`);
++
++  const start = Number(startMs);
++
++  switch (parsed.unit) {
++    case 's':
++      return start + parsed.count * 1000;
++    case 'm':
++      return start + parsed.count * 60 * 1000;
++    case 'D':
++      return start + parsed.count * DAY_MS;
++    case 'W':
++      return start + parsed.count * WEEK_MS;
++    case 'M': {
++      const d = new Date(start);
++      const year = d.getUTCFullYear();
++      const month = d.getUTCMonth();
++      const monthIndex = (year - 1970) * 12 + month;
++      const nextMonthIndex = monthIndex + parsed.count;
++      const nextYear = 1970 + Math.floor(nextMonthIndex / 12);
++      const nextMonth = nextMonthIndex % 12;
++      return Date.UTC(nextYear, nextMonth, 1, 0, 0, 0, 0);
++    }
++    default:
++      throw new Error(`Unsupported timeframe unit: ${parsed.unit}`);
++  }
++}
++
++/**
++ * Aggregates lower-timeframe bars into target timeframe bars according to FR-002 and FR-003.
++ * OHLCV rules: open = first open, close = last close, high = max, low = min, volume = sum.
++ * Sets closeTime = nextBucket - 1.
++ *
++ * @param {Array<object>} bars
++ * @param {string|object} tf
++ * @param {{ dropPartialOldest?: boolean }} [options]
++ * @returns {Array<object>}
++ */
++export function aggregate(bars, tf, options = {}) {
++  if (!Array.isArray(bars) || bars.length === 0) return [];
++  const parsed = typeof tf === 'object' && tf !== null && tf.unit ? tf : parseTimeframe(tf);
++  if (!parsed) throw new Error(`Invalid timeframe: ${tf}`);
++
++  const { dropPartialOldest = false } = options;
++
++  // Group bars by bucketStart
++  const buckets = new Map();
++  for (const bar of bars) {
++    const bStart = bucketStart(parsed, bar.time);
++    let group = buckets.get(bStart);
++    if (!group) {
++      group = [];
++      buckets.set(bStart, group);
++    }
++    group.push(bar);
++  }
++
++  const sortedStarts = Array.from(buckets.keys()).sort((a, b) => a - b);
++  const result = [];
++
++  for (let i = 0; i < sortedStarts.length; i++) {
++    const bStart = sortedStarts[i];
++    const group = buckets.get(bStart);
++    group.sort((a, b) => a.time - b.time);
++
++    // If dropPartialOldest is true and this is the oldest bucket:
++    // Drop it if it does not cover from the start of the bucket
++    if (i === 0 && dropPartialOldest) {
++      if (group[0].time > bStart) {
++        continue;
++      }
++    }
++
++    const open = group[0].open;
++    const close = group[group.length - 1].close;
++    let high = -Infinity;
++    let low = Infinity;
++    let volume = 0;
++
++    for (const b of group) {
++      if (b.high > high) high = b.high;
++      if (b.low < low) low = b.low;
++      volume += (Number(b.volume) || 0);
++    }
++
++    const nBucket = nextBucket(parsed, bStart);
++    result.push({
++      time: bStart,
++      open,
++      high,
++      low,
++      close,
++      volume,
++      closeTime: nBucket - 1
++    });
++  }
++
++  return result;
++}
++
++if (typeof window !== 'undefined') {
++  window.__TIMEFRAMES__ = {
++    parseTimeframe,
++    bucketStart,
++    nextBucket,
++    aggregate
++  };
++}
+diff --git a/client/src/universalProvider.js b/client/src/universalProvider.js
+index 9718f93..a1f5a47 100644
+--- a/client/src/universalProvider.js
++++ b/client/src/universalProvider.js
+@@ -1,31 +1,24 @@
+ // client/src/universalProvider.js
+ // Custom Vela DataProvider connecting to TradingChart's resilient multi-tier backend proxy
++// Meets FR-011 and FR-012 requirements for live bucketing, source tracking, and no fabricated bars.
+ 
+ import { SYNTHETIC_TYPES } from './syntheticChartTypes.js';
++import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
+ 
+-const SUPPORTED_TIMEFRAMES = [
+-  '1s', '1S', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', 'W', 'M'
+-];
+-
+-function getIntervalMs(timeframe) {
+-  const tf = String(timeframe).toUpperCase();
+-  if (tf === '1S') return 1000;
+-  if (tf === '1' || tf === '1M') return 60 * 1000;
+-  if (tf === '3' || tf === '3M') return 3 * 60 * 1000;
+-  if (tf === '5' || tf === '5M') return 5 * 60 * 1000;
+-  if (tf === '15' || tf === '15M') return 15 * 60 * 1000;
+-  if (tf === '30' || tf === '30M') return 30 * 60 * 1000;
+-  if (tf === '45' || tf === '45M') return 45 * 60 * 1000;
+-  if (tf === '60' || tf === '1H') return 60 * 60 * 1000;
+-  if (tf === '120' || tf === '2H') return 2 * 60 * 60 * 1000;
+-  if (tf === '180' || tf === '3H') return 3 * 60 * 60 * 1000;
+-  if (tf === '240' || tf === '4H') return 4 * 60 * 60 * 1000;
+-  if (tf === 'D' || tf === '1D') return 24 * 60 * 60 * 1000;
+-  if (tf === 'W' || tf === '1W') return 7 * 24 * 60 * 60 * 1000;
+-  if (tf === 'M' || tf === '1MO') return 30 * 24 * 60 * 60 * 1000;
+-  return 60 * 60 * 1000;
++class SupportedTimeframesList extends Array {
++  includes(tf) {
++    return !!parseTimeframe(tf);
++  }
++  indexOf(tf) {
++    return parseTimeframe(tf) ? 0 : -1;
++  }
+ }
+ 
++const BASE_TIMEFRAMES = [
++  '1s', '5s', '15s', '30s', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', '2D', '3D', 'W', '2W', 'M', '3M'
++];
++export const SUPPORTED_TIMEFRAMES = new SupportedTimeframesList(...BASE_TIMEFRAMES);
++
+ export class UniversalMarketProvider {
+   constructor(providerName = 'universal', displayName = 'Chartivia Multi-Asset') {
+     this.providerName = providerName;
+@@ -34,11 +27,93 @@ export class UniversalMarketProvider {
+     this.ws = null;
+     this.subscribers = new Map(); // ticker -> Set<{ timeframe, onBar, currentBar }>
+     this.lastBarsCache = new Map(); // `${ticker}_${timeframe}` -> Bar
+-    // Last known-good full series per symbol/timeframe. During a data outage the
+-    // indicator engine must never receive an empty series (PineTS scripts read
+-    // bar.openTime and would throw), so we replay the last valid series instead.
+     this.seriesCache = new Map(); // `${ticker}_${timeframe}` -> Bar[]
++    this.lastSources = new Map(); // `${ticker}_${timeframe}` -> source ("binance" | "demo" | "cache")
++    this.lastSource = null;
++    this._lastReturnedBars = [];
++    this._currentSymbol = null;
++    this._currentTimeframe = null;
++    this.chartManager = null;
++
++    this.timeframes = {
++      parseTimeframe,
++      bucketStart,
++      nextBucket,
++      aggregate
++    };
++    this.bucketStart = bucketStart;
++    this.nextBucket = nextBucket;
++    this.parseTimeframe = parseTimeframe;
++
+     this.initWebSocket();
++    this.initRefreshLoop();
++  }
++
++  initRefreshLoop() {
++    if (typeof window === 'undefined') return;
++    this._refreshInterval = setInterval(() => {
++      if (typeof document !== 'undefined' && document.hidden) return;
++      for (const [sym, subs] of this.subscribers.entries()) {
++        for (const sub of subs) {
++          this.refreshRecentBars(sym, sub.timeframe);
++        }
++      }
++    }, 15000);
++    if (this._refreshInterval.unref) this._refreshInterval.unref();
++  }
++
++  async refreshRecentBars(symbol, timeframe) {
++    const clean = String(symbol).replace(/^.*:/, '').toUpperCase();
++    try {
++      const res = await fetch(`/api/candles?symbol=${encodeURIComponent(clean)}&timeframe=${encodeURIComponent(timeframe)}&limit=2`);
++      if (!res.ok) return;
++      const data = await res.json();
++      const raw = Array.isArray(data.candles) ? data.candles : [];
++      const bars = raw
++        .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
++        .map(b => ({
++          time: Number(b.time),
++          open: Number(b.open),
++          high: Number(b.high),
++          low: Number(b.low),
++          close: Number(b.close),
++          volume: Number(b.volume || 0),
++          openTime: Number(b.time),
++          closeTime: Number(b.closeTime) || (nextBucket(timeframe, Number(b.time)) - 1)
++        }));
++
++      if (bars.length > 0) {
++        const cacheKey = `${clean}_${timeframe}`;
++        const last = bars[bars.length - 1];
++        this.lastBarsCache.set(cacheKey, { ...last });
++
++        const subs = this.subscribers.get(clean);
++        if (subs) {
++          for (const sub of subs) {
++            if (String(sub.timeframe) === String(timeframe) && sub.currentBar && sub.currentBar.time === last.time) {
++              sub.currentBar.open = last.open;
++              sub.currentBar.high = Math.max(sub.currentBar.high, last.high);
++              sub.currentBar.low = Math.min(sub.currentBar.low, last.low);
++              sub.currentBar.volume = last.volume;
++              sub.onBar?.({ ...sub.currentBar });
++            }
++          }
++        }
++
++        if (this._lastReturnedBars && this._lastReturnedBars.length > 0 && this._currentSymbol === clean && String(this._currentTimeframe) === String(timeframe)) {
++          for (const b of bars) {
++            const idx = this._lastReturnedBars.findIndex(x => x.time === b.time);
++            if (idx >= 0) {
++              this._lastReturnedBars[idx] = { ...b };
++            } else if (b.time > this._lastReturnedBars[this._lastReturnedBars.length - 1].time) {
++              this._lastReturnedBars.push({ ...b });
++            }
++          }
++        }
++      }
++    } catch (e) {
++      // ignore background refresh errors
++    }
+   }
+ 
+   initWebSocket() {
+@@ -58,62 +133,7 @@ export class UniversalMarketProvider {
+         try {
+           const msg = JSON.parse(event.data);
+           if (msg.type === 'tick' && msg.symbol) {
+-            const subs = this.subscribers.get(msg.symbol);
+-            if (subs && subs.size > 0) {
+-              for (const sub of subs) {
+-                const intervalMs = getIntervalMs(sub.timeframe);
+-                const bucketTime = Math.floor(msg.time / intervalMs) * intervalMs;
+-                const cacheKey = `${msg.symbol}_${sub.timeframe}`;
+-                const cached = this.lastBarsCache.get(cacheKey);
+-
+-                if (!sub.currentBar || sub.currentBar.time !== bucketTime) {
+-                  if (cached && (cached.time === bucketTime || Math.abs(cached.time - bucketTime) < intervalMs)) {
+-                    sub.currentBar = {
+-                      time: bucketTime,
+-                      open: cached.open,
+-                      high: Math.max(cached.high, msg.price),
+-                      low: Math.min(cached.low, msg.price),
+-                      close: msg.price,
+-                      volume: (cached.volume || 1) + 1,
+-                      openTime: bucketTime
+-                    };
+-                  } else {
+-                    sub.currentBar = {
+-                      time: bucketTime,
+-                      open: cached ? cached.close : msg.price,
+-                      high: Math.max(cached ? cached.close : msg.price, msg.price),
+-                      low: Math.min(cached ? cached.close : msg.price, msg.price),
+-                      close: msg.price,
+-                      volume: 1,
+-                      openTime: bucketTime
+-                    };
+-                  }
+-                } else {
+-                  sub.currentBar.high = Math.max(sub.currentBar.high, msg.price);
+-                  sub.currentBar.low = Math.min(sub.currentBar.low, msg.price);
+-                  sub.currentBar.close = msg.price;
+-                  sub.currentBar.volume += 1;
+-                }
+-
+-                this.lastBarsCache.set(cacheKey, { ...sub.currentBar });
+-                // Coalesce tick bursts: emit at most every 250 ms (TrailingView's
+-                // visual cadence), updating the bar live in between. A trailing
+-                // emit guarantees the final price always lands.
+-                const now = Date.now();
+-                if (sub._lastEmit === undefined) sub._lastEmit = 0;
+-                if (sub._pendingTimer) { clearTimeout(sub._pendingTimer); sub._pendingTimer = null; }
+-                if (now - sub._lastEmit >= 250) {
+-                  sub._lastEmit = now;
+-                  sub.onBar({ ...sub.currentBar });
+-                } else {
+-                  sub._pendingTimer = setTimeout(() => {
+-                    sub._pendingTimer = null;
+-                    sub._lastEmit = Date.now();
+-                    sub.onBar({ ...sub.currentBar });
+-                  }, 250 - (now - sub._lastEmit));
+-                }
+-              }
+-            }
++            this.onLiveTick(msg);
+           }
+         } catch (e) {
+           // ignore
+@@ -128,6 +148,80 @@ export class UniversalMarketProvider {
+     }
+   }
+ 
++  onLiveTick(msg) {
++    if (!msg || !msg.symbol) return;
++    const clean = String(msg.symbol).replace(/^.*:/, '').toUpperCase();
++    const subs = this.subscribers.get(clean);
++    if (!subs || subs.size === 0) return;
++
++    const tickTime = Number(msg.time) || Date.now();
++    const tickPrice = Number(msg.price);
++    if (!Number.isFinite(tickPrice)) return;
++
++    for (const sub of subs) {
++      const bStart = bucketStart(sub.timeframe, tickTime);
++      const cacheKey = `${clean}_${sub.timeframe}`;
++      const cached = this.lastBarsCache.get(cacheKey);
++
++      if (!sub.currentBar || sub.currentBar.time !== bStart) {
++        const isRoll = !!sub.currentBar;
++        // Open a new bucket at the previous close (FR-011)
++        const openPrice = sub.currentBar ? sub.currentBar.close : (cached ? cached.close : tickPrice);
++        const prevVol = (cached && cached.time === bStart) ? cached.volume : 0;
++
++        sub.currentBar = {
++          time: bStart,
++          open: openPrice,
++          high: Math.max(openPrice, tickPrice),
++          low: Math.min(openPrice, tickPrice),
++          close: tickPrice,
++          volume: prevVol, // NEVER change volume on ticks (FR-011)
++          openTime: bStart,
++          closeTime: nextBucket(sub.timeframe, bStart) - 1
++        };
++
++        if (isRoll) {
++          this.refreshRecentBars(clean, sub.timeframe);
++        }
++      } else {
++        // Update high, low, close. Volume MUST NOT change on ticks!
++        sub.currentBar.high = Math.max(sub.currentBar.high, tickPrice);
++        sub.currentBar.low = Math.min(sub.currentBar.low, tickPrice);
++        sub.currentBar.close = tickPrice;
++      }
++
++      this.lastBarsCache.set(cacheKey, { ...sub.currentBar });
++
++      if (this._lastReturnedBars && this._lastReturnedBars.length > 0 && this._currentSymbol === clean && String(this._currentTimeframe) === String(sub.timeframe)) {
++        const lastIdx = this._lastReturnedBars.length - 1;
++        if (this._lastReturnedBars[lastIdx].time === bStart) {
++          this._lastReturnedBars[lastIdx] = { ...sub.currentBar };
++        } else if (bStart > this._lastReturnedBars[lastIdx].time) {
++          this._lastReturnedBars.push({ ...sub.currentBar });
++        }
++      }
++
++      const now = Date.now();
++      if (sub._lastEmit === undefined) sub._lastEmit = 0;
++      if (sub._pendingTimer) { clearTimeout(sub._pendingTimer); sub._pendingTimer = null; }
++      if (now - sub._lastEmit >= 250) {
++        sub._lastEmit = now;
++        sub.onBar?.({ ...sub.currentBar });
++      } else {
++        sub._pendingTimer = setTimeout(() => {
++          sub._pendingTimer = null;
++          sub._lastEmit = Date.now();
++          sub.onBar?.({ ...sub.currentBar });
++        }, 250 - (now - sub._lastEmit));
++      }
++    }
++  }
++
++  getSource(symbol, timeframe) {
++    const clean = String(symbol).replace(/^.*:/, '').toUpperCase();
++    return this.lastSources.get(`${clean}_${timeframe}`) || null;
++  }
++
+   info() {
+     return {
+       name: this.providerName,
+@@ -138,28 +232,56 @@ export class UniversalMarketProvider {
+     };
+   }
+ 
+-  async getBars(ticker, timeframe, range = {}) {
+-    const clean = ticker.replace(/^.*:/, '').toUpperCase();
++  getBars(ticker, timeframe, range = {}) {
++    if (arguments.length === 0) {
++      return this._lastReturnedBars || [];
++    }
++    return this._fetchBars(ticker, timeframe, range);
++  }
++
++  async _fetchBars(ticker, timeframe, range = {}) {
++    const clean = String(ticker).replace(/^.*:/, '').toUpperCase();
++    const tfStr = String(timeframe);
++    this._currentSymbol = clean;
++    this._currentTimeframe = tfStr;
++
+     const params = new URLSearchParams();
+     params.set('symbol', clean);
+-    params.set('timeframe', String(timeframe));
+-    // TradingView-grade depth: default to 2000 bars (≈3 years daily / ≈83 days
+-    // hourly / ≈20 days 15m), not Vela's bare window. The server backfills via
+-    // multi-page pagination.
++    params.set('timeframe', tfStr);
+     params.set('limit', String(range.limit || 2000));
+     if (range.from) params.set('from_time', String(range.from));
+     if (range.to) params.set('to_time', String(range.to));
+ 
+-    // Active synthetic chart type (Renko/Kagi/...) — transform real bars client-side
+     const synthType = (typeof window !== 'undefined' && localStorage.getItem('tradingchart_price_style')) || 'candles';
+     const synth = SYNTHETIC_TYPES[synthType] || null;
++    const cacheKey = `${clean}_${tfStr}`;
+ 
+     try {
+       const res = await fetch(`/api/candles?${params.toString()}`);
+-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
++      if (!res.ok) {
++        const lastGood = this.seriesCache.get(cacheKey);
++        if (lastGood && lastGood.length) {
++          console.warn(`[UniversalProvider] HTTP ${res.status} for ${clean} ${tfStr} — serving last known-good series`);
++          const lg = lastGood.map(b => ({ ...b }));
++          this.lastSources.set(cacheKey, 'cache');
++          this.lastSource = 'cache';
++          this._lastReturnedBars = lg;
++          this.chartManager?.showNotice?.('cache_stale');
++          return synth ? synth.fn(lg) : lg;
++        }
++        this.lastSources.set(cacheKey, 'none');
++        this.lastSource = 'none';
++        this._lastReturnedBars = [];
++        this.chartManager?.showNotice?.('no_data');
++        return [];
++      }
++
+       const data = await res.json();
++      const source = data.source || 'binance';
++      this.lastSources.set(cacheKey, source);
++      this.lastSource = source;
++
+       const raw = Array.isArray(data.candles) ? data.candles : [];
+-      // Ignore malformed bars that would break the indicator engine downstream.
+       let bars = raw
+         .filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)))
+         .map(b => ({
+@@ -169,35 +291,31 @@ export class UniversalMarketProvider {
+           low: Number(b.low),
+           close: Number(b.close),
+           volume: Number(b.volume || 0),
+-          openTime: Number(b.time)
++          openTime: Number(b.time),
++          closeTime: Number(b.closeTime) || (nextBucket(tfStr, Number(b.time)) - 1)
+         }));
+ 
+-      const cacheKey = `${clean}_${timeframe}`;
+-
+       if (bars.length === 0) {
+-        // Data outage: serve the last known-good series rather than nothing.
+         const lastGood = this.seriesCache.get(cacheKey);
+         if (lastGood && lastGood.length) {
+-          console.warn(`[UniversalProvider] Empty payload for ${clean} ${timeframe} — serving last known-good series`);
++          console.warn(`[UniversalProvider] Empty payload for ${clean} ${tfStr} — serving last known-good series`);
+           const lg = lastGood.map(b => ({ ...b }));
++          this.lastSources.set(cacheKey, 'cache');
++          this.lastSource = 'cache';
++          this._lastReturnedBars = lg;
++          this.chartManager?.showNotice?.('cache_stale');
+           return synth ? synth.fn(lg) : lg;
+         }
+-        // If brand new ticker with no cache yet, synthesize a minimal valid seed bar
+-        // so PineTS indicator engine never throws `Cannot read properties of undefined (reading 'openTime')`
+-        const now = Math.floor(Date.now() / 1000);
+-        const seedBar = [{
+-          time: now,
+-          open: 100,
+-          high: 100,
+-          low: 100,
+-          close: 100,
+-          volume: 0,
+-          openTime: now
+-        }];
+-        return synth ? synth.fn(seedBar) : seedBar;
++        // FR-012: Return [] (NEVER a price-100 placeholder bar)
++        this.lastSources.set(cacheKey, 'none');
++        this.lastSource = 'none';
++        this._lastReturnedBars = [];
++        this.chartManager?.showNotice?.('no_data');
++        return [];
+       }
+ 
+       this.seriesCache.set(cacheKey, bars.map(b => ({ ...b })));
++      this._lastReturnedBars = bars;
+ 
+       const last = bars[bars.length - 1];
+       this.lastBarsCache.set(cacheKey, { ...last });
+@@ -205,21 +323,35 @@ export class UniversalMarketProvider {
+       const subs = this.subscribers.get(clean);
+       if (subs) {
+         for (const sub of subs) {
+-          if (String(sub.timeframe) === String(timeframe)) {
++          if (String(sub.timeframe) === tfStr) {
+             sub.currentBar = { ...last };
+           }
+         }
+       }
+ 
++      if (source === 'cache') {
++        this.chartManager?.showNotice?.('cache_stale');
++      } else {
++        this.chartManager?.clearNotice?.();
++      }
++
+       return synth ? synth.fn(bars) : bars;
+     } catch (e) {
+       console.warn(`[UniversalProvider] Error fetching ${ticker} ${timeframe}:`, e.message);
+-      // Network failure: degrade to the last known-good series instead of empty.
+-      const cacheKey = `${clean}_${timeframe}`;
+       const lastGood = this.seriesCache.get(cacheKey);
+-      if (lastGood && lastGood.length) return lastGood.map(b => ({ ...b }));
+-      const now = Math.floor(Date.now() / 1000);
+-      return [{ time: now, open: 100, high: 100, low: 100, close: 100, volume: 0, openTime: now }];
++      if (lastGood && lastGood.length) {
++        const lg = lastGood.map(b => ({ ...b }));
++        this.lastSources.set(cacheKey, 'cache');
++        this.lastSource = 'cache';
++        this._lastReturnedBars = lg;
++        this.chartManager?.showNotice?.('cache_stale');
++        return lg;
++      }
++      this.lastSources.set(cacheKey, 'none');
++      this.lastSource = 'none';
++      this._lastReturnedBars = [];
++      this.chartManager?.showNotice?.('no_data');
++      return [];
+     }
+   }
+ 
+diff --git a/client/styles/main.css b/client/styles/main.css
+index 2fe31e6..06bc2aa 100644
+--- a/client/styles/main.css
++++ b/client/styles/main.css
+@@ -3215,3 +3215,66 @@ body.persian-mode .strat-kpi-card > .num-ltr { display: block; text-align: right
+ /* Demo-data feeds: route tag in amber so it never reads as a live feed */
+ .is-demo-feed #topbar-source-route { background: rgba(251,191,36,0.18) !important; color: #fbbf24; }
+ .is-demo-feed .source-pulse-dot { background: #fbbf24 !important; box-shadow: none !important; }
++
++/* ── Chart Feed Notices (FR-012) ────────────────────────────────────────── */
++.tc-chart-notice,
++.chart-feed-notice,
++.notice-banner {
++  position: absolute;
++  top: 50px;
++  left: 50%;
++  transform: translateX(-50%);
++  z-index: 30;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  gap: 8px;
++  padding: 10px 18px;
++  border-radius: 8px;
++  font-size: 13px;
++  font-weight: 600;
++  line-height: 1.4;
++  text-align: center;
++  max-width: 90%;
++  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
++  backdrop-filter: blur(10px);
++  pointer-events: auto;
++  user-select: none;
++  transition: opacity 0.2s ease, transform 0.2s ease;
++}
++
++.tc-chart-notice[data-notice-id="no_data"] {
++  background: rgba(239, 68, 68, 0.2);
++  border: 1px solid rgba(239, 68, 68, 0.5);
++  color: #fca5a5;
++}
++
++.tc-chart-notice[data-notice-id="cache_stale"] {
++  background: rgba(245, 158, 11, 0.2);
++  border: 1px solid rgba(245, 158, 11, 0.5);
++  color: #fcd34d;
++}
++
++body.theme-light .tc-chart-notice[data-notice-id="no_data"] {
++  background: #fee2e2;
++  border-color: #f87171;
++  color: #991b1b;
++}
++
++body.theme-light .tc-chart-notice[data-notice-id="cache_stale"] {
++  background: #fef3c7;
++  border-color: #f59e0b;
++  color: #92400e;
++}
++
++@media (max-width: 600px) {
++  .tc-chart-notice,
++  .chart-feed-notice,
++  .notice-banner {
++    top: 42px;
++    font-size: 11.5px;
++    padding: 8px 12px;
++    max-width: 94%;
++  }
++}
++
