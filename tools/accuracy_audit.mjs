@@ -6,12 +6,13 @@
  * (Binance klines, TGJU tables, TradingView) for >= 200 symbols across all categories.
  * 
  * @spec 015
- * @covers FR-010
+ * @covers FR-010, FR-012
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { tvClient } from '../server/tradingviewClient.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -36,9 +37,11 @@ const TGJU_SLUGS = {
 const CANONICAL_GLOBAL_SYMBOLS = new Set([
   'OANDA:EURUSD', 'OANDA:GBPUSD', 'OANDA:USDJPY', 'OANDA:AUDUSD', 'OANDA:USDCAD',
   'OANDA:USDCHF', 'OANDA:NZDUSD', 'OANDA:EURGBP', 'OANDA:EURJPY', 'OANDA:GBPJPY',
-  'OANDA:XAUUSD', 'OANDA:XAGUSD', 'TVC:USOIL', 'TVC:UKOIL', 'SP:SPX', 'NASDAQ:NDX',
-  'DJ:DJI', 'NASDAQ:AAPL', 'NASDAQ:NVDA', 'NASDAQ:TSLA', 'NASDAQ:MSFT', 'NASDAQ:AMZN',
-  'NASDAQ:GOOGL', 'NASDAQ:META', 'AMEX:SPY', 'NASDAQ:QQQ'
+  'OANDA:XAUUSD', 'OANDA:XAGUSD', 'TVC:PLATINUM', 'TVC:PALLADIUM',
+  'TVC:USOIL', 'TVC:UKOIL', 'SP:SPX', 'NASDAQ:NDX',
+  'DJ:DJI', 'TVC:VIX', 'TVC:DAX', 'TVC:UKX', 'TVC:NI225', 'TVC:DXY',
+  'NASDAQ:AAPL', 'NASDAQ:NVDA', 'NASDAQ:TSLA', 'NASDAQ:MSFT', 'NASDAQ:AMZN',
+  'NASDAQ:GOOGL', 'NASDAQ:META', 'AMEX:SPY', 'NASDAQ:QQQ', 'NASDAQ:TLT', 'TVC:US10Y'
 ]);
 
 async function fetchJson(url, options = {}) {
@@ -57,18 +60,15 @@ async function fetchJson(url, options = {}) {
 async function run() {
   console.log(`[Accuracy Audit] Starting provider accuracy audit against ${BASE_URL}...`);
 
-  // 1. Fetch full catalogue
+  // 1. Fetch full catalogue (fail closed with exit 1 if unreachable)
   let catalogue = [];
   try {
     catalogue = await fetchJson(`${BASE_URL}/api/symbols?limit=3000`);
+    if (!Array.isArray(catalogue) || catalogue.length === 0) {
+      throw new Error(`Catalogue empty or invalid from ${BASE_URL}`);
+    }
   } catch (e) {
     console.error(`[Accuracy Audit] Failed to fetch symbols from ${BASE_URL}: ${e.message}`);
-    if (!process.env.SDD_BASE_URL && !process.env.PORT) {
-      fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
-      fs.writeFileSync(REPORT_PATH, JSON.stringify({ checked: 200, mismatches: [] }, null, 2));
-      console.log(`[Accuracy Audit] Wrote offline baseline to ${REPORT_PATH}`);
-      return;
-    }
     process.exit(1);
   }
 
@@ -134,7 +134,7 @@ async function run() {
       const minTick = item.minTick || 0.01;
 
       try {
-        const ourRes = await fetchJson(`${BASE_URL}/api/candles?symbol=${encodeURIComponent(item.symbol)}&timeframe=${tf}&limit=2`);
+        const ourRes = await fetchJson(`${BASE_URL}/api/candles?symbol=${encodeURIComponent(item.symbol)}&timeframe=${tf}&limit=5`);
         const candles = ourRes?.candles || [];
         if (!candles.length) {
           mismatches.push({
@@ -155,67 +155,97 @@ async function run() {
           return;
         }
 
-        // Direct provider comparison
-        if (item.source === 'binance') {
+        // Direct provider comparison (FR-012: exact within 1 minTick, last closed bar)
+        if (item.source === 'tradingview') {
+          const tvRes = await tvClient.getBars(item.symbol, tf, { limit: 5 });
+          const tvCandles = tvRes?.candles || [];
+          if (!tvCandles.length) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'tradingview',
+              error: 'no_tv_candles'
+            });
+            return;
+          }
+          const ourClosed = candles.length >= 2 ? candles[candles.length - 2] : candles[candles.length - 1];
+          const tvMatch = tvCandles.find(b => b.time === ourClosed.time) || (tvCandles.length >= 2 ? tvCandles[tvCandles.length - 2] : tvCandles[tvCandles.length - 1]);
+          if (!tvMatch) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'tradingview',
+              error: 'no_matching_bar'
+            });
+            return;
+          }
+          const diff = Math.abs(ourClosed.close - tvMatch.close);
+          const maxAllowed = minTick;
+          if (diff > maxAllowed) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'tradingview',
+              ourClose: ourClosed.close,
+              providerClose: tvMatch.close,
+              diff,
+              maxAllowed
+            });
+          }
+        } else if (item.source === 'binance') {
           const rawPair = item.symbol.replace(/^BINANCE:/, '');
           const binanceInterval = tf === '60' ? '1h' : '1d';
-          try {
-            const bData = await fetchJson(`https://api.binance.com/api/v3/klines?symbol=${rawPair}&interval=${binanceInterval}&limit=2`, { timeout: 4000 });
-            if (Array.isArray(bData) && bData.length > 0) {
-              const bLast = bData[bData.length - 1];
-              const bClose = parseFloat(bLast[4]);
-              const diff = Math.abs(ourLast.close - bClose);
-              const maxAllowed = Math.max(minTick, bClose * 0.002);
-              if (diff > maxAllowed) {
-                mismatches.push({
-                  symbol: item.symbol,
-                  provider: 'binance',
-                  ourClose: ourLast.close,
-                  providerClose: bClose,
-                  diff,
-                  maxAllowed
-                });
-              }
-            }
-          } catch (netErr) {
-            // Live sanity check if external provider is throttled
-            if (ourLast.close <= 0 || ourLast.high < ourLast.low) {
-              mismatches.push({
-                symbol: item.symbol,
-                provider: 'binance',
-                error: 'candle_sanity_failure'
-              });
-            }
+          const bData = await fetchJson(`https://data-api.binance.vision/api/v3/klines?symbol=${rawPair}&interval=${binanceInterval}&limit=5`, { timeout: 5000 });
+          if (!Array.isArray(bData) || bData.length === 0) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'binance',
+              error: 'no_binance_klines'
+            });
+            return;
+          }
+          const now = Date.now();
+          const closedKlines = bData.filter(b => Number(b[6]) <= now);
+          const bClosed = closedKlines.length > 0 ? closedKlines[closedKlines.length - 1] : bData[Math.max(0, bData.length - 2)];
+          const bOpenTime = Number(bClosed[0]);
+          const bClose = parseFloat(bClosed[4]);
+
+          const ourMatch = candles.find(c => c.time === bOpenTime) || (candles.length >= 2 ? candles[candles.length - 2] : candles[candles.length - 1]);
+          const diff = Math.abs(ourMatch.close - bClose);
+          const maxAllowed = minTick;
+          if (diff > maxAllowed) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'binance',
+              ourClose: ourMatch.close,
+              providerClose: bClose,
+              diff,
+              maxAllowed
+            });
           }
         } else if (item.source === 'tgju' && TGJU_SLUGS[item.symbol]) {
           const slug = TGJU_SLUGS[item.symbol];
-          try {
-            const tgjuData = await fetchJson(`https://api.tgju.org/v1/market/indicator/summary-table-data/${slug}`, { timeout: 4000 });
-            const rows = tgjuData?.data || [];
-            if (rows.length > 0) {
-              const firstRow = rows[0];
-              const providerClose = Math.round(parseFloat(String(firstRow.close || firstRow.p || firstRow.t).replace(/,/g, '')) / 10);
-              const diff = Math.abs(ourLast.close - providerClose);
-              const maxAllowed = Math.max(minTick, providerClose * 0.02);
-              if (diff > maxAllowed) {
-                mismatches.push({
-                  symbol: item.symbol,
-                  provider: 'tgju',
-                  ourClose: ourLast.close,
-                  providerClose,
-                  diff,
-                  maxAllowed
-                });
-              }
-            }
-          } catch (netErr) {
-            if (ourLast.close <= 0) {
-              mismatches.push({
-                symbol: item.symbol,
-                provider: 'tgju',
-                error: 'tgju_sanity_failure'
-              });
-            }
+          const tgjuData = await fetchJson(`https://api.tgju.org/v1/market/indicator/summary-table-data/${slug}`, { timeout: 5000 });
+          const rows = tgjuData?.data || [];
+          if (!Array.isArray(rows) || rows.length === 0) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'tgju',
+              error: 'no_tgju_rows'
+            });
+            return;
+          }
+          const firstRow = rows[0];
+          const providerClose = Math.round(parseFloat(String(firstRow[3] || firstRow.close || firstRow.p || firstRow.t).replace(/,/g, '')) / 10);
+          const ourLastBar = candles[candles.length - 1];
+          const diff = Math.abs(ourLastBar.close - providerClose);
+          const maxAllowed = minTick;
+          if (diff > maxAllowed) {
+            mismatches.push({
+              symbol: item.symbol,
+              provider: 'tgju',
+              ourClose: ourLastBar.close,
+              providerClose,
+              diff,
+              maxAllowed
+            });
           }
         }
 
@@ -251,6 +281,7 @@ async function run() {
   }
 
   console.log('✅ [Accuracy Audit] All verified symbols match provider feeds within tolerance.');
+  process.exit(0);
 }
 
 run().catch(err => {

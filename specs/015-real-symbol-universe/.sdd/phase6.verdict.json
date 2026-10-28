@@ -1,0 +1,49 @@
+{
+  "feature": "015-real-symbol-universe",
+  "phase": 6,
+  "attempt": 1,
+  "pass": false,
+  "at": "2026-10-28T09:31:08.957Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18088"
+    },
+    "acceptance": {
+      "pass": false,
+      "summary": "exit 1"
+    },
+    "ui": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "regression": {
+      "pass": true,
+      "summary": "ok"
+    }
+  },
+  "highRisk": [],
+  "knownGapsSkipped": [],
+  "deferredToLaterPhase": [],
+  "escalate": false
+}

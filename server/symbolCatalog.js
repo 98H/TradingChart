@@ -6,6 +6,7 @@
 import { CostLruCache } from './lru.js';
 import { TGJU_ENTRIES, TGJU_SLUG_MAP } from './tgjuClient.js';
 import { tseSource } from './tseSource.js';
+import { tvClient } from './tradingviewClient.js';
 
 const TV_SEARCH_URL = 'https://symbol-search.tradingview.com/symbol_search/v3/';
 const TV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -75,50 +76,50 @@ export const CURATED_TV_DEFAULTS = [
   { symbol: 'OANDA:EURCHF', name: 'EUR/CHF', nameFa: 'یورو / فرانک سوئیس', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'CHF', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
   { symbol: 'OANDA:AUDJPY', name: 'AUD/JPY', nameFa: 'دلار استرالیا / ین ژاپن', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 10000 },
 
-  // 2. Metals (OANDA / TVC)
-  { symbol: 'OANDA:XAUUSD', name: 'Gold / US Dollar', nameFa: 'انس طلای جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'OANDA:XAGUSD', name: 'Silver / US Dollar', nameFa: 'انس نقره جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 50 },
-  { symbol: 'TVC:PLATINUM', name: 'Platinum Spot', nameFa: 'پلاتین جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.05, lotSize: 1 },
-  { symbol: 'TVC:PALLADIUM', name: 'Palladium Spot', nameFa: 'پالادیوم جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.05, lotSize: 1 },
-  { symbol: 'TVC:COPPER', name: 'Copper Spot', nameFa: 'مس جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 4, minTick: 0.0001, lotSize: 1 },
+  // 2. Metals (OANDA / TVC / COMEX)
+  { symbol: 'OANDA:XAUUSD', name: 'Gold / US Dollar', nameFa: 'انس طلای جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 },
+  { symbol: 'OANDA:XAGUSD', name: 'Silver / US Dollar', nameFa: 'انس نقره جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 50 },
+  { symbol: 'TVC:PLATINUM', name: 'Platinum Spot', nameFa: 'پلاتین جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:PALLADIUM', name: 'Palladium Spot', nameFa: 'پالادیوم جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'COMEX:HG1!', name: 'Copper Futures', nameFa: 'مس جهانی', exchange: 'COMEX', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 4, minTick: 0.0005, lotSize: 1 },
 
-  // 3. Energy & Commodities (TVC)
-  { symbol: 'TVC:USOIL', name: 'WTI Crude Oil', nameFa: 'نفت خام وست تگزاس', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
-  { symbol: 'TVC:UKOIL', name: 'Brent Crude Oil', nameFa: 'نفت خام برنت دریای شمال', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
-  { symbol: 'TVC:NATGAS', name: 'Natural Gas', nameFa: 'گاز طبیعی هنری هاب', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 100 },
+  // 3. Energy & Commodities (TVC / NYMEX)
+  { symbol: 'TVC:USOIL', name: 'WTI Crude Oil', nameFa: 'نفت خام وست تگزاس', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
+  { symbol: 'TVC:UKOIL', name: 'Brent Crude Oil', nameFa: 'نفت خام برنت دریای شمال', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
+  { symbol: 'NYMEX:NG1!', name: 'Natural Gas Futures', nameFa: 'گاز طبیعی هنری هاب', exchange: 'NYMEX', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 100 },
 
   // 4. Major Global Indices
   { symbol: 'SP:SPX', name: 'S&P 500 Index', nameFa: 'شاخص اس‌اندپی ۵۰۰', exchange: 'SP', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
   { symbol: 'NASDAQ:NDX', name: 'Nasdaq 100 Index', nameFa: 'شاخص نزدک ۱۰۰', exchange: 'NASDAQ', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'DJ:DJI', name: 'Dow Jones Industrial Average', nameFa: 'شاخص داو جونز', exchange: 'DJ', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 1.0, lotSize: 1 },
-  { symbol: 'TVC:VIX', name: 'CBOE Volatility Index', nameFa: 'شاخص نوسان VIX', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'TVC:DAX', name: 'DAX 40 Index', nameFa: 'شاخص داکس آلمان', exchange: 'TVC', type: 'index', category: 'indices', currency: 'EUR', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 0.1, lotSize: 1 },
-  { symbol: 'TVC:FTSE', name: 'FTSE 100 Index', nameFa: 'شاخص فوتسی ۱۰۰ بریتانیا', exchange: 'TVC', type: 'index', category: 'indices', currency: 'GBP', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 0.1, lotSize: 1 },
-  { symbol: 'TVC:NI225', name: 'Nikkei 225', nameFa: 'شاخص نیکی ۲۲۵ ژاپن', exchange: 'TVC', type: 'index', category: 'indices', currency: 'JPY', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 1.0, lotSize: 1 },
-  { symbol: 'TVC:DXY', name: 'US Dollar Currency Index', nameFa: 'شاخص دلار آمریکا (DXY)', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 },
+  { symbol: 'DJ:DJI', name: 'Dow Jones Industrial Average', nameFa: 'شاخص داو جونز', exchange: 'DJ', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:VIX', name: 'CBOE Volatility Index', nameFa: 'شاخص نوسان VIX', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:DAX', name: 'DAX 40 Index', nameFa: 'شاخص داکس آلمان', exchange: 'TVC', type: 'index', category: 'indices', currency: 'EUR', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:UKX', name: 'FTSE 100 Index', nameFa: 'شاخص فوتسی ۱۰۰ بریتانیا', exchange: 'TVC', type: 'index', category: 'indices', currency: 'GBP', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:NI225', name: 'Nikkei 225', nameFa: 'شاخص نیکی ۲۲۵ ژاپن', exchange: 'TVC', type: 'index', category: 'indices', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:DXY', name: 'US Dollar Currency Index', nameFa: 'شاخص دلار آمریکا (DXY)', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 },
 
   // 5. Top US/EU Stocks
-  { symbol: 'NASDAQ:AAPL', name: 'Apple Inc.', nameFa: 'سهام شرکت اپل', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:NVDA', name: 'NVIDIA Corporation', nameFa: 'سهام شرکت انویدیا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:MSFT', name: 'Microsoft Corporation', nameFa: 'سهام مایکروسافت', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:AMZN', name: 'Amazon.com Inc.', nameFa: 'سهام آمازون', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:GOOGL', name: 'Alphabet Inc.', nameFa: 'سهام آلفابت (گوگل)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:META', name: 'Meta Platforms Inc.', nameFa: 'سهام متا (فیسبوک)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:TSLA', name: 'Tesla Inc.', nameFa: 'سهام شرکت تسلا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NYSE:BRK.A', name: 'Berkshire Hathaway Inc.', nameFa: 'سهام برکشایر هاتاوی', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NYSE:JPM', name: 'JPMorgan Chase & Co.', nameFa: 'سهام جی‌پی مورگان', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NYSE:V', name: 'Visa Inc.', nameFa: 'سهام ویزا', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'XETR:SAP', name: 'SAP SE', nameFa: 'سهام اس‌آپی آلمان', exchange: 'XETR', type: 'stock', category: 'stocks', currency: 'EUR', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:AAPL', name: 'Apple Inc.', nameFa: 'سهام شرکت اپل', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:NVDA', name: 'NVIDIA Corporation', nameFa: 'سهام شرکت انویدیا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:MSFT', name: 'Microsoft Corporation', nameFa: 'سهام مایکروسافت', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:AMZN', name: 'Amazon.com Inc.', nameFa: 'سهام آمازون', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:GOOGL', name: 'Alphabet Inc.', nameFa: 'سهام آلفابت (گوگل)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:META', name: 'Meta Platforms Inc.', nameFa: 'سهام متا (فیسبوک)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:TSLA', name: 'Tesla Inc.', nameFa: 'سهام شرکت تسلا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:BRK.A', name: 'Berkshire Hathaway Inc.', nameFa: 'سهام برکشایر هاتاوی', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:JPM', name: 'JPMorgan Chase & Co.', nameFa: 'سهام جی‌پی مورگان', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:V', name: 'Visa Inc.', nameFa: 'سهام ویزا', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'XETR:SAP', name: 'SAP SE', nameFa: 'سهام اس‌آپی آلمان', exchange: 'XETR', type: 'stock', category: 'stocks', currency: 'EUR', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.05, lotSize: 1 },
 
   // 6. ETFs
-  { symbol: 'AMEX:SPY', name: 'SPDR S&P 500 ETF Trust', nameFa: 'صندوق اس‌اندپی ۵۰۰ اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'NASDAQ:QQQ', name: 'Invesco QQQ Trust', nameFa: 'صندوق نزدک اینوسکو', exchange: 'NASDAQ', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'AMEX:GLD', name: 'SPDR Gold Shares', nameFa: 'صندوق طلای اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'AMEX:SLV', name: 'iShares Silver Trust', nameFa: 'صندوق نقره آی‌شیرز', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
-  { symbol: 'AMEX:TLT', name: 'iShares 20+ Year Treasury Bond ETF', nameFa: 'صندوق اوراق ۲۰ ساله خزانه‌داری', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:SPY', name: 'SPDR S&P 500 ETF Trust', nameFa: 'صندوق اس‌اندپی ۵۰۰ اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:QQQ', name: 'Invesco QQQ Trust', nameFa: 'صندوق نزدک اینوسکو', exchange: 'NASDAQ', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:GLD', name: 'SPDR Gold Shares', nameFa: 'صندوق طلای اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:SLV', name: 'iShares Silver Trust', nameFa: 'صندوق نقره آی‌شیرز', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:TLT', name: 'iShares 20+ Year Treasury Bond ETF', nameFa: 'صندوق اوراق ۲۰ ساله خزانه‌داری', exchange: 'NASDAQ', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
 
   // 7. Yields & Bonds
-  { symbol: 'TVC:US10Y', name: 'US 10-Year Treasury Yield', nameFa: 'بازده اوراق ۱۰ ساله خزانه‌داری آمریکا', exchange: 'TVC', type: 'bond', category: 'bonds', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 }
+  { symbol: 'TVC:US10Y', name: 'US 10-Year Treasury Yield', nameFa: 'بازده اوراق ۱۰ ساله خزانه‌داری آمریکا', exchange: 'TVC', type: 'bond', category: 'bonds', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 }
 ];
 
 // Initial seed crypto pairs to guarantee synchronous availability
@@ -173,15 +174,20 @@ export const LEGACY_ALIASES = {
   // Metals & Energy
   'XAUUSD': 'OANDA:XAUUSD',
   'XAGUSD': 'OANDA:XAGUSD',
+  'COPPER': 'COMEX:HG1!',
+  'TVC:COPPER': 'COMEX:HG1!',
   'USOIL': 'TVC:USOIL',
   'UKOIL': 'TVC:UKOIL',
-  'NATGAS': 'TVC:NATGAS',
+  'NATGAS': 'NYMEX:NG1!',
+  'TVC:NATGAS': 'NYMEX:NG1!',
   // Indices & Macro
   'SPX': 'SP:SPX',
   'NDX': 'NASDAQ:NDX',
   'DJI': 'DJ:DJI',
   'VIX': 'TVC:VIX',
   'DAX': 'TVC:DAX',
+  'FTSE': 'TVC:UKX',
+  'TVC:FTSE': 'TVC:UKX',
   'DXY': 'TVC:DXY',
   'US10Y': 'TVC:US10Y',
   // Equities & ETFs
@@ -194,6 +200,8 @@ export const LEGACY_ALIASES = {
   'META': 'NASDAQ:META',
   'SPY': 'AMEX:SPY',
   'QQQ': 'NASDAQ:QQQ',
+  'TLT': 'NASDAQ:TLT',
+  'AMEX:TLT': 'NASDAQ:TLT',
   // Tehran / Iran
   'GOLD_18K': 'IR:GOLD_18K',
   'GOLD_24K': 'IR:GOLD_24K',
@@ -298,6 +306,25 @@ export function getSymbolMeta(symbol) {
     const parts = canonical.split(':');
     const exch = parts[0];
     const ticker = parts[1];
+    const cachedMeta = tvClient?.metaCache?.get(canonical);
+    if (cachedMeta) {
+      return {
+        symbol: canonical,
+        name: cachedMeta.name || ticker,
+        nameFa: cachedMeta.name || ticker,
+        category: mapTvCategory(cachedMeta.type, ticker),
+        exchange: cachedMeta.exchange || exch,
+        type: mapTvType(cachedMeta.type),
+        currency: 'USD',
+        source: 'tradingview',
+        dataStatus: (cachedMeta.delaySec || 0) > 0 ? 'delayed' : (cachedMeta.dataStatus === 'eod' ? 'eod' : 'live'),
+        delaySec: cachedMeta.delaySec || 0,
+        timeframes: STANDARD_TIMEFRAMES,
+        precision: cachedMeta.precision ?? 2,
+        minTick: cachedMeta.minTick ?? 0.01,
+        lotSize: 1
+      };
+    }
     return {
       symbol: canonical,
       name: ticker,
@@ -334,7 +361,11 @@ export function isKnownSymbol(sym) {
     return catalogMap.has(canonical) || catalogMap.has(raw) || !!TGJU_SLUG_MAP[canonical];
   }
 
-  if (canonical.includes(':') && !canonical.startsWith('BINANCE:')) {
+  if (canonical.startsWith('BINANCE:') || raw.startsWith('BINANCE:')) {
+    return binancePairSet.has(canonical.replace(/^BINANCE:/, '')) || catalogMap.has(canonical);
+  }
+
+  if (canonical.includes(':')) {
     return true;
   }
   return false;
@@ -407,6 +438,7 @@ export async function loadBinanceUniverse() {
       });
 
       rebuildCatalog(cryptoEntries);
+      syncCuratedDefaults().catch(() => {});
       return SYMBOL_CATALOG;
     } catch (e) {
       // Try next mirror
@@ -416,13 +448,39 @@ export async function loadBinanceUniverse() {
   return SYMBOL_CATALOG;
 }
 
+// Derive curated dataStatus, delaySec, precision and minTick from TradingView resolution
+export async function syncCuratedDefaults() {
+  for (const item of CURATED_TV_DEFAULTS) {
+    try {
+      const meta = await tvClient.resolve(item.symbol);
+      if (meta) {
+        const delaySec = typeof meta.delaySec === 'number' ? meta.delaySec : 0;
+        const dataStatus = delaySec > 0 ? 'delayed' : 'live';
+        item.delaySec = delaySec;
+        item.dataStatus = dataStatus;
+        if (typeof meta.precision === 'number') item.precision = meta.precision;
+        if (typeof meta.minTick === 'number') item.minTick = meta.minTick;
+        const inCat = catalogMap.get(item.symbol);
+        if (inCat) {
+          inCat.delaySec = delaySec;
+          inCat.dataStatus = dataStatus;
+          if (typeof meta.precision === 'number') inCat.precision = meta.precision;
+          if (typeof meta.minTick === 'number') inCat.minTick = meta.minTick;
+        }
+      }
+    } catch (e) {
+      // Keep static defaults
+    }
+  }
+}
+
 // 24 h auto-refresh
 const refreshTimer = setInterval(() => {
   loadBinanceUniverse().catch(() => {});
 }, 24 * 60 * 60 * 1000);
 if (refreshTimer && refreshTimer.unref) refreshTimer.unref();
 
-export const initPromise = loadBinanceUniverse();
+export const initPromise = loadBinanceUniverse().then(() => syncCuratedDefaults()).catch(() => SYMBOL_CATALOG);
 
 // ── TradingView Symbol Search Proxy & Merge (/api/symbols?q=) ──────────────
 const tvSearchCache = new CostLruCache(500);
@@ -506,6 +564,16 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
     return symMatch || nameMatch || nameFaMatch || baseMatch;
   });
 
+  const merged = [];
+  const seenSymbols = new Set();
+
+  for (const item of localMatches) {
+    if (!seenSymbols.has(item.symbol)) {
+      seenSymbols.add(item.symbol);
+      merged.push(item);
+    }
+  }
+
   // Proxy TradingView symbol search (cached 10 min)
   let tvMatches = [];
   const cached = tvSearchCache.get(qLower);
@@ -528,48 +596,83 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
       if (res.ok) {
         const json = await res.json();
         if (json && Array.isArray(json.symbols)) {
-          tvMatches = json.symbols.map(s => {
-            const cleanSym = String(s.symbol || '').replace(/<[^>]+>/g, '').trim();
-            const exch = String(s.exchange || 'GLOBAL').trim();
-            const canonicalSym = `${exch}:${cleanSym}`;
+          const candidates = json.symbols.map(s => {
+            const cleanSym = String(s.symbol || '').replace(/<[^>]+>/g, '').replace(/\s+/g, '').trim();
+            const rawPrefix = s.prefix || s.source_id || (s.source2 && s.source2.id) || s.exchange || 'GLOBAL';
+            const prefix = String(rawPrefix).replace(/\s+/g, '').toUpperCase();
+            const canonicalSym = `${prefix}:${cleanSym}`;
             const mappedType = mapTvType(s.type);
             const mappedCat = mapTvCategory(s.type, cleanSym);
-            const isEod = Array.isArray(s.params) && s.params.includes('eod');
-            const delaySec = s.delay ? Number(s.delay) : 0;
-            const dataStatus = isEod ? 'eod' : (delaySec > 0 ? 'delayed' : 'live');
+            const source = prefix === 'BINANCE' ? 'binance' : 'tradingview';
+            const displayExchange = s.exchange || prefix;
             return {
               symbol: canonicalSym,
+              cleanSym,
+              prefix,
               name: s.description || cleanSym,
               nameFa: s.description || cleanSym,
-              exchange: exch,
+              exchange: displayExchange,
               type: mappedType,
               category: mappedCat,
               currency: s.currency_code || 'USD',
-              source: 'tradingview',
-              dataStatus,
-              delaySec,
-              timeframes: STANDARD_TIMEFRAMES,
-              precision: 2,
-              minTick: 0.01,
-              lotSize: 1
+              source,
+              raw: s
             };
-          }).filter(e => e.symbol && e.name);
+          }).filter(e => e.symbol && e.name && !seenSymbols.has(e.symbol));
+
+          const resolvedItems = await Promise.all(candidates.map(async (item) => {
+            if (item.source === 'binance') {
+              const meta = getSymbolMeta(item.symbol);
+              if (meta) return meta;
+              return {
+                symbol: item.symbol,
+                name: item.name,
+                nameFa: item.nameFa,
+                exchange: 'Binance',
+                type: 'crypto',
+                category: 'crypto',
+                currency: item.currency,
+                source: 'binance',
+                dataStatus: 'live',
+                delaySec: 0,
+                timeframes: STANDARD_TIMEFRAMES,
+                precision: 2,
+                minTick: 0.01,
+                lotSize: 1
+              };
+            }
+            try {
+              const meta = await tvClient.resolve(item.symbol);
+              if (!meta) return null;
+              const delaySec = typeof meta.delaySec === 'number' ? meta.delaySec : 0;
+              const dataStatus = delaySec > 0 ? 'delayed' : (meta.dataStatus === 'eod' ? 'eod' : 'live');
+              return {
+                symbol: item.symbol,
+                name: item.name,
+                nameFa: item.nameFa,
+                exchange: item.exchange,
+                type: item.type || mapTvType(meta.type),
+                category: item.category || mapTvCategory(meta.type, item.cleanSym),
+                currency: item.currency || 'USD',
+                source: 'tradingview',
+                dataStatus,
+                delaySec,
+                timeframes: STANDARD_TIMEFRAMES,
+                precision: meta.precision ?? 2,
+                minTick: meta.minTick ?? 0.01,
+                lotSize: 1
+              };
+            } catch (err) {
+              return null;
+            }
+          }));
+
+          tvMatches = resolvedItems.filter(Boolean);
           tvSearchCache.set(qLower, tvMatches, 1, TV_CACHE_TTL);
         }
       }
     } catch (e) {
       // Upstream TradingView error: fall back to local
-    }
-  }
-
-  // Merge local matches and TV matches, deduplicate by canonical symbol
-  const merged = [];
-  const seenSymbols = new Set();
-
-  for (const item of localMatches) {
-    if (!seenSymbols.has(item.symbol)) {
-      seenSymbols.add(item.symbol);
-      merged.push(item);
     }
   }
 
