@@ -102,4 +102,4 @@ Tehran gold (18k gram, mesghal/abshodeh), coins (Emami, Bahar, half, quarter, gr
 - TradingView public data is used under the founder's decision; terms-of-service risk for commercial use is acknowledged (a licensed feed can replace FR-001 later behind the same interface).
 - TSE becomes available as soon as the founder provides a BrsApi.ir key (free tier) or an Iran-IP relay; until then TSE is hidden (founder rule 3).
 - Iranian gold/FX intraday history is unavailable from free sources; daily only.
-- Supersedes: 005 FR-004/FR-010/FR-013 demo parts, 014 FR-007/FR-008/FR-009 (demo engine) and 014 FR-002 alignment for session markets.
+- Supersedes: the demo parts of spec 005 (requirements 4, 10 and 13), spec 014 requirements 7, 8 and 9 (demo engine) and spec 014 requirement 2 alignment for session markets.
