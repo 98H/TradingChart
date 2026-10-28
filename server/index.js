@@ -18,6 +18,8 @@ import { getMarketNews } from './newsFeed.js';
 import { mountAccountSystem, PLANS, effectivePlanId } from './accounts.js';
 import { securityHeaders, sameOriginWrites, apiRateLimit, clampInt, optTimestamp, serverError } from './security.js';
 import { tvClient } from './tradingviewClient.js';
+import { tgjuClient } from './tgjuClient.js';
+import { tseSource } from './tseSource.js';
 
 // Preserve EXCHANGE:SYMBOL in cleanSymbol (FR-002, FR-003)
 const SYMBOL_RE = /^[A-Z0-9_]{1,16}:[A-Z0-9._\-]{1,32}$|^[A-Z0-9._\-]{1,32}$/;
@@ -100,6 +102,15 @@ app.get('/api/candles', async (req, res) => {
     if (!tfParsed) return bad(res, 'invalid_timeframe');
     const timeframe = tfParsed.canonical;
 
+    const meta = getSymbolMeta(symbol);
+    if (!isKnownSymbol(symbol)) {
+      return res.status(404).json({ ok: false, error: 'unknown_symbol', symbol });
+    }
+
+    if (meta?.source === 'tgju' && (tfParsed.unit === 's' || tfParsed.unit === 'm' || (meta.timeframes && !meta.timeframes.includes(tfParsed.canonical)))) {
+      return res.status(400).json({ ok: false, error: 'timeframe_unavailable', symbol, timeframe });
+    }
+
     let fromTime = optTimestamp(req.query.from_time);
     let toTime = optTimestamp(req.query.to_time);
     if (fromTime === undefined || toTime === undefined) return bad(res, 'invalid_time');
@@ -116,11 +127,11 @@ app.get('/api/candles', async (req, res) => {
     const result = await getCandles(symbol, tfParsed, limit, fromTime, toTime);
     const candles = Array.isArray(result) ? result : (result?.candles || []);
     const source = result?.source || 'binance';
-    const exchange = result?.exchange || (getSymbolMeta(symbol)?.exchange || 'Binance');
+    const exchange = result?.exchange || (meta?.exchange || 'Binance');
     const delaySec = typeof result?.delaySec === 'number' ? result.delaySec : 0;
 
     if (candles.length === 0 && !isKnownSymbol(symbol)) {
-      return res.status(404).json({ symbol, timeframe, count: 0, candles: [], error: 'no_market_data' });
+      return res.status(404).json({ ok: false, error: 'unknown_symbol', symbol });
     }
 
     res.setHeader('X-Data-Source', source);
@@ -135,6 +146,12 @@ app.get('/api/candles', async (req, res) => {
       candles
     });
   } catch (error) {
+    if (error?.code === 'TIMEFRAME_UNAVAILABLE' || error?.message === 'timeframe_unavailable') {
+      return res.status(400).json({ ok: false, error: 'timeframe_unavailable' });
+    }
+    if (error?.code === 'UNKNOWN_SYMBOL' || error?.message === 'unknown_symbol') {
+      return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+    }
     if (error?.code === 'UPSTREAM_UNAVAILABLE' || error?.message === 'upstream_unavailable') {
       return res.status(503).json({ ok: false, error: 'upstream_unavailable' });
     }
@@ -200,18 +217,35 @@ app.get('/api/market-sources', async (req, res) => {
 });
 
 // 5c. Tehran Gold Market & Coin Bubbles
-app.get('/api/gold-snapshot', (req, res) => {
-  try { res.json(getGoldMarketSnapshot()); } catch (error) { serverError(res, '/api/gold-snapshot', error); }
+app.get('/api/gold-snapshot', async (req, res) => {
+  try {
+    const snapshot = await getGoldMarketSnapshot();
+    if (!snapshot) return res.status(503).json({ ok: false, error: 'upstream_unavailable' });
+    res.json(snapshot);
+  } catch (error) {
+    if (error?.code === 'UPSTREAM_UNAVAILABLE' || error?.message === 'upstream_unavailable') {
+      return res.status(503).json({ ok: false, error: 'upstream_unavailable' });
+    }
+    serverError(res, '/api/gold-snapshot', error);
+  }
 });
 
 // 5d. Tehran Stock Exchange tape
 app.get('/api/tse-tape', (req, res) => {
   try {
+    if (!tseSource.isTseEnabled()) {
+      return res.status(404).json({ ok: false, error: 'tse_unavailable' });
+    }
     const raw = cleanSymbol(req.query.symbol, 'FOOLAD');
     if (!raw) return bad(res, 'invalid_symbol');
     const symbol = resolveSymbolAlias(raw);
     res.json(getTseMarketTape(symbol));
-  } catch (error) { serverError(res, '/api/tse-tape', error); }
+  } catch (error) {
+    if (error?.code === 'TSE_UNAVAILABLE' || error?.message === 'tse_unavailable') {
+      return res.status(404).json({ ok: false, error: 'tse_unavailable' });
+    }
+    serverError(res, '/api/tse-tape', error);
+  }
 });
 
 // 6. Market Trackers
@@ -346,6 +380,33 @@ wss.on('connection', (ws) => {
 
 // Broadcast live ticks pushed from TradingView client
 tvClient.onLiveTick((tick) => {
+  if (wss.clients.size === 0) return;
+  const payload = JSON.stringify({
+    type: 'tick',
+    symbol: tick.symbol,
+    price: tick.price,
+    change: tick.change,
+    changePct: tick.changePct,
+    high: tick.high,
+    low: tick.low,
+    volume: tick.volume,
+    time: tick.time
+  });
+
+  for (const [client, subs] of activeSubscriptions.entries()) {
+    if (client.readyState === WebSocket.OPEN) {
+      for (const s of subs) {
+        if (s === tick.symbol || resolveSymbolAlias(s) === tick.symbol) {
+          client.send(payload);
+          break;
+        }
+      }
+    }
+  }
+});
+
+// Broadcast live ticks pushed from TGJU client
+tgjuClient.onLiveTick((tick) => {
   if (wss.clients.size === 0) return;
   const payload = JSON.stringify({
     type: 'tick',

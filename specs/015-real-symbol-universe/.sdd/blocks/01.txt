@@ -1,4 +1,4 @@
-- [ ] T005 [US3] In server/symbolCatalog.js load all Binance spot TRADING pairs from exchangeInfo (24 h refresh) as `BINANCE:<PAIR>` with precision/minTick from filters (FR-005)
-- [ ] T006 [US2] In server/symbolCatalog.js add curated TradingView defaults per category (forex majors/crosses, metals, energy, indices, top US/EU stocks, ETFs, US10Y/DXY) with nameFa, and TradingView search proxy merged into `/api/symbols?q=` (cached 10 min) (FR-004)
-- [ ] T007 [US1] Add the legacy alias table in server/symbolCatalog.js and apply it on every route in server/index.js (FR-004)
-- [ ] T008 [US1] Real default watchlist / landing tickers / screener universe in client/src/watchlistManager.js, client/landing/landing.js and server/technicalScreener.js (FR-011)
+- [ ] T009 [US4] Create server/tgjuClient.js: slug map, daily history (rial→Toman, verified column order), current value polling ≤ 60 s, cache (FR-006)
+- [ ] T010 [US4] Register TGJU entries in server/symbolCatalog.js with `timeframes: D/W/M` and route them in server/dataFeed.js; intraday → 400 `timeframe_unavailable` in server/index.js (FR-006)
+- [ ] T011 [US5] Create server/tseSource.js (BrsApi via TC_BRSAPI_KEY, relay via TC_TSETMC_PROXY, health probe) and enable `iran_tse` catalogue/routes only when healthy, in server/symbolCatalog.js and server/dataFeed.js (FR-007)
+- [ ] T012 [US4] Rebuild `/api/gold-snapshot` in server/dataFeed.js from real inputs (OANDA:XAUUSD, IR:USD_FREE, TGJU coins) with source/time per input (FR-006, FR-008)

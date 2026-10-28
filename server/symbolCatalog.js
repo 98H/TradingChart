@@ -4,6 +4,8 @@
 // and legacy alias resolution. Honest data only (zero demo/synthetic).
 
 import { CostLruCache } from './lru.js';
+import { TGJU_ENTRIES, TGJU_SLUG_MAP } from './tgjuClient.js';
+import { tseSource } from './tseSource.js';
 
 const TV_SEARCH_URL = 'https://symbol-search.tradingview.com/symbol_search/v3/';
 const TV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -201,7 +203,8 @@ export const LEGACY_ALIASES = {
   'COIN_GERMI': 'IR:COIN_GERMI',
   'USD_TEHRAN': 'IR:USD_FREE',
   'USD_FREE': 'IR:USD_FREE',
-  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
+  'GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
+  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL'
 };
 
 // Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
@@ -222,13 +225,29 @@ function rebuildCatalog(cryptoEntries) {
     catalogMap.set(item.symbol, item);
   }
 
-  // 2. Add crypto entries
+  // 2. Add TGJU entries
+  for (const item of TGJU_ENTRIES) {
+    SYMBOL_CATALOG.push(item);
+    catalogMap.set(item.symbol, item);
+  }
+
+  // 3. Add crypto entries
   for (const item of cryptoEntries) {
     if (!catalogMap.has(item.symbol)) {
       SYMBOL_CATALOG.push(item);
       catalogMap.set(item.symbol, item);
       const bare = item.symbol.replace(/^BINANCE:/, '');
       binancePairSet.add(bare);
+    }
+  }
+
+  // 4. Add TSE entries only when enabled
+  if (tseSource.isTseEnabled()) {
+    for (const item of tseSource.symbolsCache) {
+      if (!catalogMap.has(item.symbol)) {
+        SYMBOL_CATALOG.push(item);
+        catalogMap.set(item.symbol, item);
+      }
     }
   }
 }
@@ -256,14 +275,16 @@ export function resolveSymbolAlias(raw) {
 
 export function getSymbolMeta(symbol) {
   if (!symbol) return null;
-  const canonical = resolveSymbolAlias(symbol);
-  if (catalogMap.has(canonical)) return catalogMap.get(canonical);
-
   const raw = String(symbol).trim().toUpperCase();
+  const canonical = resolveSymbolAlias(raw);
+  if (catalogMap.has(canonical)) return catalogMap.get(canonical);
   if (catalogMap.has(raw)) return catalogMap.get(raw);
 
   const bare = raw.replace(/^.*:/, '');
   if (catalogMap.has(bare)) return catalogMap.get(bare);
+
+  const tgjuEntry = TGJU_ENTRIES.find(e => e.symbol === canonical || e.symbol === raw);
+  if (tgjuEntry) return tgjuEntry;
 
   const isCrypto = bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH');
   return {
@@ -273,7 +294,7 @@ export function getSymbolMeta(symbol) {
     category: isCrypto ? 'crypto' : 'stocks',
     base: bare.replace(/(USDT|USD|EUR|BTC|IRR|TMN)$/, ''),
     quote: isCrypto ? 'USDT' : 'USD',
-    precision: isCrypto ? 2 : 2,
+    precision: 2,
     minTick: 0.01,
     lotSize: 1,
     exchange: isCrypto ? 'Binance' : 'Global',
@@ -285,10 +306,20 @@ export function getSymbolMeta(symbol) {
 
 export function isKnownSymbol(sym) {
   if (!sym) return false;
-  const canonical = resolveSymbolAlias(sym);
-  if (catalogMap.has(canonical)) return true;
-  if (LEGACY_ALIASES[String(sym).trim().toUpperCase()]) return true;
-  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
+  const raw = String(sym).trim().toUpperCase();
+  const canonical = resolveSymbolAlias(raw);
+  if (catalogMap.has(canonical) || catalogMap.has(raw)) return true;
+  if (LEGACY_ALIASES[raw]) return true;
+
+  if (canonical.startsWith('TSE:') || raw.startsWith('TSE:')) {
+    return tseSource.isTseEnabled() && (catalogMap.has(canonical) || catalogMap.has(raw));
+  }
+
+  if (canonical.startsWith('IR:') || raw.startsWith('IR:')) {
+    return catalogMap.has(canonical) || catalogMap.has(raw) || !!TGJU_SLUG_MAP[canonical];
+  }
+
+  if (canonical.includes(':') && !canonical.startsWith('BINANCE:')) {
     return true;
   }
   return false;
@@ -421,8 +452,9 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
   const maxLimit = Math.max(1, Math.min(2500, Number(limit) || 200));
 
   const matchesCat = (itemCat) => {
-    if (cat === 'all') return true;
     const ic = String(itemCat || '').toLowerCase();
+    if (ic === 'iran_tse' && !tseSource.isTseEnabled()) return false;
+    if (cat === 'all') return true;
     if (cat === 'crypto') return ic === 'crypto';
     if (cat === 'metals') return ic === 'metals';
     if (cat === 'energy' || cat === 'commodities') return ic === 'energy' || ic === 'commodities';
@@ -431,12 +463,17 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
     if (cat === 'stocks') return ic === 'stocks';
     if (cat === 'etf' || cat === 'fund') return ic === 'etf' || ic === 'fund';
     if (cat === 'bonds' || cat === 'bond') return ic === 'bonds' || ic === 'bond';
+    if (cat === 'iran_gold') return ic === 'iran_gold';
+    if (cat === 'iran_fx') return ic === 'iran_fx';
+    if (cat === 'iran_tse') return ic === 'iran_tse' && tseSource.isTseEnabled();
     return ic === cat;
   };
 
   const matchesEx = (itemEx) => {
+    const ie = String(itemEx || '').toLowerCase();
+    if (ie === 'tse' && !tseSource.isTseEnabled()) return false;
     if (ex === 'all') return true;
-    return String(itemEx || '').toLowerCase().includes(ex);
+    return ie.includes(ex);
   };
 
   if (!q) {
