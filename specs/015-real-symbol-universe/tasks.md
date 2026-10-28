@@ -18,10 +18,10 @@
 
 ## Phase 3: Tehran sources
 
-- [ ] T009 [US4] Create server/tgjuClient.js: slug map, daily history (rial→Toman, verified column order), current value polling ≤ 60 s, cache (FR-006)
-- [ ] T010 [US4] Register TGJU entries in server/symbolCatalog.js with `timeframes: D/W/M` and route them in server/dataFeed.js; intraday → 400 `timeframe_unavailable` in server/index.js (FR-006)
-- [ ] T011 [US5] Create server/tseSource.js (BrsApi via TC_BRSAPI_KEY, relay via TC_TSETMC_PROXY, health probe) and enable `iran_tse` catalogue/routes only when healthy, in server/symbolCatalog.js and server/dataFeed.js (FR-007)
-- [ ] T012 [US4] Rebuild `/api/gold-snapshot` in server/dataFeed.js from real inputs (OANDA:XAUUSD, IR:USD_FREE, TGJU coins) with source/time per input (FR-006, FR-008)
+- [x] T009 [US4] Create server/tgjuClient.js: slug map, daily history (rial→Toman, verified column order), current value polling ≤ 60 s, cache (FR-006)
+- [x] T010 [US4] Register TGJU entries in server/symbolCatalog.js with `timeframes: D/W/M` and route them in server/dataFeed.js; intraday → 400 `timeframe_unavailable` in server/index.js (FR-006)
+- [x] T011 [US5] Create server/tseSource.js (BrsApi via TC_BRSAPI_KEY, relay via TC_TSETMC_PROXY, health probe) and enable `iran_tse` catalogue/routes only when healthy, in server/symbolCatalog.js and server/dataFeed.js (FR-007)
+- [x] T012 [US4] Rebuild `/api/gold-snapshot` in server/dataFeed.js from real inputs (OANDA:XAUUSD, IR:USD_FREE, TGJU coins) with source/time per input (FR-006, FR-008)
 
 ## Phase 4: Remove every demo path
 
