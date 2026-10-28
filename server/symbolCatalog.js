@@ -3,6 +3,8 @@
 // Curated TradingView global markets (Forex, Metals, Commodities, Indices, Stocks, ETFs, Bonds),
 // and legacy alias resolution. Honest data only (zero demo/synthetic).
 
+import { CostLruCache } from './lru.js';
+
 const TV_SEARCH_URL = 'https://symbol-search.tradingview.com/symbol_search/v3/';
 const TV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const BINANCE_BASES = [
@@ -211,6 +213,7 @@ const catalogMap = new Map();
 
 function rebuildCatalog(cryptoEntries) {
   catalogMap.clear();
+  binancePairSet.clear();
   SYMBOL_CATALOG.length = 0;
 
   // 1. Add curated TradingView entries
@@ -376,7 +379,7 @@ if (refreshTimer && refreshTimer.unref) refreshTimer.unref();
 export const initPromise = loadBinanceUniverse();
 
 // ── TradingView Symbol Search Proxy & Merge (/api/symbols?q=) ──────────────
-const tvSearchCache = new Map();
+const tvSearchCache = new CostLruCache(500);
 const TV_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 function mapTvType(rawType) {
@@ -453,10 +456,9 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
 
   // Proxy TradingView symbol search (cached 10 min)
   let tvMatches = [];
-  const now = Date.now();
   const cached = tvSearchCache.get(qLower);
-  if (cached && (now - cached.at < TV_CACHE_TTL)) {
-    tvMatches = cached.items;
+  if (cached) {
+    tvMatches = cached;
   } else {
     try {
       const ctl = new AbortController();
@@ -500,7 +502,7 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
               lotSize: 1
             };
           }).filter(e => e.symbol && e.name);
-          tvSearchCache.set(qLower, { at: now, items: tvMatches });
+          tvSearchCache.set(qLower, tvMatches, 1, TV_CACHE_TTL);
         }
       }
     } catch (e) {
