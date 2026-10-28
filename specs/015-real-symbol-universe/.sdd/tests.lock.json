@@ -1,0 +1,11 @@
+{
+  "spec": "015",
+  "frozenAt": "2026-10-28T03:15:27.341Z",
+  "files": {
+    "tests/acceptance/015/01_tradingview_feed_and_ws.test.cjs": "0954a58f517cb2943e4fde2f2580db21bff143217f23ad009edce61c8babef14",
+    "tests/acceptance/015/02_real_catalog_and_binance_expansion.test.cjs": "3075a7b910c88f3acf1aa883fc96c2f5c5fd40cb57d814157d57c58f83f9e3de",
+    "tests/acceptance/015/03_tehran_sources_and_tse_gating.test.cjs": "fca209d332e2df2c18ce96e8a161d019580cebaf221bd208c49b4b95f2bf6e32",
+    "tests/acceptance/015/04_demo_removal_and_error_contracts.test.cjs": "51b54d540b20728f9cffefd2598648de5be53abfccfa985aa5fae97ee0a0cd87",
+    "tests/acceptance/015/05_client_ux_badges_and_accuracy.test.cjs": "101b13eb2bc909a6dcd9fb7ea90efc26b6805d84e8b42096fd834f8dc95c6434"
+  }
+}
