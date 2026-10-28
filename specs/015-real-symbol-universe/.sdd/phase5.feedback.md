@@ -1,6 +1,6 @@
-# Gate feedback — 015-real-symbol-universe phase 5, attempt 2
+# Gate feedback — 015-real-symbol-universe phase 5, attempt 9
 
-Result: FAIL
+Result: PASS
 
 ## PASS lock — ok
 
@@ -16,10 +16,6 @@ Result: FAIL
 
 ## PASS ui — ok
 
-## FAIL spec — exit 1
-```
-FAIL 015-real-symbol-universe  FRs=12 tasks done=17 open=6
-SPECS=1 PASS=0 FAIL=1
-```
+## PASS spec — ok
 
 ## PASS regression — ok
