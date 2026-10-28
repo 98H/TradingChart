@@ -1,9 +1,9 @@
 {
   "feature": "014-data-feed-timeframes",
   "phase": 3,
-  "attempt": 2,
-  "pass": true,
-  "at": "2026-10-27T23:47:10.157Z",
+  "attempt": 3,
+  "pass": false,
+  "at": "2026-10-28T00:32:30.087Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -26,8 +26,8 @@
       "summary": "up on :18088"
     },
     "acceptance": {
-      "pass": true,
-      "summary": "ok"
+      "pass": false,
+      "summary": "exit 1"
     },
     "ui": {
       "pass": true,
@@ -45,5 +45,6 @@
   "highRisk": [],
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
-  "escalate": false
+  "escalate": true,
+  "reason": "implementer reports a spec problem: SPEC_PROBLEM: tests/acceptance/014/04_client_timeframe_ui_and_notices.test.cjs (lines 114-124) asserts Persian notice (FR-012) on boot without setting language, but architect note (review-checklist.md:25) mandates client/src/i18n.js currentLang='en' ('Tests must set the language explicitly') and reviewer rejects forcing Persian via !this._explicitLang in client/src/chartManager.js; modifying locked test 04 to set language explicitly is outside Phase 3 task scope fence."
 }
