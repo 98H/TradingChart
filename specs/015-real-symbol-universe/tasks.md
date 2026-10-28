@@ -28,6 +28,7 @@
 - [ ] T013 [US1] Delete server/demoPath.js and server/marketSessions.js usage and all demo branches, fixed prices and `getTseMarketTape` fakes in server/dataFeed.js; unknown → 404 `unknown_symbol` on every route in server/index.js (FR-008)
 - [ ] T014 [US1] server/depthFeed.js: Binance only, others 404 `depth_unavailable`; client/src/depthOfMarket.js shows the unavailable state (FR-008)
 - [ ] T015 [US1] `/api/market-sources` real sources only in server/dataFeed.js and client/src/marketSourcesModal.js (FR-008, FR-009)
+- [ ] T022 [US4] In server/tgjuClient.js and server/symbolCatalog.js make `IR:GOLD_ABSHODEH` an alias of `IR:GOLD_MESGHAL` (same TGJU slug `mesghal` — no duplicate catalogue entry) and add `IR:USDT_FREE` (`crypto-tether-irr`) and `IR:GOLD_24K` (`geram24`) — slugs verified by the architect: OHLC order open,low,high,close, ≥ 2000 rows (FR-006)
 - [ ] T016 [US5] Hide TSE tape and category in client/src/tseTapeView.js and client/src/main.js unless enabled (FR-007, FR-008)
 
 ## Phase 5: Client UX and accuracy proof
