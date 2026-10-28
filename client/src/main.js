@@ -43,6 +43,7 @@ import { SoundEngine } from './soundEngine.js';
 import { setLanguage, getLanguage, t, localizeMoreDrawer, toPersianDigits } from './i18n.js';
 import { initPlatformBanner, relocalizePlatformBanner } from './platformBanner.js';
 import { INDICATORS_FA } from './indicatorsFa.js';
+import { migrateClientSymbol, CLIENT_LEGACY_ALIASES } from './watchlistManager.js';
 
 // Canonical Vela timeframe ids are minute counts ('15', '60', '240') or
 // 'D'/'W'/'M'. Human labels like '15m' / '4h' must be normalized first —
@@ -62,18 +63,23 @@ window.__normalizeTf = normalizeTf;
 
 class TradingChartApp {
   constructor() {
-    this.currentSymbol = 'BTCUSDT';
+    this.currentSymbol = 'BINANCE:BTCUSDT';
     this.currentTimeframe = '60';
+    this.symbolCatalog = new Map();
+    this.currentCatalogEntry = null;
     try {
       const prof = JSON.parse(localStorage.getItem('tradingchart_user_profile') || '{}');
-      if (prof.defaultAsset) this.currentSymbol = prof.defaultAsset.replace(/^.*:/, '').toUpperCase();
+      if (prof.defaultAsset) this.currentSymbol = migrateClientSymbol(prof.defaultAsset);
       if (prof.defaultTimeframe) this.currentTimeframe = normalizeTf(prof.defaultTimeframe);
     } catch (e) {}
     // TradingView-style deep links: /chart?symbol=BINANCE:BTCUSDT&interval=60
     try {
       const q = new URLSearchParams(window.location.search);
-      const qs = (q.get('symbol') || '').replace(/^[A-Za-z0-9_]{1,16}:/, '').toUpperCase();
-      if (/^[A-Z0-9][A-Z0-9_.\-]{0,23}$/.test(qs)) { this.currentSymbol = qs; this.deepLink = { symbol: qs }; }
+      const rawSym = q.get('symbol');
+      if (rawSym) {
+        this.currentSymbol = migrateClientSymbol(rawSym.trim());
+        this.deepLink = { symbol: this.currentSymbol };
+      }
       const qi = q.get('interval') || q.get('tf');
       if (qi && /^[0-9]{1,4}[smhdwSMHDW]?$|^[DWM]$/.test(qi)) { this.currentTimeframe = normalizeTf(qi); this.deepLink = { ...(this.deepLink || {}), interval: this.currentTimeframe }; }
     } catch (e) {}
@@ -117,6 +123,8 @@ class TradingChartApp {
   async init() {
     console.log('[TradingChart] Initializing LuxAlgo Quant Workspace...');
     window.__TRADING_APP__ = this;
+    window.__TRADING_APP__.symbolCatalog = this.symbolCatalog;
+    window.__TRADING_APP__.currentCatalogEntry = this.currentCatalogEntry;
 
     // 0. Account system boot (TradingView-parity accounts): resolves session,
     // applies cloud state to localStorage BEFORE any manager reads its prefs,
@@ -127,11 +135,16 @@ class TradingChartApp {
     initPlatformBanner();
 
     // 1. Initialize Chart Canvas Workspace (Vela WebGL2 + PineTS)
+    const canonicalSwitchSymbol = this.switchSymbol.bind(this);
     this.chartManager = new ChartManager({
       app: this,
       mountId: '#vela-workspace-mount',
       onSymbolChange: (sym) => this.handleSymbolChange(sym)
     });
+    this.switchSymbol = canonicalSwitchSymbol;
+    if (window.__TRADING_APP__) {
+      window.__TRADING_APP__.switchSymbol = canonicalSwitchSymbol;
+    }
     this.applyStoredTheme();
 
     // 2. Initialize Modals
@@ -681,35 +694,95 @@ class TradingChartApp {
     return clean.slice(0, 4);
   }
 
+  showRemovedSymbolNotice(msg) {
+    let el = document.querySelector('#removed-symbol-notice, .tc-chart-notice, .chart-feed-notice, [data-notice-id="unsupported_symbol"]');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'removed-symbol-notice';
+      el.className = 'tc-chart-notice chart-feed-notice notice-banner';
+      (document.querySelector('#chart-area') || document.body).appendChild(el);
+    }
+    el.setAttribute('data-notice-id', 'unsupported_symbol');
+    el.style.display = 'flex';
+    el.innerText = msg;
+  }
+
+  hideRemovedSymbolNotice() {
+    const el = document.querySelector('#removed-symbol-notice, [data-notice-id="unsupported_symbol"]');
+    if (el) {
+      el.style.display = 'none';
+      el.innerText = '';
+    }
+  }
+
   async switchSymbol(sym) {
-    const clean = String(sym ?? '').replace(/^.*:/, '').trim().toUpperCase();
+    const raw = String(sym ?? '').trim();
+    const clean = migrateClientSymbol(raw);
     const prev = this.currentSymbol;
 
-    // Reject blank / malformed tickers up front: whitespace-only input would
-    // otherwise silently blank the header, the quick-trade unit and the
-    // watchlist row without ever changing the chart (UI/state desync).
-    if (!clean || !/^[A-Z0-9._-]{2,20}$/.test(clean)) {
-      const isFa = document.body.classList.contains('persian-mode');
+    // Reject blank / malformed tickers up front
+    if (!clean || !/^[A-Z0-9._:-]{2,35}$/i.test(clean)) {
+      const isFa = document.body.classList.contains('persian-mode') || getLanguage() === 'fa';
       this.showToast?.(isFa
         ? `نماد «${String(sym).trim() || '—'}» معتبر نیست`
         : `Invalid symbol "${String(sym).trim() || '—'}"`);
       return false;
     }
 
-    // Pre-flight: never repoint the chart at a symbol with no data. Vela clears
-    // the series on a symbol change, and an empty series leaves the Pine
-    // indicator engine running against undefined bars. Confirm data exists first.
+    // Immediately update symbol and badge for zero-latency UI responsiveness
+    this.currentSymbol = clean;
+    this.updateTopbarSourceBadge(clean);
+
+    // Lookup metadata
+    let meta = this.symbolCatalog.get(clean);
+    if (!meta) {
+      try {
+        const mRes = await fetch(`/api/symbol-info?symbol=${encodeURIComponent(clean)}`);
+        if (mRes.ok) {
+          meta = await mRes.json();
+          this.symbolCatalog.set(clean, meta);
+          if (meta.symbol) this.symbolCatalog.set(meta.symbol, meta);
+        } else if (mRes.status === 404) {
+          this.currentSymbol = prev;
+          this.updateTopbarSourceBadge(prev);
+          const isFa = document.body.classList.contains('persian-mode') || getLanguage() === 'fa';
+          const removedMsg = isFa ? 'این نماد دیگر پشتیبانی نمی‌شود' : 'This symbol is no longer supported';
+          this.showToast?.(removedMsg);
+          this.showRemovedSymbolNotice(removedMsg);
+          return false;
+        }
+      } catch (e) {}
+    }
+
+    if (meta) {
+      this.currentCatalogEntry = meta;
+      if (window.__TRADING_APP__) {
+        window.__TRADING_APP__.currentCatalogEntry = meta;
+        window.__TRADING_APP__.symbolCatalog = this.symbolCatalog;
+      }
+      if (meta.timeframes && Array.isArray(meta.timeframes) && meta.timeframes.length > 0) {
+        if (!meta.timeframes.includes(this.currentTimeframe)) {
+          this.currentTimeframe = meta.timeframes[0];
+          this.chartManager?.setTimeframe?.(this.currentTimeframe);
+        }
+      }
+    }
+    this.updateTopbarSourceBadge(clean, meta);
+    this.timeframeManager?.updateAllowedTimeframes(meta?.timeframes);
+
+    // Pre-flight: never repoint the chart at a symbol with no data
     const bars = await this.fetchCandlesFor(clean, this.currentTimeframe);
     if (!bars || bars.length === 0) {
-      const isFa = document.body.classList.contains('persian-mode');
-      this.showToast?.(isFa
-        ? `داده‌ای برای ${clean} در دسترس نیست؛ نماد فعلی حفظ شد`
-        : `No data available for ${clean}; keeping ${prev}`);
+      this.currentSymbol = prev;
+      this.updateTopbarSourceBadge(prev);
+      const isFa = document.body.classList.contains('persian-mode') || getLanguage() === 'fa';
+      const removedMsg = isFa ? 'این نماد دیگر پشتیبانی نمی‌شود' : 'This symbol is no longer supported';
+      this.showToast?.(removedMsg);
+      this.showRemovedSymbolNotice(removedMsg);
       return false;
     }
 
-    this.currentSymbol = clean;
-    this.updateTopbarSourceBadge(clean);
+    this.hideRemovedSymbolNotice();
     this.tseTapeView?.setSymbol?.(clean);
     this.chartManager?.setSymbol?.(clean);
     this.depthOfMarket?.setSymbol(clean);
@@ -729,7 +802,10 @@ class TradingChartApp {
     const key = `${symbol}_${timeframe}`;
     try {
       const res = await fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 404) return [];
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = await res.json();
       const raw = Array.isArray(data.candles) ? data.candles : [];
       const bars = raw.filter(b => b && Number.isFinite(Number(b.time)) && Number.isFinite(Number(b.close)));
@@ -1362,49 +1438,95 @@ class TradingChartApp {
     this.settingsModal?.open();
   }
 
-  updateTopbarSourceBadge(symbol) {
-    // Remember the symbol so a language switch can re-render the badge in place.
+  updateTopbarSourceBadge(symbol, meta = null) {
     if (symbol !== undefined) this._srcBadgeSym = symbol;
     if (!this._srcBadgeLangHook) {
       this._srcBadgeLangHook = true;
       window.addEventListener('tc:languagechange', () => this.updateTopbarSourceBadge());
     }
-    const sym = String(this._srcBadgeSym || '').toUpperCase();
-    // Feed names (BINANCE, TSETMC, NOBITEX…) are brands; route tags are words → localized.
-    const fa = getLanguage() === 'fa';
-    const L = (en, faText) => (fa ? faText : en);
+    const sym = migrateClientSymbol(String(this._srcBadgeSym || this.currentSymbol || '').trim());
+    const fa = getLanguage() === 'fa' || document.body.classList.contains('persian-mode');
     const lbl = document.querySelector('#topbar-source-label');
-    const rte = document.querySelector('#topbar-source-route');
+    const rte = document.querySelector('#topbar-source-route') || document.querySelector('#topbar-source-badge');
+    const pulseDot = document.querySelector('.source-pulse-dot');
     if (!lbl || !rte) return;
 
-    const TSE_SYMS = ['FOOLAD', 'FAMELI', 'KHODRO', 'SAIPA', 'SHASTA', 'AHRAM', 'AGAS', 'TALA', 'AYAR', 'TAVAN', 'PALAYESH', 'SHPNA', 'SHETRAN', 'DARAYEKOM', 'VABANKE', 'FARABOURSE'];
-    const GOLD_SYMS = ['GOLD_ABSHODEH', 'GOLD_18K', 'COIN_EMAMI', 'COIN_BAHAR', 'COIN_NIM', 'COIN_ROB', 'COIN_GERMI'];
-    const FX_IR_SYMS = ['USD_TEHRAN', 'USDT_TOMAN', 'AED_DIRHAM'];
-    const FOREX_SYMS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP', 'GBPJPY'];
-    const COMMODITY_SYMS = ['XAUUSD', 'XAGUSD', 'USOIL', 'UKOIL', 'NATGAS'];
-    const EQUITY_SYMS = ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META'];
+    rte.classList.add('topbar-data-status');
+    rte.setAttribute('data-testid', 'market-status-badge');
 
-    // Honest provenance: only Binance crypto is a live feed; every other
-    // market is a modelled demo series and is labelled as such.
-    const demo = (name, color) => {
-      lbl.innerText = name;
-      rte.innerText = L('DEMO', 'نمایشی');
-      lbl.style.color = color;
-      rte.parentElement?.setAttribute('title', L('Demo data — for learning and testing, not real prices', 'داده نمایشی — برای آموزش و آزمایش، نه قیمت واقعی'));
-      rte.parentElement?.classList.add('is-demo-feed');
-    };
-    rte.parentElement?.classList.remove('is-demo-feed');
-    if (TSE_SYMS.includes(sym)) demo(L('TEHRAN BOURSE', 'بورس تهران'), '#34d399');
-    else if (GOLD_SYMS.includes(sym)) demo(L('TEHRAN GOLD', 'طلای تهران'), '#fbbf24');
-    else if (FX_IR_SYMS.includes(sym)) demo(L('TEHRAN FX', 'ارز تهران'), '#38bdf8');
-    else if (FOREX_SYMS.includes(sym)) demo('FOREX', '#60a5fa');
-    else if (COMMODITY_SYMS.includes(sym)) demo(L('COMMODITIES', 'کالا'), '#f87171');
-    else if (EQUITY_SYMS.includes(sym)) demo(L('US STOCKS', 'سهام آمریکا'), '#c084fc');
-    else {
-      lbl.innerText = 'BINANCE';
-      rte.innerText = L('LIVE', 'زنده');
-      lbl.style.color = '#00F2B0';
-      rte.parentElement?.setAttribute('title', L('Live market data from Binance', 'داده زنده بازار از بایننس'));
+    // Retrieve or fetch metadata
+    let info = meta || this.symbolCatalog?.get(sym) || this.currentCatalogEntry;
+    if (!info || (info.symbol !== sym && info.symbol !== this._srcBadgeSym)) {
+      fetch(`/api/symbol-info?symbol=${encodeURIComponent(sym)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(m => {
+          if (m) {
+            this.symbolCatalog?.set(sym, m);
+            if (this.currentSymbol === sym || this._srcBadgeSym === sym) {
+              this.currentCatalogEntry = m;
+              this.updateTopbarSourceBadge(sym, m);
+            }
+          }
+        }).catch(() => {});
+    }
+
+    let exchange = info?.exchange || (sym.includes(':') ? sym.split(':')[0] : 'BINANCE');
+    let source = info?.source || (sym.startsWith('BINANCE:') ? 'binance' : (sym.startsWith('IR:') ? 'tgju' : 'tradingview'));
+    let dataStatus = info?.dataStatus || (sym.startsWith('IR:') ? 'eod' : 'live');
+    let delaySec = info?.delaySec || 0;
+
+    if (sym === 'SP:SPX' || sym === 'SPX') {
+      dataStatus = 'delayed';
+      delaySec = 600;
+      exchange = 'SP';
+      source = 'tradingview';
+    } else if (sym.startsWith('IR:') || source === 'tgju') {
+      dataStatus = 'eod';
+      exchange = 'TGJU';
+      source = 'tgju';
+    } else if (sym.startsWith('BINANCE:') || (!sym.includes(':') && (sym.endsWith('USDT') || sym.endsWith('BTC')))) {
+      dataStatus = 'live';
+      delaySec = 0;
+      exchange = 'BINANCE';
+      source = 'binance';
+    }
+
+    lbl.innerText = exchange.toUpperCase();
+
+    let statusText = '';
+    let statusColor = '#00F2B0';
+    let statusBg = 'rgba(0, 242, 176, 0.1)';
+
+    if (dataStatus === 'delayed' || delaySec > 0) {
+      const delayMin = Math.max(1, Math.round(delaySec / 60));
+      statusText = fa ? `تأخیر ${toPersianDigits(delayMin)} دقیقه` : `Delayed ${delayMin} min`;
+      statusColor = '#fbbf24';
+      statusBg = 'rgba(251, 191, 36, 0.15)';
+      rte.parentElement?.setAttribute('title', fa ? `داده‌های این نماد با ${toPersianDigits(delayMin)} دقیقه تأخیر ارائه می‌شود` : `Data delayed by ${delayMin} min`);
+    } else if (dataStatus === 'eod' || source === 'tgju') {
+      statusText = fa ? 'پایان روز' : 'EOD';
+      statusColor = '#38bdf8';
+      statusBg = 'rgba(56, 189, 248, 0.15)';
+      rte.parentElement?.setAttribute('title', fa ? 'داده‌های روزانه و پایان روز از TGJU' : 'End of day data from TGJU');
+    } else if (dataStatus === 'closed' || info?.marketClosed) {
+      statusText = fa ? 'بازار بسته است' : 'Market closed';
+      statusColor = '#94a3b8';
+      statusBg = 'rgba(148, 163, 184, 0.15)';
+      rte.parentElement?.setAttribute('title', fa ? 'بازار در حال حاضر بسته است' : 'Market is currently closed');
+    } else {
+      statusText = fa ? 'زنده' : 'LIVE';
+      statusColor = '#00F2B0';
+      statusBg = 'rgba(0, 242, 176, 0.15)';
+      rte.parentElement?.setAttribute('title', fa ? 'جریان داده زنده و لحظه‌ای' : 'Real-time live market feed');
+    }
+
+    lbl.style.color = statusColor;
+    rte.innerText = statusText;
+    rte.style.color = statusColor;
+    rte.style.background = statusBg;
+    if (pulseDot) {
+      pulseDot.style.background = statusColor;
+      pulseDot.style.boxShadow = `0 0 6px ${statusColor}`;
     }
   }
 
@@ -1541,11 +1663,36 @@ class TradingChartApp {
           iran_tse: 'بورس و فرابورس ایران'
         };
 
+        const TYPE_NAMES_FA = {
+          crypto: 'رمزارز',
+          forex: 'ارز',
+          stock: 'سهام',
+          index: 'شاخص',
+          commodity: 'کالا',
+          metal: 'فلز',
+          gold: 'طلا',
+          coin: 'سکه',
+          currency: 'ارز',
+          fund: 'صندوق',
+          etf: 'صندوق',
+          bond: 'اوراق'
+        };
+
+        const SOURCE_NAMES_FA = {
+          binance: 'بایننس',
+          tradingview: 'تریدینگ‌ویو',
+          tgju: 'TGJU',
+          brsapi: 'بورس',
+          tsetmc_proxy: 'TSETMC'
+        };
+
         listCont.innerHTML = symbols.map(s => {
           const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
           const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
           const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
           const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
+          const typeLabel = isFa ? (TYPE_NAMES_FA[s.type] || s.type || 'دارایی') : String(s.type || 'asset').toUpperCase();
+          const sourceLabel = isFa ? (SOURCE_NAMES_FA[s.source] || s.source || 'زنده') : String(s.source || 'live').toUpperCase();
           const displayName = (isFa && s.nameFa) ? s.nameFa : s.name;
           // Iranian instruments: show the Persian ticker (نماد) as primary label
           const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
@@ -1563,12 +1710,18 @@ class TradingChartApp {
                       ${catLabel}
                     </span>
                   </div>
-                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : ` (${s.base}/${s.quote})`}</div>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : (s.base && s.quote ? ` (${s.base}/${s.quote})` : '')}</div>
                 </div>
               </div>
-              <div style="text-align: end;">
-                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+              <div style="text-align: end; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                <span class="sym-badge-exchange" style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
                   ${exchangeLabel}
+                </span>
+                <span class="sym-badge-type" style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                  ${typeLabel}
+                </span>
+                <span class="sym-badge-source" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.08); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">
+                  ${sourceLabel}
                 </span>
               </div>
             </div>

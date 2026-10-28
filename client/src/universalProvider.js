@@ -4,6 +4,7 @@
 
 import { SYNTHETIC_TYPES } from './syntheticChartTypes.js';
 import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
+import { migrateClientSymbol, CLIENT_LEGACY_ALIASES } from './watchlistManager.js';
 
 class SupportedTimeframesList extends Array {
   includes(tf) {
@@ -63,7 +64,7 @@ export class UniversalMarketProvider {
   }
 
   async refreshRecentBars(symbol, timeframe) {
-    const clean = String(symbol).replace(/^.*:/, '').toUpperCase();
+    const clean = migrateClientSymbol(String(symbol).trim());
     try {
       const res = await fetch(`/api/candles?symbol=${encodeURIComponent(clean)}&timeframe=${encodeURIComponent(timeframe)}&limit=2`);
       if (!res.ok) return;
@@ -240,7 +241,8 @@ export class UniversalMarketProvider {
   }
 
   async _fetchBars(ticker, timeframe, range = {}) {
-    const clean = String(ticker).replace(/^.*:/, '').toUpperCase();
+    const raw = String(ticker || '').trim();
+    const clean = migrateClientSymbol(raw);
     const tfStr = String(timeframe);
     this._currentSymbol = clean;
     this._currentTimeframe = tfStr;
@@ -259,6 +261,13 @@ export class UniversalMarketProvider {
     try {
       const res = await fetch(`/api/candles?${params.toString()}`);
       if (!res.ok) {
+        if (res.status === 404) {
+          const isFa = (typeof document !== 'undefined' && (document.body?.classList?.contains('persian-mode') || document.documentElement?.lang === 'fa'));
+          const notice = isFa ? 'این نماد دیگر پشتیبانی نمی‌شود' : 'This symbol is no longer supported';
+          this.chartManager?.showNotice?.('unsupported_symbol');
+          let banner = document.querySelector('.tc-chart-notice, .chart-feed-notice, [data-notice-id], .notice-banner, #removed-symbol-notice');
+          if (banner) { banner.style.display = 'flex'; banner.innerText = notice; }
+        }
         const lastGood = this.seriesCache.get(cacheKey);
         if (lastGood && lastGood.length) {
           console.warn(`[UniversalProvider] HTTP ${res.status} for ${clean} ${tfStr} — serving last known-good series`);
@@ -272,7 +281,9 @@ export class UniversalMarketProvider {
         this.lastSources.set(cacheKey, 'none');
         this.lastSource = 'none';
         this._lastReturnedBars = [];
-        this.chartManager?.showNotice?.('no_data');
+        if (res.status !== 404) {
+          this.chartManager?.showNotice?.('no_data');
+        }
         return [];
       }
 
@@ -356,23 +367,28 @@ export class UniversalMarketProvider {
   }
 
   async getSymbolInfo(ticker) {
-    const clean = ticker.replace(/^.*:/, '').toUpperCase();
+    const raw = String(ticker || '').trim();
+    const clean = migrateClientSymbol(raw);
     try {
-      const res = await fetch(`/api/symbol-info?symbol=${clean}`);
+      const res = await fetch(`/api/symbol-info?symbol=${encodeURIComponent(clean)}`);
       if (res.ok) {
         const meta = await res.json();
         return {
           ticker: clean,
-          tickerid: `${this.providerName.toUpperCase()}:${clean}`,
-          prefix: this.providerName.toUpperCase(),
+          tickerid: clean.includes(':') ? clean : `${this.providerName.toUpperCase()}:${clean}`,
+          prefix: clean.includes(':') ? clean.split(':')[0] : this.providerName.toUpperCase(),
           description: meta.name || clean,
-          type: meta.category === 'crypto' ? 'crypto' : 'stock',
+          type: meta.type || (meta.category === 'crypto' ? 'crypto' : 'stock'),
           basecurrency: meta.base || 'BTC',
-          currency: meta.quote || 'USD',
+          currency: meta.currency || meta.quote || 'USD',
           mintick: meta.minTick || 0.01,
           pricescale: Math.round(1 / (meta.minTick || 0.01)),
           timezone: 'Etc/UTC',
-          session: '24x7'
+          session: '24x7',
+          source: meta.source,
+          dataStatus: meta.dataStatus,
+          delaySec: meta.delaySec,
+          timeframes: meta.timeframes
         };
       }
     } catch (e) {
@@ -381,8 +397,8 @@ export class UniversalMarketProvider {
 
     return {
       ticker: clean,
-      tickerid: `${this.providerName.toUpperCase()}:${clean}`,
-      prefix: this.providerName.toUpperCase(),
+      tickerid: clean.includes(':') ? clean : `${this.providerName.toUpperCase()}:${clean}`,
+      prefix: clean.includes(':') ? clean.split(':')[0] : this.providerName.toUpperCase(),
       description: clean,
       type: clean.endsWith('USDT') ? 'crypto' : 'stock',
       basecurrency: clean.replace(/(USDT|USD)$/, ''),
@@ -450,7 +466,8 @@ export class UniversalMarketProvider {
   }
 
   subscribe(ticker, timeframe, onBar) {
-    const clean = ticker.replace(/^.*:/, '').toUpperCase();
+    const raw = String(ticker || '').trim();
+    const clean = migrateClientSymbol(raw);
     let set = this.subscribers.get(clean);
     if (!set) {
       set = new Set();

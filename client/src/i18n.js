@@ -131,9 +131,16 @@ export const translations = {
     moreAlerts: 'Alerts',
     moreClose: 'Close',
 
-    // Chart Data Feed Notices (FR-012)
+    // Chart Data Feed Notices (FR-012, FR-009)
     noticeNoData: 'No data is available for this symbol on this timeframe.',
-    noticeCacheStale: 'Live data is temporarily unavailable; showing the last saved data.'
+    noticeCacheStale: 'Live data is temporarily unavailable; showing the last saved data.',
+    unsupportedSymbol: 'This symbol is no longer supported',
+    timeframeDailyOnly: 'Only daily data is available for this symbol',
+    dataStatusLive: 'LIVE',
+    dataStatusDelayed: 'Delayed',
+    dataStatusEod: 'EOD',
+    dataStatusClosed: 'Market closed',
+    statusMin: 'min'
   },
   fa: {
     // Header & Workspace
@@ -264,9 +271,16 @@ export const translations = {
     moreAlerts: 'هشدارها',
     moreClose: 'بستن',
 
-    // Chart Data Feed Notices (FR-012)
+    // Chart Data Feed Notices (FR-012, FR-009)
     noticeNoData: 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.',
-    noticeCacheStale: 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.'
+    noticeCacheStale: 'داده‌های زنده موقتاً در دسترس نیست؛ آخرین داده‌های ذخیره‌شده نمایش داده می‌شود.',
+    unsupportedSymbol: 'این نماد دیگر پشتیبانی نمی‌شود',
+    timeframeDailyOnly: 'برای این نماد فقط داده‌ی روزانه موجود است',
+    dataStatusLive: 'زنده',
+    dataStatusDelayed: 'تأخیر',
+    dataStatusEod: 'پایان روز',
+    dataStatusClosed: 'بازار بسته است',
+    statusMin: 'دقیقه'
   }
 };
 

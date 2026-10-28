@@ -143,7 +143,7 @@ export class GoldBubbleView {
     });
 
     this.container.querySelector('#btn-chart-abshodeh')?.addEventListener('click', () => {
-      this.app?.switchSymbol?.('GOLD_ABSHODEH');
+      this.app?.switchSymbol?.('IR:GOLD_MESGHAL');
     });
   }
 
@@ -151,6 +151,36 @@ export class GoldBubbleView {
     if (!this.data || !this.container) return;
     const isFa = getLanguage() === 'fa';
     const d = this.data;
+
+    const formatTime = (ts) => {
+      if (!ts) return '';
+      try {
+        const date = new Date(ts);
+        return date.toLocaleTimeString(isFa ? 'fa-IR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        return '';
+      }
+    };
+
+    const ounceVal = typeof d.ounceUsd === 'number' ? d.ounceUsd : (d.ounceUsd?.value || 0);
+    const ounceSrc = d.ounceUsd?.source ? d.ounceUsd.source.toUpperCase() : 'TRADINGVIEW';
+    const ounceTime = formatTime(d.ounceUsd?.time);
+
+    const usdVal = typeof d.usdFree === 'number' ? d.usdFree : (d.usdFree?.value || 0);
+    const usdSrc = d.usdFree?.source ? d.usdFree.source.toUpperCase() : 'TGJU';
+    const usdTime = formatTime(d.usdFree?.time);
+
+    const dirhamVal = typeof d.dirhamRate === 'number' ? d.dirhamRate : (d.dirhamRate?.value || 0);
+    const dirhamSrc = d.dirhamRate?.source ? d.dirhamRate.source.toUpperCase() : 'TGJU';
+    const dirhamTime = formatTime(d.dirhamRate?.time);
+
+    const abshodehVal = d.abshodeh?.price || d.abshodeh?.value || 0;
+    const abshodehSrc = d.abshodeh?.source ? d.abshodeh.source.toUpperCase() : 'TGJU';
+    const abshodehTime = formatTime(d.abshodeh?.time);
+
+    const gram18Val = d.gram18?.price || d.gram18?.value || 0;
+    const gram18Src = d.gram18?.source ? d.gram18.source.toUpperCase() : 'TGJU';
+    const gram18Time = formatTime(d.gram18?.time);
 
     // 1. Update Grid Cards
     const cardsGrid = this.container.querySelector('#gold-cards-grid');
@@ -160,13 +190,16 @@ export class GoldBubbleView {
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'مظنه مثقال آبشده ۱۷ عیار' : '17k Melted Gold (Mesghal)'}</span>
-            <span style="font-size: 10px; color: #fbbf24; font-weight: 700; background: rgba(245,158,11,0.1); padding: 1px 6px; border-radius: 3px;">${isFa ? 'بازار تهران' : 'BAZAAR'}</span>
+            <span style="font-size: 10px; color: #fbbf24; font-weight: 700; background: rgba(245,158,11,0.1); padding: 1px 6px; border-radius: 3px;">${abshodehSrc}</span>
           </div>
           <div style="font-size: 18px; font-weight: 800; color: #fff; font-family: var(--font-mono);">
-            ${this.formatToman(d.abshodeh.price)} <span style="font-size: 11px; font-weight: normal; color: var(--text-dim);">${isFa ? 'تومان' : 'TMN'}</span>
+            ${this.formatToman(abshodehVal)} <span style="font-size: 11px; font-weight: normal; color: var(--text-dim);">${isFa ? 'تومان' : 'TMN'}</span>
           </div>
-          <div style="font-size: 11px; color: #00F2B0; font-weight: 700;">
-            ▲ +${this.formatToman(d.abshodeh.change)} (${isFa ? toPersianDigits(d.abshodeh.changePercent) : d.abshodeh.changePercent}%)
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <span style="color: #00F2B0; font-weight: 700;">
+              ▲ +${this.formatToman(d.abshodeh?.change || 0)} (${isFa ? toPersianDigits(d.abshodeh?.changePercent || 0) : (d.abshodeh?.changePercent || 0)}%)
+            </span>
+            <span style="font-size: 10px; color: var(--text-dim);">${abshodehTime}</span>
           </div>
         </div>
 
@@ -174,13 +207,16 @@ export class GoldBubbleView {
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'یک گرم طلای ۱۸ عیار (۷۵۰)' : '18k Gram Gold (750)'}</span>
-            <span style="font-size: 10px; color: #fbbf24; font-weight: 700; background: rgba(245,158,11,0.1); padding: 1px 6px; border-radius: 3px;">${isFa ? 'طلا ۷۵۰' : '750 Au'}</span>
+            <span style="font-size: 10px; color: #fbbf24; font-weight: 700; background: rgba(245,158,11,0.1); padding: 1px 6px; border-radius: 3px;">${gram18Src}</span>
           </div>
           <div style="font-size: 18px; font-weight: 800; color: #fff; font-family: var(--font-mono);">
-            ${this.formatToman(d.gram18.price)} <span style="font-size: 11px; font-weight: normal; color: var(--text-dim);">${isFa ? 'تومان' : 'TMN'}</span>
+            ${this.formatToman(gram18Val)} <span style="font-size: 11px; font-weight: normal; color: var(--text-dim);">${isFa ? 'تومان' : 'TMN'}</span>
           </div>
-          <div style="font-size: 11px; color: #00F2B0; font-weight: 700;">
-            ▲ +${this.formatToman(d.gram18.change)} (${isFa ? toPersianDigits(d.gram18.changePercent) : d.gram18.changePercent}%)
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <span style="color: #00F2B0; font-weight: 700;">
+              ▲ +${this.formatToman(d.gram18?.change || 0)} (${isFa ? toPersianDigits(d.gram18?.changePercent || 0) : (d.gram18?.changePercent || 0)}%)
+            </span>
+            <span style="font-size: 10px; color: var(--text-dim);">${gram18Time}</span>
           </div>
         </div>
 
@@ -188,27 +224,29 @@ export class GoldBubbleView {
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'انس طلای جهانی Spot' : 'Gold Spot Ounce'}</span>
-            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 700; background: rgba(0,242,176,0.1); padding: 1px 6px; border-radius: 3px;">${isFa ? 'جهانی' : 'GLOBAL'}</span>
+            <span style="font-size: 10px; color: var(--accent-cyan); font-weight: 700; background: rgba(0,242,176,0.1); padding: 1px 6px; border-radius: 3px;">${ounceSrc}</span>
           </div>
           <div style="font-size: 18px; font-weight: 800; color: #fff; font-family: var(--font-mono);">
-            $${this.formatUsd(d.ounceUsd)}
+            $${this.formatUsd(ounceVal)}
           </div>
-          <div style="font-size: 11px; color: var(--text-dim);">
-            ${isFa ? 'مبنای ۳۱.۱۰۳۵ گرم تروا' : 'Per 31.1035 Troy Grams'}
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-dim);">
+            <span>${isFa ? 'مبنای ۳۱.۱۰۳۵ گرم تروا' : '31.1035g Troy'}</span>
+            <span style="font-size: 10px;">${ounceTime}</span>
           </div>
         </div>
 
-        <!-- Card 4: Free USD & Tether -->
+        <!-- Card 4: Free USD Rate -->
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'دلار آزاد / تتر نوبیتکس' : 'Free USD / Nobitex USDT'}</span>
-            <span style="font-size: 10px; color: #38bdf8; font-weight: 700; background: rgba(56,189,248,0.1); padding: 1px 6px; border-radius: 3px;">${isFa ? 'نرخ ارز' : 'FX RATE'}</span>
+            <span style="font-size: 11px; color: var(--text-dim);">${isFa ? 'دلار آزاد بازار تهران' : 'Free Market USD'}</span>
+            <span style="font-size: 10px; color: #38bdf8; font-weight: 700; background: rgba(56,189,248,0.1); padding: 1px 6px; border-radius: 3px;">${usdSrc}</span>
           </div>
           <div style="font-size: 18px; font-weight: 800; color: #fff; font-family: var(--font-mono);">
-            ${this.formatToman(d.usdFree)} / ${this.formatToman(d.usdtNobitex)}
+            ${this.formatToman(usdVal)} <span style="font-size: 11px; font-weight: normal; color: var(--text-dim);">${isFa ? 'تومان' : 'TMN'}</span>
           </div>
-          <div style="font-size: 11px; color: var(--text-dim);">
-            ${isFa ? `حواله درهم دبی: ${this.formatToman(d.dirhamRate)} ت` : `AED Dirham: ${this.formatToman(d.dirhamRate)} TMN`}
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-dim);">
+            <span>${isFa ? `درهم دبی: ${this.formatToman(dirhamVal)} ت` : `AED Dirham: ${this.formatToman(dirhamVal)}`}</span>
+            <span style="font-size: 10px;">${usdTime}</span>
           </div>
         </div>
       `;
@@ -218,36 +256,45 @@ export class GoldBubbleView {
     const tbody = this.container.querySelector('#gold-coins-tbody');
     if (tbody && d.coins) {
       const COIN_SYMBOL_MAP = {
-        emami: { sym: 'COIN_EMAMI', tickerFa: 'سکه امامی' },
-        bahar: { sym: 'COIN_BAHAR', tickerFa: 'سکه بهار آزادی' },
-        nim: { sym: 'COIN_NIM', tickerFa: 'نیم سکه بهار' },
-        rob: { sym: 'COIN_ROB', tickerFa: 'ربع سکه بهار' },
-        gerami: { sym: 'COIN_GERMI', tickerFa: 'سکه گرمی' }
+        emami: { sym: 'IR:COIN_EMAMI', tickerFa: 'سکه امامی' },
+        bahar: { sym: 'IR:COIN_BAHAR', tickerFa: 'سکه بهار آزادی' },
+        nim: { sym: 'IR:COIN_NIM', tickerFa: 'نیم سکه بهار' },
+        rob: { sym: 'IR:COIN_ROB', tickerFa: 'ربع سکه بهار' },
+        gerami: { sym: 'IR:COIN_GERMI', tickerFa: 'سکه گرمی' }
       };
 
       tbody.innerHTML = Object.entries(d.coins).map(([key, coin]) => {
-        const item = COIN_SYMBOL_MAP[key] || { sym: 'COIN_EMAMI', tickerFa: 'سکه' };
+        const item = COIN_SYMBOL_MAP[key] || { sym: 'IR:COIN_EMAMI', tickerFa: 'سکه' };
         const sym = item.sym;
         const subLabel = isFa ? item.tickerFa : sym;
         const bubbleColor = coin.bubblePercent >= 30 ? '#ef4444' : coin.bubblePercent >= 20 ? '#f59e0b' : '#00F2B0';
+        const coinSource = coin.source ? coin.source.toUpperCase() : 'TGJU';
+        const coinTime = formatTime(coin.time);
+
         return `
           <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s;" class="gold-coin-row">
             <td style="padding: 10px 12px;">
               <div style="font-weight: 700; color: #fff;">${isFa ? coin.name : coin.nameEn}</div>
               <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">${subLabel}</div>
             </td>
-            <td style="padding: 10px 12px; text-align: right; font-weight: 800; font-family: var(--font-mono); color: #fff;">
-              ${this.formatToman(coin.marketPrice)}
+            <td style="padding: 10px 12px; text-align: right;">
+              <div style="font-weight: 800; font-family: var(--font-mono); color: #fff;">
+                ${this.formatToman(coin.marketPrice || coin.market)}
+              </div>
+              <div style="font-size: 10px; color: var(--text-dim); display: flex; gap: 4px; align-items: center; justify-content: flex-end; margin-top: 2px;">
+                <span style="background: rgba(245,158,11,0.1); color: #fbbf24; padding: 0 4px; border-radius: 2px; font-weight: 700; font-size: 9px;">${coinSource}</span>
+                <span>${coinTime}</span>
+              </div>
             </td>
             <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); color: var(--text-dim);">
-              ${this.formatToman(coin.intrinsicValue)}
+              ${this.formatToman(coin.intrinsicValue || coin.intrinsic)}
             </td>
             <td style="padding: 10px 12px; text-align: right; font-family: var(--font-mono); color: ${bubbleColor}; font-weight: 700;">
               +${this.formatToman(coin.bubbleAmount)}
             </td>
             <td style="padding: 10px 12px; text-align: center;">
               <span style="font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: ${bubbleColor}; border: 1px solid ${bubbleColor}40;">
-                ${isFa ? toPersianDigits(coin.bubblePercent) : coin.bubblePercent}%
+                ${isFa ? toPersianDigits(coin.bubblePercent || coin.bubblePct) : (coin.bubblePercent || coin.bubblePct)}%
               </span>
             </td>
             <td style="padding: 10px 12px; text-align: center; color: var(--text-dim); font-size: 11px;">
@@ -272,7 +319,7 @@ export class GoldBubbleView {
 
     const timeEl = this.container.querySelector('#gold-last-updated');
     if (timeEl) {
-      timeEl.textContent = isFa ? 'برخط (پایش زنده هر ۴ ثانیه)' : 'Online (4s live telemetry)';
+      timeEl.textContent = isFa ? 'برخط (داده‌های زنده از TGJU و TradingView)' : 'Online (Real feeds from TGJU & TradingView)';
     }
   }
 }

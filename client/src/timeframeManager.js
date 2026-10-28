@@ -27,6 +27,109 @@ export class TimeframeManager {
     this.storageKey = 'tradingchart_custom_timeframes';
     this.customTimeframes = this.loadCustomTimeframes();
     this.createModal();
+    this.initTopbarTimeframes();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('tc:languagechange', () => this.updateAllowedTimeframes());
+      setTimeout(() => this.initTopbarTimeframes(), 100);
+      setTimeout(() => this.initTopbarTimeframes(), 1000);
+    }
+  }
+
+  initTopbarTimeframes() {
+    if (typeof document === 'undefined') return;
+    let bar = document.querySelector('#topbar-timeframe-bar');
+    if (!bar) {
+      const suite = document.querySelector('.top-nav-layout-suite') || document.querySelector('.top-nav-left');
+      if (!suite) return;
+      bar = document.createElement('div');
+      bar.id = 'topbar-timeframe-bar';
+      bar.className = 'topbar-timeframe-bar';
+      bar.style.cssText = 'display: inline-flex; align-items: center; gap: 2px; margin: 0 4px;';
+
+      const quickTfs = [
+        { id: '1', label: '1m' },
+        { id: '5', label: '5m' },
+        { id: '15', label: '15m' },
+        { id: '60', label: '1h' },
+        { id: '240', label: '4h' },
+        { id: 'D', label: '1D' },
+        { id: 'W', label: '1W' },
+        { id: 'M', label: '1M' }
+      ];
+
+      const current = String(this.app?.currentTimeframe || '60');
+      bar.innerHTML = quickTfs.map(tf => `
+        <button class="tf-btn timeframe-btn ${tf.id === current ? 'active' : ''}" 
+                data-tf="${tf.id}" 
+                data-timeframe="${tf.id}" 
+                id="tf-btn-${tf.id}"
+                style="height: 24px; padding: 2px 6px; font-size: 11px; font-weight: 700; border-radius: 4px; border: 1px solid transparent; background: transparent; color: #fff; cursor: pointer; transition: all 0.15s ease;">
+          ${tf.label}
+        </button>
+      `).join('');
+
+      bar.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+          const id = btn.getAttribute('data-tf');
+          this.setTimeframe(id);
+        });
+      });
+
+      const targetSibling = document.querySelector('#btn-topbar-market-source');
+      if (targetSibling && targetSibling.parentNode === suite) {
+        targetSibling.after(bar);
+      } else {
+        suite.appendChild(bar);
+      }
+    }
+    this.updateAllowedTimeframes();
+  }
+
+  updateAllowedTimeframes(allowedTimeframes) {
+    if (typeof document === 'undefined') return;
+    const allowed = allowedTimeframes || this.app?.currentCatalogEntry?.timeframes || null;
+    const isFa = getLanguage() === 'fa' || document.body?.classList?.contains('persian-mode');
+    const tooltip = isFa ? 'برای این نماد فقط داده‌ی روزانه موجود است' : 'Only daily data is available for this symbol';
+
+    const buttons = document.querySelectorAll('[data-tf], [data-timeframe], .btn-select-tf');
+    buttons.forEach(btn => {
+      const id = btn.getAttribute('data-tf') || btn.getAttribute('data-timeframe') || btn.getAttribute('data-id');
+      if (!id) return;
+
+      const isAllowed = !allowed || !Array.isArray(allowed) || allowed.includes(id);
+      if (!isAllowed) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.classList.add('disabled', 'is-disabled');
+        btn.setAttribute('title', tooltip);
+        btn.setAttribute('data-tooltip', tooltip);
+        btn.style.opacity = '0.35';
+        btn.style.cursor = 'not-allowed';
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+        btn.classList.remove('disabled', 'is-disabled');
+        btn.removeAttribute('title');
+        btn.removeAttribute('data-tooltip');
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      }
+    });
+
+    const current = String(this.app?.currentTimeframe || '60');
+    document.querySelectorAll('#topbar-timeframe-bar .tf-btn').forEach(btn => {
+      const id = btn.getAttribute('data-tf');
+      if (id === current) {
+        btn.classList.add('active');
+        btn.style.background = 'rgba(0, 242, 176, 0.15)';
+        btn.style.color = 'var(--accent-cyan)';
+      } else {
+        btn.classList.remove('active');
+        btn.style.background = 'transparent';
+        btn.style.color = '#fff';
+      }
+    });
   }
 
   loadCustomTimeframes() {
@@ -76,6 +179,12 @@ export class TimeframeManager {
 
   setTimeframe(id) {
     const tfStr = String(id);
+    const allowed = this.app?.currentCatalogEntry?.timeframes;
+    if (allowed && Array.isArray(allowed) && !allowed.includes(tfStr)) {
+      const isFa = getLanguage() === 'fa' || document.body?.classList?.contains('persian-mode');
+      this.app?.showToast?.(isFa ? 'برای این نماد فقط داده‌ی روزانه موجود است' : 'Only daily data is available for this symbol');
+      return;
+    }
     if (this.app) {
       if (typeof this.app.setTimeframe === 'function') {
         this.app.setTimeframe(tfStr);
@@ -85,6 +194,7 @@ export class TimeframeManager {
         this.app.loadActiveCandles?.();
       }
     }
+    this.updateAllowedTimeframes();
     this.close();
   }
 
@@ -117,7 +227,7 @@ export class TimeframeManager {
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
               ${STANDARD_TIMEFRAMES.map(tf => `
-                <button class="btn-select-tf ${tf.id === currentTf ? 'active' : ''}" data-id="${tf.id}" style="padding: 8px 4px; font-size: 12px; font-weight: 700; border-radius: 4px; border: 1px solid ${tf.id === currentTf ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; background: ${tf.id === currentTf ? 'rgba(0, 242, 176, 0.1)' : 'var(--bg-card)'}; color: ${tf.id === currentTf ? 'var(--accent-cyan)' : '#fff'}; cursor: pointer;">
+                <button class="btn-select-tf ${tf.id === currentTf ? 'active' : ''}" data-id="${tf.id}" data-tf="${tf.id}" data-timeframe="${tf.id}" id="tf-modal-btn-${tf.id}" style="padding: 8px 4px; font-size: 12px; font-weight: 700; border-radius: 4px; border: 1px solid ${tf.id === currentTf ? 'var(--accent-cyan)' : 'var(--border-subtle)'}; background: ${tf.id === currentTf ? 'rgba(0, 242, 176, 0.1)' : 'var(--bg-card)'}; color: ${tf.id === currentTf ? 'var(--accent-cyan)' : '#fff'}; cursor: pointer;">
                   ${tf.label} <span style="font-size: 10px; opacity: 0.7;">(${isFa ? tf.nameFa : tf.name})</span>
                 </button>
               `).join('')}
@@ -166,6 +276,7 @@ export class TimeframeManager {
     `;
 
     this.bindEvents();
+    this.updateAllowedTimeframes();
   }
 
   bindEvents() {

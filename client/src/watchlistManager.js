@@ -54,14 +54,32 @@ export const CLIENT_LEGACY_ALIASES = {
   'COIN_ROB': 'IR:COIN_ROB',
   'COIN_GERMI': 'IR:COIN_GERMI',
   'GOLD_18K': 'IR:GOLD_18K',
-  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
+  'GOLD_24K': 'IR:GOLD_24K',
+  'GERAM24': 'IR:GOLD_24K',
+  'GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
+  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
+  'GOLD_MESGHAL': 'IR:GOLD_MESGHAL',
+  'MESGHAL': 'IR:GOLD_MESGHAL',
+  'ABSHODEH': 'IR:GOLD_MESGHAL',
+  'USDT_FREE': 'IR:USDT_FREE',
+  'USDT_IRR': 'IR:USDT_FREE',
+  'VIX': 'TVC:VIX',
+  'DAX': 'TVC:DAX',
+  'DXY': 'TVC:DXY',
+  'US10Y': 'TVC:US10Y',
+  'SPY': 'AMEX:SPY',
+  'QQQ': 'NASDAQ:QQQ',
+  'NZDUSD': 'OANDA:NZDUSD',
+  'EURCHF': 'OANDA:EURCHF',
+  'AUDJPY': 'OANDA:AUDJPY'
 };
 
 export function migrateClientSymbol(s) {
   if (!s) return s;
-  const sym = String(s).trim().toUpperCase();
+  let sym = String(s).trim().toUpperCase();
+  if (sym.startsWith('UNIVERSAL:')) sym = sym.slice(10);
   if (CLIENT_LEGACY_ALIASES[sym]) return CLIENT_LEGACY_ALIASES[sym];
-  if (!sym.includes(':') && (sym.endsWith('USDT') || sym.endsWith('USDC') || sym.endsWith('BTC'))) {
+  if (!sym.includes(':') && (sym.endsWith('USDT') || sym.endsWith('USDC') || sym.endsWith('BTC') || sym.endsWith('ETH') || sym.endsWith('FDUSD'))) {
     return `BINANCE:${sym}`;
   }
   return sym;
@@ -91,7 +109,7 @@ export const PRESET_WATCHLISTS = {
   iran_gold: {
     id: 'iran_gold',
     name: 'Tehran Gold & Currencies',
-    symbols: ['IR:GOLD_18K', 'IR:GOLD_ABSHODEH', 'IR:COIN_EMAMI', 'IR:COIN_BAHAR', 'IR:COIN_NIM', 'IR:COIN_ROB', 'IR:USD_FREE']
+    symbols: ['IR:GOLD_18K', 'IR:GOLD_MESGHAL', 'IR:COIN_EMAMI', 'IR:COIN_BAHAR', 'IR:COIN_NIM', 'IR:COIN_ROB', 'IR:USD_FREE']
   },
   iran_tse: {
     id: 'iran_tse',
