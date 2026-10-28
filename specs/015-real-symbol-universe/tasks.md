@@ -49,3 +49,12 @@ Architect note: after phase 5 merged and deployed, the production audit found (a
 - [ ] T025 [US1] Route strictly by prefix in server/dataFeed.js and server/symbolCatalog.js: only `BINANCE:`/bare crypto pairs go to Binance, `IR:` to TGJU, `TSE:` to the TSE source, every other prefix to TradingView; unresolvable → 404 `unknown_symbol` (no fallback) (FR-012)
 - [ ] T026 [US2] Replace the four unresolvable curated defaults and derive every curated `dataStatus` from the resolved delay in server/symbolCatalog.js (FR-012)
 - [ ] T027 [US6] Make tools/accuracy_audit.mjs fail closed (exit 1 when server/provider unreachable), compare TradingView symbols via the public socket, compare the last closed bar within one minTick (FR-012)
+
+## Phase 7: Complete universe — all TradingView markets and all Iranian exchange symbols (founder 2026-10-28)
+
+Architect note: founder rejected the curated-only catalogue («قراره جایگزین تریدینگ‌ویو باشه، پس باید تکمیل باشه» and «به تمامی نمادهای بورس ایران هم نیازه»). Recon: `POST https://scanner.tradingview.com/<market>/scan` with `Origin: https://www.tradingview.com`, body `{columns:[name,description,exchange,type,subtype,currency,pricescale,minmov,update_mode], range:[from,to], filter?, sort?}` → `{totalCount, data:[{s, d:[...]}]}` — measured totals: global 454 562, crypto 64 494, futures 52 622, germany 39 830, america 20 053, economics2 15 167, uk 9 509, india 8 759, forex 6 332, bonds 1 163, cfd 650, turkey 650. BrsApi free key: 300 req / 5 min, ≥ 300 ms spacing, one key per person; `AllSymbols` returns every TSE/IFB instrument in one call. TradingView `TSE:` = Tokyo.
+
+- [ ] T028 [US2] Add scanner access (markets list with totals, paged browse with filters, `update_mode` → dataStatus, pricescale/minmov → precision) to server/tradingviewClient.js and expose `GET /api/symbols/markets` and `GET /api/symbols/browse` in server/index.js via server/symbolCatalog.js (FR-013)
+- [ ] T029 [US5] Rename the Tehran exchange prefix to `TSETMC:` across server/tseSource.js, server/symbolCatalog.js and server/dataFeed.js, route `TSE:` to TradingView (Tokyo) (FR-013)
+- [ ] T030 [US5] Load ALL BrsApi `AllSymbols` instruments (stocks, rights, funds, bonds, options) with one snapshot per minute for live prices and on-demand cached daily history, respecting the fair-use limits, in server/tseSource.js (FR-013, FR-007)
+- [ ] T031 [US2] Add the market browser (market tabs, exchange/type filters, infinite scroll, status badges, FA/EN) to the symbol-search dialog in client/src/main.js and client/src/i18n.js (FR-013)
