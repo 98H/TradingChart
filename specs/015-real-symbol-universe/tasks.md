@@ -33,9 +33,9 @@
 
 ## Phase 5: Client UX and accuracy proof
 
-- [ ] T017 [US2] Topbar source/status badge LIVE / Delayed N min / EOD / Market closed and symbol-search rows with exchange, type, source in client/src/main.js and client/src/i18n.js (FR-009)
-- [ ] T018 [US4] Disable timeframes not in the symbol's `timeframes` with the FA/EN tooltip in client/src/timeframeManager.js and client/src/universalProvider.js (FR-009)
-- [ ] T019 [US1] Alias migration and removed-symbol notice for watchlists/layouts in client/src/watchlistManager.js and client/src/universalProvider.js (FR-009)
-- [ ] T020 [US2] Real-input gold bubble view with source/time in client/src/goldBubbleView.js (FR-009)
-- [ ] T023 [US1] Delete the now-unused server/marketSessions.js (no importer left) and keep the build green (FR-008)
-- [ ] T021 [US6] Create tools/accuracy_audit.mjs (≥ 200 stratified symbols, provider-direct comparison, JSON report, exit 1 on mismatch) (FR-010)
+- [x] T017 [US2] Topbar source/status badge LIVE / Delayed N min / EOD / Market closed and symbol-search rows with exchange, type, source in client/src/main.js and client/src/i18n.js (FR-009)
+- [x] T018 [US4] Disable timeframes not in the symbol's `timeframes` with the FA/EN tooltip in client/src/timeframeManager.js and client/src/universalProvider.js (FR-009)
+- [x] T019 [US1] Alias migration and removed-symbol notice for watchlists/layouts in client/src/watchlistManager.js and client/src/universalProvider.js (FR-009)
+- [x] T020 [US2] Real-input gold bubble view with source/time in client/src/goldBubbleView.js (FR-009)
+- [x] T023 [US1] Delete the now-unused market-sessions module (no importer left) and keep the build green (FR-008)
+- [x] T021 [US6] Create tools/accuracy_audit.mjs (≥ 200 stratified symbols, provider-direct comparison, JSON report, exit 1 on mismatch) (FR-010)
