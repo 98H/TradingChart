@@ -37,4 +37,5 @@
 - [ ] T018 [US4] Disable timeframes not in the symbol's `timeframes` with the FA/EN tooltip in client/src/timeframeManager.js and client/src/universalProvider.js (FR-009)
 - [ ] T019 [US1] Alias migration and removed-symbol notice for watchlists/layouts in client/src/watchlistManager.js and client/src/universalProvider.js (FR-009)
 - [ ] T020 [US2] Real-input gold bubble view with source/time in client/src/goldBubbleView.js (FR-009)
+- [ ] T023 [US1] Delete the now-unused server/marketSessions.js (no importer left) and keep the build green (FR-008)
 - [ ] T021 [US6] Create tools/accuracy_audit.mjs (≥ 200 stratified symbols, provider-direct comparison, JSON report, exit 1 on mismatch) (FR-010)
