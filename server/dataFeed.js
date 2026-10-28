@@ -72,23 +72,26 @@ export function getBinanceBases() {
   ];
 }
 
+const ALIAS_VALUES = new Set(Object.values(ALIAS_MAP).map(v => String(v).toUpperCase()));
 const KNOWN_SYMBOLS = new Set(SYMBOL_CATALOG.map(s => String(s.symbol).toUpperCase()));
 export function isKnownSymbol(sym) {
   if (!sym) return false;
   const s = String(sym).trim().toUpperCase();
-  if (s === 'UNKNOWN_TEST_SYM_015' || s.startsWith('UNKNOWN_')) return false;
 
-  if (ALIAS_MAP[s]) return true;
+  if (ALIAS_MAP[s] || ALIAS_VALUES.has(s)) return true;
   if (KNOWN_SYMBOLS.has(s)) return true;
-  const bare = s.replace(/^.*:/, '');
+
+  const bare = s.includes(':') ? s.split(':')[1] : s;
   if (KNOWN_SYMBOLS.has(bare)) return true;
 
-  if (bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH') || bare.endsWith('BNB')) return true;
-  if (s.startsWith('BINANCE:')) return true;
+  if (s.startsWith('BINANCE:') && (bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH') || bare.endsWith('BNB'))) {
+    return true;
+  }
+  if (!s.includes(':') && (bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH') || bare.endsWith('BNB'))) {
+    return true;
+  }
 
-  const KNOWN_EXCHANGES = ['OANDA', 'NASDAQ', 'SP', 'TVC', 'DJ', 'FX_IDC', 'FX', 'AMEX', 'NYSE', 'CBOE', 'BINANCE', 'IR', 'TSE'];
-  const prefix = s.includes(':') ? s.split(':')[0] : null;
-  if (prefix && KNOWN_EXCHANGES.includes(prefix)) {
+  if (tvClient?.metaCache?.has(s) || tvClient?.metaCache?.has(bare)) {
     return true;
   }
 

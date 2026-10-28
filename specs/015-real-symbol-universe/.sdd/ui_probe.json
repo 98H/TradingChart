@@ -1,0 +1,111 @@
+{
+  "defects": 0,
+  "knownBaselineDefects": 26,
+  "baseline": ".sdd/baseline/ui_probe_2026-10-23.json",
+  "results": [
+    {
+      "page": "/",
+      "viewport": "desktop",
+      "locale": "en",
+      "defects": 0,
+      "knownBaselineDefects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "desktop",
+      "locale": "en",
+      "defects": 0,
+      "knownBaselineDefects": 2,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "desktop",
+      "locale": "fa",
+      "defects": 0,
+      "knownBaselineDefects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "desktop",
+      "locale": "fa",
+      "defects": 0,
+      "knownBaselineDefects": 2,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "mobile",
+      "locale": "en",
+      "defects": 0,
+      "knownBaselineDefects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "mobile",
+      "locale": "en",
+      "defects": 0,
+      "knownBaselineDefects": 11,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/",
+      "viewport": "mobile",
+      "locale": "fa",
+      "defects": 0,
+      "knownBaselineDefects": 0,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    },
+    {
+      "page": "/chart",
+      "viewport": "mobile",
+      "locale": "fa",
+      "defects": 0,
+      "knownBaselineDefects": 11,
+      "overflow": [],
+      "covered": [],
+      "tinyTarget": [],
+      "untranslated": [],
+      "clipped": [],
+      "consoleErr": []
+    }
+  ]
+}

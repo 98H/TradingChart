@@ -118,7 +118,7 @@ app.get('/api/candles', async (req, res) => {
     const exchange = result?.exchange || (getSymbolMeta(symbol)?.exchange || 'Binance');
     const delaySec = typeof result?.delaySec === 'number' ? result.delaySec : 0;
 
-    if (candles.length === 0) {
+    if (candles.length === 0 && !isKnownSymbol(symbol)) {
       return res.status(404).json({ symbol, timeframe, count: 0, candles: [], error: 'no_market_data' });
     }
 
@@ -313,24 +313,10 @@ wss.on('connection', (ws) => {
           }
         }).catch(() => {});
 
-        // If TradingView symbol, subscribe to real-time quote updates
+        // If TradingView symbol, ensure real-time quote updates are active (ticks broadcasted via tvClient.onLiveTick)
         const resolved = resolveSymbolId(sym);
         if (resolved.includes(':') && !resolved.startsWith('BINANCE:')) {
-          tvClient.subscribe(resolved, (q) => {
-            if (ws.readyState === WebSocket.OPEN && subs.has(sym) && typeof q.lastPrice === 'number') {
-              ws.send(JSON.stringify({
-                type: 'tick',
-                symbol: sym,
-                price: q.lastPrice,
-                change: q.priceChange || 0,
-                changePct: q.priceChangePercent || 0,
-                high: q.highPrice || q.lastPrice,
-                low: q.lowPrice || q.lastPrice,
-                volume: q.volume || 0,
-                time: q.time || Date.now()
-              }));
-            }
-          });
+          tvClient.ensureQuote(resolved);
         }
       } else if (isUnsub && msg.symbol) {
         const subs = activeSubscriptions.get(ws);

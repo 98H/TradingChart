@@ -60,43 +60,6 @@ function parseFramedBuffer(buffer) {
   return { msgs, remaining };
 }
 
-/**
- * Expand a 1-minute bar into 60 1-second bars with valid OHLC relationships.
- */
-function expandMinuteBarToSeconds(minuteBar) {
-  const bars = [];
-  const baseTime = minuteBar.time;
-  const o = minuteBar.open;
-  const h = minuteBar.high;
-  const l = minuteBar.low;
-  const c = minuteBar.close;
-  const v = (minuteBar.volume || 0) / 60;
-
-  for (let s = 0; s < 60; s++) {
-    const t = baseTime + s * 1000;
-    const progressStart = s / 60;
-    const progressEnd = (s + 1) / 60;
-
-    const secOpen = o + (c - o) * progressStart;
-    const secClose = o + (c - o) * progressEnd;
-    let secHigh = Math.max(secOpen, secClose);
-    let secLow = Math.min(secOpen, secClose);
-
-    if (s === 15) secHigh = Math.max(secHigh, h);
-    if (s === 45) secLow = Math.min(secLow, l);
-
-    bars.push({
-      time: t,
-      open: Number(secOpen.toFixed(5)),
-      high: Number(secHigh.toFixed(5)),
-      low: Number(secLow.toFixed(5)),
-      close: Number(secClose.toFixed(5)),
-      volume: v
-    });
-  }
-
-  return bars;
-}
 
 class TVSocket {
   constructor(pool, id) {
@@ -250,16 +213,16 @@ export class TradingViewClient {
   constructor() {
     this.sockets = [];
     this.seq = 0;
-    this.metaCache = new Map();
-    this.quotes = new Map();
+    // LRU caches
+    this.metaCache = new CostLruCache(5000);
+    this.quotes = new CostLruCache(5000);
+    this.barsCache = new CostLruCache(150000);
+    this.lastGoodCache = new CostLruCache(150000);
+
     this.quoteListeners = new Map();
     this.liveTickListeners = new Set();
     this.rateQueue = [];
     this.rateTimer = null;
-
-    // LRU caches
-    this.barsCache = new CostLruCache(150000);
-    this.lastGoodCache = new CostLruCache(150000);
 
     // Initial socket
     this.getOrAllocSocket();
@@ -422,29 +385,45 @@ export class TradingViewClient {
   }
 
   /**
+   * Ensure quote streaming is active for a symbol on the underlying socket
+   */
+  ensureQuote(symbol) {
+    const cleanSym = String(symbol || '').trim();
+    if (!cleanSym) return;
+    const socket = this.getOrAllocSocket();
+    socket.ensureQuote(cleanSym);
+  }
+
+  /**
    * Subscribe to live quote updates for a symbol
    */
-  subscribe(symbol, callback) {
+  subscribe(symbol, callback = null) {
     const cleanSym = String(symbol || '').trim();
-    let listeners = this.quoteListeners.get(cleanSym);
-    if (!listeners) {
-      listeners = new Set();
-      this.quoteListeners.set(cleanSym, listeners);
+    if (callback) {
+      let listeners = this.quoteListeners.get(cleanSym);
+      if (!listeners) {
+        listeners = new Set();
+        this.quoteListeners.set(cleanSym, listeners);
+      }
+      listeners.add(callback);
     }
-    listeners.add(callback);
 
     const socket = this.getOrAllocSocket();
     socket.ensureQuote(cleanSym);
 
     // If we already have a cached quote, emit immediately
-    const cached = this.quotes.get(cleanSym);
-    if (cached && !cached.error && cached.lastPrice !== undefined) {
-      callback(cached);
+    if (callback) {
+      const cached = this.quotes.get(cleanSym);
+      if (cached && !cached.error && cached.lastPrice !== undefined) {
+        callback(cached);
+      }
     }
 
     return () => {
-      const list = this.quoteListeners.get(cleanSym);
-      if (list) list.delete(callback);
+      if (callback) {
+        const list = this.quoteListeners.get(cleanSym);
+        if (list) list.delete(callback);
+      }
     };
   }
 
@@ -547,33 +526,17 @@ export class TradingViewClient {
     const canonical = tfParsed.canonical;
     const reqLimit = Math.max(1, Math.min(limit, 5000));
 
-    // 1. Seconds timeframes (e.g. 1s): TradingView unauthorized token does not entitle seconds
-    // Expand from 1-minute bars
+    // 1. Seconds timeframes (e.g. 1s): TradingView unauthorized token does not entitle seconds.
+    // Return empty candles without inventing synthetic prices (Constitution Principle I).
     if (tfParsed.unit === 's') {
-      const minutesNeeded = Math.max(2, Math.ceil(reqLimit / 60) + 1);
-      const minResult = await this.getBars(cleanSym, '1', {
-        limit: minutesNeeded,
-        from: from !== null ? from - 60000 : null,
-        to
-      });
-
-      const secondBars = [];
-      for (const mBar of minResult.candles) {
-        secondBars.push(...expandMinuteBarToSeconds(mBar));
-      }
-
-      let filtered = secondBars;
-      if (from !== null) filtered = filtered.filter(b => b.time >= from);
-      if (to !== null) filtered = filtered.filter(b => b.time <= to);
-      const sliced = filtered.slice(-reqLimit);
-
+      const meta = this.metaCache.get(cleanSym) || await this.resolve(cleanSym).catch(() => ({}));
       return {
         symbol: cleanSym,
         timeframe: canonical,
-        exchange: minResult.exchange,
-        delaySec: minResult.delaySec,
-        source: minResult.source,
-        candles: sliced
+        exchange: meta?.exchange || cleanSym.split(':')[0] || 'TradingView',
+        delaySec: meta?.delaySec || 0,
+        source: 'tradingview',
+        candles: []
       };
     }
 
