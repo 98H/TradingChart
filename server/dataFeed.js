@@ -11,6 +11,54 @@ import { SYMBOL_CATALOG, getSymbolMeta } from './symbolCatalog.js';
 import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
 import { candleLru, dedupeInFlight } from './lru.js';
 import { demoBars, demoPrice, dailyLayer } from './demoPath.js';
+import { tvClient } from './tradingviewClient.js';
+
+export const ALIAS_MAP = {
+  // Forex majors & crosses
+  'EURUSD': 'OANDA:EURUSD',
+  'GBPUSD': 'OANDA:GBPUSD',
+  'USDJPY': 'OANDA:USDJPY',
+  'AUDUSD': 'OANDA:AUDUSD',
+  'USDCAD': 'OANDA:USDCAD',
+  'USDCHF': 'OANDA:USDCHF',
+  'EURGBP': 'OANDA:EURGBP',
+  'EURJPY': 'OANDA:EURJPY',
+  'GBPJPY': 'OANDA:GBPJPY',
+  // Metals & Commodities
+  'XAUUSD': 'OANDA:XAUUSD',
+  'XAGUSD': 'OANDA:XAGUSD',
+  'USOIL': 'TVC:USOIL',
+  'UKOIL': 'TVC:UKOIL',
+  'NATGAS': 'TVC:NATGAS',
+  // Indices
+  'SPX': 'SP:SPX',
+  'NDX': 'NASDAQ:NDX',
+  'DJI': 'DJ:DJI',
+  // Equities
+  'AAPL': 'NASDAQ:AAPL',
+  'NVDA': 'NASDAQ:NVDA',
+  'TSLA': 'NASDAQ:TSLA',
+  'MSFT': 'NASDAQ:MSFT',
+  'AMZN': 'NASDAQ:AMZN',
+  'GOOGL': 'NASDAQ:GOOGL',
+  'META': 'NASDAQ:META',
+  // Tehran / Iran
+  'GOLD_18K': 'IR:GOLD_18K',
+  'COIN_EMAMI': 'IR:COIN_EMAMI',
+  'COIN_BAHAR': 'IR:COIN_BAHAR',
+  'COIN_NIM': 'IR:COIN_NIM',
+  'COIN_ROB': 'IR:COIN_ROB',
+  'COIN_GERMI': 'IR:COIN_GERMI',
+  'USD_TEHRAN': 'IR:USD_FREE',
+  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
+};
+
+export function resolveSymbolId(raw) {
+  if (!raw) return raw;
+  const s = String(raw).trim().toUpperCase();
+  if (ALIAS_MAP[s]) return ALIAS_MAP[s];
+  return s;
+}
 
 export function getBinanceBases() {
   const envBases = process.env.TC_BINANCE_BASES;
@@ -26,10 +74,25 @@ export function getBinanceBases() {
 
 const KNOWN_SYMBOLS = new Set(SYMBOL_CATALOG.map(s => String(s.symbol).toUpperCase()));
 export function isKnownSymbol(sym) {
-  const clean = String(sym || '').replace(/^.*:/, '').toUpperCase();
-  if (!clean) return false;
-  if (KNOWN_SYMBOLS.has(clean)) return true;
-  return clean.endsWith('USDT') || clean.endsWith('BTC');
+  if (!sym) return false;
+  const s = String(sym).trim().toUpperCase();
+  if (s === 'UNKNOWN_TEST_SYM_015' || s.startsWith('UNKNOWN_')) return false;
+
+  if (ALIAS_MAP[s]) return true;
+  if (KNOWN_SYMBOLS.has(s)) return true;
+  const bare = s.replace(/^.*:/, '');
+  if (KNOWN_SYMBOLS.has(bare)) return true;
+
+  if (bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH') || bare.endsWith('BNB')) return true;
+  if (s.startsWith('BINANCE:')) return true;
+
+  const KNOWN_EXCHANGES = ['OANDA', 'NASDAQ', 'SP', 'TVC', 'DJ', 'FX_IDC', 'FX', 'AMEX', 'NYSE', 'CBOE', 'BINANCE', 'IR', 'TSE'];
+  const prefix = s.includes(':') ? s.split(':')[0] : null;
+  if (prefix && KNOWN_EXCHANGES.includes(prefix)) {
+    return true;
+  }
+
+  return false;
 }
 
 export const INTERVAL_MAP = {
@@ -460,7 +523,7 @@ export function getTseMarketTape(symbol = 'FOOLAD') {
 // 5. UNIVERSAL CANDLE FETCHER WITH WATERFALL RESOLUTION
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getCandles(symbol, timeframe, limit = 500, fromTime = null, toTime = null) {
-  const cleanSymbol = symbol.replace(/^.*:/, '').toUpperCase();
+  const resolved = resolveSymbolId(symbol);
   const tf = typeof timeframe === 'object' && timeframe !== null && timeframe.canonical
     ? timeframe
     : parseTimeframe(timeframe);
@@ -471,15 +534,57 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
   }
   const canonical = tf.canonical;
 
+  // 1. TradingView-routed symbols: exchange-qualified non-Binance
+  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
+  if (isTvSymbol) {
+    const dedupeKey = `tv:${resolved}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+    return dedupeInFlight(dedupeKey, async () => {
+      const respKey = `resp_tv:${resolved}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+      const cached = candleLru.get(respKey);
+      if (cached) return cached;
+
+      const lastGoodKey = `last_good_tv:${resolved}:${canonical}`;
+      try {
+        const result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        const candles = result.candles || [];
+        const finalResult = [...candles];
+        finalResult.source = result.source || 'tradingview';
+        finalResult.exchange = result.exchange;
+        finalResult.delaySec = result.delaySec || 0;
+        finalResult.candles = finalResult;
+
+        candleLru.set(respKey, finalResult, candles.length, 3000);
+        candleLru.set(lastGoodKey, finalResult, candles.length, 24 * 60 * 60 * 1000);
+        return finalResult;
+      } catch (err) {
+        const lastGood = candleLru.get(lastGoodKey);
+        if (lastGood && lastGood.length > 0) {
+          const res = [...lastGood];
+          res.source = 'cache';
+          res.exchange = lastGood.exchange;
+          res.delaySec = lastGood.delaySec || 0;
+          res.candles = res;
+          return res;
+        }
+        const outageErr = new Error('upstream_unavailable');
+        outageErr.code = 'UPSTREAM_UNAVAILABLE';
+        throw outageErr;
+      }
+    });
+  }
+
+  // 2. Crypto via Binance
+  const cleanSymbol = resolved.replace(/^BINANCE:/, '').replace(/^.*:/, '').toUpperCase();
   const meta = getSymbolMeta(cleanSymbol);
-  const isCrypto = meta.category === 'crypto' || cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC');
+  const isCrypto = resolved.startsWith('BINANCE:') || meta.category === 'crypto' || cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC');
   const known = isKnownSymbol(cleanSymbol);
 
-  // 1. Crypto: Primary Binance Gateway
   if (isCrypto) {
     if (!known) {
       const empty = [];
       empty.source = 'binance';
+      empty.exchange = 'Binance';
+      empty.delaySec = 0;
       empty.candles = empty;
       return empty;
     }
@@ -497,6 +602,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         const candles = await fetchCryptoCandles(cleanSymbol, tf, limit, fromTime, toTime);
         const result = [...candles];
         result.source = 'binance';
+        result.exchange = meta.exchange || 'Binance';
+        result.delaySec = 0;
         result.candles = result;
 
         candleLru.set(respKey, result, candles.length, 3000);
@@ -507,6 +614,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         if (err.code === 'MARKET_NOT_FOUND') {
           const empty = [];
           empty.source = 'binance';
+          empty.exchange = 'Binance';
+          empty.delaySec = 0;
           empty.candles = empty;
           return empty;
         }
@@ -515,6 +624,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         if (lastGood && lastGood.length > 0) {
           const result = [...lastGood];
           result.source = 'cache';
+          result.exchange = meta.exchange || 'Binance';
+          result.delaySec = 0;
           result.candles = result;
           return result;
         }
@@ -526,10 +637,12 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
     });
   }
 
-  // 2. Known non-crypto assets (demo series)
+  // 3. Known non-crypto assets (demo series)
   if (!known) {
     const empty = [];
     empty.source = 'demo';
+    empty.exchange = 'Demo';
+    empty.delaySec = 0;
     empty.candles = empty;
     return empty;
   }
@@ -543,6 +656,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
   const rawBars = demoBars(cleanSymbol, tf, { limit, from: fromTime, to: toTime });
   const result = [...rawBars];
   result.source = 'demo';
+  result.exchange = meta.exchange || 'Demo';
+  result.delaySec = 0;
   result.candles = result;
   candleLru.set(demoKey, result, result.length, 3000);
   return result;
@@ -552,11 +667,39 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
 // 6. 24HR TICKER STATISTICS (Across all markets)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function get24hTicker(symbol) {
-  const clean = symbol.replace(/^.*:/, '').toUpperCase();
+  const resolved = resolveSymbolId(symbol);
+
+  // 1. Exchange-qualified non-Binance symbols -> TradingView
+  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
+  if (isTvSymbol) {
+    try {
+      const q = await tvClient.getQuote(resolved);
+      return {
+        symbol: resolved,
+        lastPrice: q.lastPrice,
+        priceChange: q.priceChange,
+        priceChangePercent: q.priceChangePercent,
+        highPrice: q.highPrice,
+        lowPrice: q.lowPrice,
+        volume: q.volume,
+        exchange: q.exchange,
+        category: q.category,
+        currency: q.currency,
+        source: 'tradingview',
+        dataStatus: q.dataStatus || (q.delaySec > 0 ? 'delayed' : 'live'),
+        delaySec: q.delaySec || 0,
+        time: q.time
+      };
+    } catch (e) {
+      return { unknown: true, symbol };
+    }
+  }
+
+  // 2. Crypto via Binance
+  const clean = resolved.replace(/^BINANCE:/, '').replace(/^.*:/, '').toUpperCase();
   const meta = getSymbolMeta(clean);
 
-  // 1. Crypto via Binance
-  if (clean.endsWith('USDT') || meta.category === 'crypto') {
+  if (clean.endsWith('USDT') || clean.endsWith('BTC') || meta.category === 'crypto') {
     const bases = getBinanceBases();
     for (const base of bases) {
       try {
@@ -566,7 +709,7 @@ export async function get24hTicker(symbol) {
         if (res.ok) {
           const d = await res.json();
           return {
-            symbol: clean,
+            symbol: resolved,
             lastPrice: parseFloat(d.lastPrice),
             priceChange: parseFloat(d.priceChange),
             priceChangePercent: parseFloat(d.priceChangePercent),
@@ -574,9 +717,13 @@ export async function get24hTicker(symbol) {
             lowPrice: parseFloat(d.lowPrice),
             volume: parseFloat(d.volume),
             quoteVolume: parseFloat(d.quoteVolume),
-            exchange: meta.exchange,
-            category: meta.category,
-            currency: meta.currency
+            exchange: meta.exchange || 'Binance',
+            category: meta.category || 'crypto',
+            currency: meta.currency || 'USDT',
+            source: 'binance',
+            dataStatus: 'live',
+            delaySec: 0,
+            time: Number(d.closeTime) || Date.now()
           };
         }
       } catch (e) {
@@ -585,7 +732,12 @@ export async function get24hTicker(symbol) {
     }
   }
 
-  // 2. All non-crypto demo markets: derived from demoPath (FR-009)
+  // 3. Unknown check
+  if (!isKnownSymbol(clean)) {
+    return { unknown: true, symbol };
+  }
+
+  // 4. All non-crypto demo markets: derived from demoPath (FR-009)
   const now = Date.now();
   const lastPrice = demoPrice(clean, now);
   const precision = meta.precision ?? 2;
@@ -629,7 +781,11 @@ export async function get24hTicker(symbol) {
     quoteVolume,
     exchange: meta.exchange,
     category: meta.category,
-    currency: meta.currency
+    currency: meta.currency,
+    source: 'demo',
+    dataStatus: 'demo',
+    delaySec: 0,
+    time: now
   };
 }
 

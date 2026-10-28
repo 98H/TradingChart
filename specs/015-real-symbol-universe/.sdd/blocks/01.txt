@@ -1,0 +1,4 @@
+- [ ] T001 [US2] Create server/tradingviewClient.js: pooled sockets (≤ TC_TV_MAX_SERIES_PER_SOCKET series), framing, heartbeat echo, backoff reconnect, rate cap, `resolve(symbol)`, `getBars(symbol, resolution, {limit, to})` with `request_more_data` paging, LRU caches (FR-001, FR-002)
+- [ ] T002 [US2] Add live updates and a quote session to server/tradingviewClient.js (`subscribe(symbol, cb)`, `getQuote(symbol)`) (FR-003)
+- [ ] T003 [US2] Route exchange-qualified non-Binance symbols in server/dataFeed.js `getCandles`/`get24hTicker` to the TradingView client with `source`, `exchange`, `delaySec`; last-good on outage (FR-002, FR-003)
+- [ ] T004 [US2] In server/index.js keep `EXCHANGE:SYMBOL` in `cleanSymbol`, push TradingView live ticks on /ws/live, add `exchange`/`delaySec` to /api/candles (FR-002, FR-003)
