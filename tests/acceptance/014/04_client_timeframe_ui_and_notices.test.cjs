@@ -129,7 +129,10 @@ async function run() {
         `Expected notice "${expectedFaNotice}" over chart`);
 
       // Verify zero console errors from indicators during 404 / no-data state
-      const errors = ctx.logs.filter(l => l.type === 'error' || l.type === 'pageerror');
+      // Architect amendment: Chromium itself logs every HTTP 404 as "Failed to load resource"; the contract
+      // REQUIRES 404 for an unknown symbol, so only that browser network line is excluded — any script error counts.
+      const errors = ctx.logs.filter(l => (l.type === 'error' || l.type === 'pageerror')
+        && !/^Failed to load resource: the server responded with a status of 404\b/.test(l.text || ''));
       assert(errors.length === 0, 'FR-012 zero console errors during no-data state',
         `Encountered ${errors.length} console errors: ${errors.map(e => e.text).join('; ')}`);
 
