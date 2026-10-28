@@ -1,146 +1,530 @@
 // server/symbolCatalog.js
-// Universal symbol registry across Crypto, Forex, Metals, Commodities, Indices, Stocks,
-// Tehran Gold & Currency Market, and Tehran Stock Exchange (TSETMC).
+// Universal real symbol registry across Crypto (Binance spot universe),
+// Curated TradingView global markets (Forex, Metals, Commodities, Indices, Stocks, ETFs, Bonds),
+// and legacy alias resolution. Honest data only (zero demo/synthetic).
 
-export const SYMBOL_CATALOG = [
-  // ── 1. Crypto Spot & Perpetuals (Binance / Global Exchanges) ────────
-  { symbol: 'BTCUSDT', name: 'Bitcoin', nameFa: 'بیت‌کوین', category: 'crypto', base: 'BTC', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.0001, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'ETHUSDT', name: 'Ethereum', nameFa: 'اتریوم', category: 'crypto', base: 'ETH', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.001, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'SOLUSDT', name: 'Solana', nameFa: 'سولانا', category: 'crypto', base: 'SOL', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.01, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'BNBUSDT', name: 'BNB', nameFa: 'بایننس کوین', category: 'crypto', base: 'BNB', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.01, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'XRPUSDT', name: 'Ripple', nameFa: 'ریپل', category: 'crypto', base: 'XRP', quote: 'USDT', precision: 4, minTick: 0.0001, lotSize: 1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'TONUSDT', name: 'Toncoin', nameFa: 'تون کوین', category: 'crypto', base: 'TON', quote: 'USDT', precision: 4, minTick: 0.0001, lotSize: 0.1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'DOGEUSDT', name: 'Dogecoin', nameFa: 'دوج کوین', category: 'crypto', base: 'DOGE', quote: 'USDT', precision: 5, minTick: 0.00001, lotSize: 1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'ADAUSDT', name: 'Cardano', nameFa: 'کاردانو', category: 'crypto', base: 'ADA', quote: 'USDT', precision: 4, minTick: 0.0001, lotSize: 1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'AVAXUSDT', name: 'Avalanche', nameFa: 'آوالانچ', category: 'crypto', base: 'AVAX', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.01, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'LINKUSDT', name: 'Chainlink', nameFa: 'چین‌لینک', category: 'crypto', base: 'LINK', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.01, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'SUIUSDT', name: 'Sui Network', nameFa: 'سویی', category: 'crypto', base: 'SUI', quote: 'USDT', precision: 4, minTick: 0.0001, lotSize: 1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'NEARUSDT', name: 'NEAR Protocol', nameFa: 'نیر پروتکل', category: 'crypto', base: 'NEAR', quote: 'USDT', precision: 3, minTick: 0.001, lotSize: 0.1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'APTUSDT', name: 'Aptos', nameFa: 'آپتوس', category: 'crypto', base: 'APT', quote: 'USDT', precision: 2, minTick: 0.01, lotSize: 0.01, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'PEPEUSDT', name: 'Pepe', nameFa: 'پپه', category: 'crypto', base: 'PEPE', quote: 'USDT', precision: 8, minTick: 0.00000001, lotSize: 1000, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'SHIBUSDT', name: 'Shiba Inu', nameFa: 'شیبا اینو', category: 'crypto', base: 'SHIB', quote: 'USDT', precision: 8, minTick: 0.00000001, lotSize: 1000, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'TAOUSDT', name: 'Bittensor', nameFa: 'بیت‌تنسور', category: 'crypto', base: 'TAO', quote: 'USDT', precision: 1, minTick: 0.1, lotSize: 0.001, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-  { symbol: 'RENDERUSDT', name: 'Render', nameFa: 'رندر', category: 'crypto', base: 'RENDER', quote: 'USDT', precision: 3, minTick: 0.001, lotSize: 0.1, exchange: 'Binance', market: 'crypto', currency: 'USDT' },
-
-  // ── 2. Metals & Global Commodities (OANDA / NYMEX / ICE) ─────────────
-  { symbol: 'XAUUSD', name: 'Gold / US Dollar Spot', nameFa: 'انس طلای جهانی', category: 'metals', base: 'XAU', quote: 'USD', precision: 2, minTick: 0.05, lotSize: 1, exchange: 'OANDA', market: 'metals', currency: 'USD' },
-  { symbol: 'XAGUSD', name: 'Silver / US Dollar Spot', nameFa: 'انس نقره جهانی', category: 'metals', base: 'XAG', quote: 'USD', precision: 3, minTick: 0.005, lotSize: 50, exchange: 'OANDA', market: 'metals', currency: 'USD' },
-  { symbol: 'USOIL', name: 'WTI Crude Oil', nameFa: 'نفت خام وست تگزاس', category: 'commodities', base: 'WTI', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 10, exchange: 'NYMEX', market: 'commodities', currency: 'USD' },
-  { symbol: 'UKOIL', name: 'Brent Crude Oil', nameFa: 'نفت خام برنت دریای شمال', category: 'commodities', base: 'BRENT', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 10, exchange: 'ICE', market: 'commodities', currency: 'USD' },
-  { symbol: 'NATGAS', name: 'Natural Gas', nameFa: 'گاز طبیعی هنری هاب', category: 'commodities', base: 'NG', quote: 'USD', precision: 3, minTick: 0.001, lotSize: 100, exchange: 'NYMEX', market: 'commodities', currency: 'USD' },
-
-  // ── 3. Forex Majors & Crosses (FX_IDC / MT5 Bridge) ─────────────────
-  { symbol: 'EURUSD', name: 'Euro / US Dollar', nameFa: 'یورو / دلار آمریکا', category: 'forex', base: 'EUR', quote: 'USD', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'USD' },
-  { symbol: 'GBPUSD', name: 'British Pound / US Dollar', nameFa: 'پوند انگلیس / دلار آمریکا', category: 'forex', base: 'GBP', quote: 'USD', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'USD' },
-  { symbol: 'USDJPY', name: 'US Dollar / Japanese Yen', nameFa: 'دلار آمریکا / ین ژاپن', category: 'forex', base: 'USD', quote: 'JPY', precision: 3, minTick: 0.001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'JPY' },
-  { symbol: 'AUDUSD', name: 'Australian Dollar / US Dollar', nameFa: 'دلار استرالیا / دلار آمریکا', category: 'forex', base: 'AUD', quote: 'USD', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'USD' },
-  { symbol: 'USDCAD', name: 'US Dollar / Canadian Dollar', nameFa: 'دلار آمریکا / دلار کانادا', category: 'forex', base: 'USD', quote: 'CAD', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'CAD' },
-  { symbol: 'USDCHF', name: 'US Dollar / Swiss Franc', nameFa: 'دلار آمریکا / فرانک سوئیس', category: 'forex', base: 'USD', quote: 'CHF', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'CHF' },
-  { symbol: 'EURGBP', name: 'Euro / British Pound', nameFa: 'یورو / پوند بریتانیا', category: 'forex', base: 'EUR', quote: 'GBP', precision: 5, minTick: 0.00001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'GBP' },
-  { symbol: 'EURJPY', name: 'Euro / Japanese Yen', nameFa: 'یورو / ین ژاپن', category: 'forex', base: 'EUR', quote: 'JPY', precision: 3, minTick: 0.001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'JPY' },
-  { symbol: 'GBPJPY', name: 'British Pound / Japanese Yen', nameFa: 'پوند بریتانیا / ین ژاپن', category: 'forex', base: 'GBP', quote: 'JPY', precision: 3, minTick: 0.001, lotSize: 10000, exchange: 'FX_IDC', market: 'forex', currency: 'JPY' },
-
-  // ── 4. Global Indices & Equities (CBOE / NASDAQ / NYSE) ─────────────
-  { symbol: 'SPX', name: 'S&P 500 Index', nameFa: 'شاخص اس‌اندپی ۵۰۰', category: 'indices', base: 'SPX', quote: 'USD', precision: 2, minTick: 0.1, lotSize: 1, exchange: 'CBOE', market: 'indices', currency: 'USD' },
-  { symbol: 'NDX', name: 'Nasdaq 100 Index', nameFa: 'شاخص نزدک ۱۰۰', category: 'indices', base: 'NDX', quote: 'USD', precision: 2, minTick: 0.25, lotSize: 1, exchange: 'NASDAQ', market: 'indices', currency: 'USD' },
-  { symbol: 'DJI', name: 'Dow Jones Industrial Average', nameFa: 'شاخص داو جونز', category: 'indices', base: 'DJI', quote: 'USD', precision: 2, minTick: 1.0, lotSize: 1, exchange: 'DJ', market: 'indices', currency: 'USD' },
-  { symbol: 'AAPL', name: 'Apple Inc.', nameFa: 'سهام شرکت اپل', category: 'stocks', base: 'AAPL', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'NVDA', name: 'NVIDIA Corporation', nameFa: 'سهام شرکت انویدیا', category: 'stocks', base: 'NVDA', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'TSLA', name: 'Tesla Inc.', nameFa: 'سهام شرکت تسلا', category: 'stocks', base: 'TSLA', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'MSFT', name: 'Microsoft Corporation', nameFa: 'سهام مایکروسافت', category: 'stocks', base: 'MSFT', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'AMZN', name: 'Amazon.com Inc.', nameFa: 'سهام آمازون', category: 'stocks', base: 'AMZN', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.', nameFa: 'سهام آلفابت (گوگل)', category: 'stocks', base: 'GOOGL', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-  { symbol: 'META', name: 'Meta Platforms Inc.', nameFa: 'سهام متا (فیسبوک)', category: 'stocks', base: 'META', quote: 'USD', precision: 2, minTick: 0.01, lotSize: 1, exchange: 'NASDAQ', market: 'stocks', currency: 'USD' },
-
-  // ── 5. Tehran Gold Market, Coins & Currencies (FinTech Engine) ──────
-  { symbol: 'GOLD_ABSHODEH', name: 'Melted Gold 17k (Tehran Bazaar)', nameFa: 'طلای آبشده بنکداری تهران (۱۷ عیار / مثقال)', category: 'iran_gold', base: 'ABSHODEH', quote: 'TMN', precision: 0, minTick: 1000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'آبشده' },
-  { symbol: 'GOLD_18K', name: '18k Gram Gold 750', nameFa: 'طلای ۱۸ عیار (۷۵۰ گرمی)', category: 'iran_gold', base: 'GOLD18K', quote: 'TMN', precision: 0, minTick: 1000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'طلا ۱۸' },
-  { symbol: 'COIN_EMAMI', name: 'Emami Gold Coin (New Bahar)', nameFa: 'سکه تمام بهار آزادی طرح جدید (امامی)', category: 'iran_gold', base: 'EMAMI', quote: 'TMN', precision: 0, minTick: 10000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'سکه امامی' },
-  { symbol: 'COIN_BAHAR', name: 'Bahar Azadi Gold Coin (Old)', nameFa: 'سکه تمام بهار آزادی طرح قدیم', category: 'iran_gold', base: 'BAHAR', quote: 'TMN', precision: 0, minTick: 10000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'سکه بهار' },
-  { symbol: 'COIN_NIM', name: 'Half Bahar Azadi Coin', nameFa: 'نیم سکه بهار آزادی', category: 'iran_gold', base: 'NIM', quote: 'TMN', precision: 0, minTick: 10000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'نیم سکه' },
-  { symbol: 'COIN_ROB', name: 'Quarter Bahar Azadi Coin', nameFa: 'ربع سکه بهار آزادی', category: 'iran_gold', base: 'ROB', quote: 'TMN', precision: 0, minTick: 10000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'ربع سکه' },
-  { symbol: 'COIN_GERMI', name: 'Central Bank 1g Gold Coin', nameFa: 'سکه یک گرمی بانک مرکزی', category: 'iran_gold', base: 'GERMI', quote: 'TMN', precision: 0, minTick: 10000, lotSize: 1, exchange: 'Tehran Bazaar', market: 'iran_gold', currency: 'TMN', tickerFa: 'سکه گرمی' },
-  { symbol: 'USD_TEHRAN', name: 'Tehran Free Market USD', nameFa: 'دلار آزاد بازار تهران', category: 'iran_gold', base: 'USD', quote: 'TMN', precision: 0, minTick: 50, lotSize: 100, exchange: 'Tehran FX', market: 'iran_gold', currency: 'TMN', tickerFa: 'دلار تهران' },
-  { symbol: 'USDT_TOMAN', name: 'Tether USDT / Iranian Toman', nameFa: 'تتر تومانی صرافی‌های ایران (نوبیتکس)', category: 'iran_gold', base: 'USDT', quote: 'TMN', precision: 0, minTick: 50, lotSize: 10, exchange: 'Nobitex', market: 'iran_gold', currency: 'TMN', tickerFa: 'تتر تومان' },
-  { symbol: 'AED_DIRHAM', name: 'UAE Dirham Remittance', nameFa: 'حواله درهم امارات (دبی)', category: 'iran_gold', base: 'AED', quote: 'TMN', precision: 0, minTick: 20, lotSize: 100, exchange: 'Dubai FX', market: 'iran_gold', currency: 'TMN', tickerFa: 'درهم امارات' },
-
-  // ── 6. Tehran Stock Exchange (TSETMC / بورس و فرابورس ایران) ──────────
-  { symbol: 'FOOLAD', name: 'Mobarakeh Steel Co.', nameFa: 'فولاد مبارکه اصفهان', category: 'iran_tse', base: 'فولاد', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'فولاد', insco: '46348559193224090' },
-  { symbol: 'FAMELI', name: 'National Iranian Copper (NICICO)', nameFa: 'ملی صنایع مس ایران', category: 'iran_tse', base: 'فملی', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'فملی', insco: '35425587644337450' },
-  { symbol: 'KHODRO', name: 'Iran Khodro Co.', nameFa: 'ایران خودرو', category: 'iran_tse', base: 'خودرو', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'خودرو', insco: '65883838195688438' },
-  { symbol: 'SAIPA', name: 'Saipa Motor Corp.', nameFa: 'سایپا (خساپا)', category: 'iran_tse', base: 'خساپا', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'خساپا', insco: '35700344742885862' },
-  { symbol: 'SHASTA', name: 'Social Security Investment (SSIC)', nameFa: 'سرمایه‌گذاری تامین اجتماعی (شستا)', category: 'iran_tse', base: 'شستا', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'شستا', insco: '2400322364771558' },
-  { symbol: 'AHRAM', name: 'Charisma Leveraged ETF (Ahram)', nameFa: 'صندوق اهرمی کاریزما (اهرم)', category: 'iran_tse', base: 'اهرم', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'اهرم', insco: '61101334180158305' },
-  { symbol: 'AGAS', name: 'Agah Premium Stock Fund', nameFa: 'صندوق سرمایه‌گذاری آگاه (آگاس)', category: 'iran_tse', base: 'آگاس', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'آگاس', insco: '43924729177519967' },
-  { symbol: 'TALA', name: 'Lotus Gold ETF', nameFa: 'صندوق طلای لوتوس (طلا)', category: 'iran_tse', base: 'طلا', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'طلا', insco: '63870029980856737' },
-  { symbol: 'AYAR', name: 'Mofid Ayar Gold ETF', nameFa: 'صندوق طلای عیار مفید (عیار)', category: 'iran_tse', base: 'عیار', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'عیار', insco: '48688404286121404' },
-  { symbol: 'TAVAN', name: 'Mofid Tavan Leveraged ETF', nameFa: 'صندوق اهرمی توان مفید (توان)', category: 'iran_tse', base: 'توان', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'توان', insco: '43924729177519967' },
-  { symbol: 'SHPNA', name: 'Isfahan Oil Refining Co.', nameFa: 'پالایش نفت اصفهان (شپنا)', category: 'iran_tse', base: 'شپنا', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'شپنا', insco: '35366681030756042' },
-  { symbol: 'SHETRAN', name: 'Tehran Oil Refining Co.', nameFa: 'پالایش نفت تهران (شتران)', category: 'iran_tse', base: 'شتران', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'شتران', insco: '2400322364771558' },
-  { symbol: 'DARAYEKOM', name: 'Dara Yekom Financial ETF', nameFa: 'صندوق واسطه‌گری مالی یکم (دارا یکم)', category: 'iran_tse', base: 'دارایکم', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'دارا یکم', insco: '65883838195688438' },
-  { symbol: 'PALAYESH', name: 'Palayesh Yekom Energy ETF', nameFa: 'صندوق پالایشی یکم (پالایش)', category: 'iran_tse', base: 'پالایش', quote: 'IRR', precision: 0, minTick: 10, lotSize: 10, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'پالایش', insco: '35700344742885862' },
-  { symbol: 'VABANKE', name: 'National Development Group', nameFa: 'سرمایه‌گذاری گروه توسعه ملی (وبانک)', category: 'iran_tse', base: 'وبانک', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'وبانک', insco: '35425587644337450' },
-  { symbol: 'FARABOURSE', name: 'Fara Bourse Iran', nameFa: 'فرابورس ایران (فرابورس)', category: 'iran_tse', base: 'فرابورس', quote: 'IRR', precision: 0, minTick: 10, lotSize: 100, exchange: 'TSETMC', market: 'iran_tse', currency: 'IRR', tickerFa: 'فرابورس', insco: '46348559193224090' }
+const TV_SEARCH_URL = 'https://symbol-search.tradingview.com/symbol_search/v3/';
+const TV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const BINANCE_BASES = [
+  'https://data-api.binance.vision/api/v3',
+  'https://api.binance.com/api/v3',
+  'https://api.binance.us/api/v3'
 ];
 
-export function searchSymbols(query = '', category = 'all', exchange = 'all') {
-  const q = String(query || '').trim().toLowerCase();
-  const cat = String(category || 'all').toLowerCase();
-  const ex = String(exchange || 'all').toLowerCase();
+const STANDARD_TIMEFRAMES = [
+  '1s', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', '3D', 'W', 'M'
+];
 
-  return SYMBOL_CATALOG.filter(item => {
-    // 1. Category filter
-    let matchCat = true;
-    if (cat !== 'all') {
-      if (cat === 'crypto') matchCat = item.category === 'crypto';
-      else if (cat === 'metals') matchCat = item.category === 'metals';
-      else if (cat === 'commodities') matchCat = item.category === 'commodities';
-      else if (cat === 'forex') matchCat = item.category === 'forex';
-      else if (cat === 'indices') matchCat = item.category === 'indices';
-      else if (cat === 'stocks') matchCat = item.category === 'stocks';
-      else if (cat === 'iran_gold' || cat === 'gold_fx') matchCat = item.category === 'iran_gold';
-      else if (cat === 'iran_tse' || cat === 'bourse') matchCat = item.category === 'iran_tse';
-      else matchCat = item.category === cat;
+// Curated Persian names for major crypto assets
+const CRYPTO_FA_NAMES = {
+  BTC: 'بیت‌کوین',
+  ETH: 'اتریوم',
+  SOL: 'سولانا',
+  BNB: 'بایننس کوین',
+  XRP: 'ریپل',
+  TON: 'تون کوین',
+  DOGE: 'دوج کوین',
+  ADA: 'کاردانو',
+  AVAX: 'آوالانچ',
+  LINK: 'چین‌لینک',
+  SUI: 'سویی',
+  NEAR: 'نیر پروتکل',
+  APT: 'آپتوس',
+  PEPE: 'پپه',
+  SHIB: 'شیبا اینو',
+  TAO: 'بیت‌تنسور',
+  RENDER: 'رندر',
+  DOT: 'پولکادات',
+  POL: 'پالیگان',
+  MATIC: 'پالیگان',
+  LTC: 'لایت‌کوین',
+  BCH: 'بیت‌کوین کش',
+  UNI: 'یونی‌سواپ',
+  ATOM: 'کازماس',
+  XLM: 'استلار',
+  TRX: 'ترون',
+  ETC: 'اتریوم کلاسیک',
+  FIL: 'فایل‌کوین',
+  ARB: 'آربیتروم',
+  OP: 'آپتیمیزم',
+  TIA: 'سلستیا',
+  INJ: 'اینجکتیو',
+  FET: 'فچ هوش مصنوعی',
+  WIF: 'داگ‌ویف‌هت',
+  BONK: 'بونک',
+  FLOKI: 'فلوکی'
+};
+
+// ── Curated TradingView Defaults per Category ──────────────────────────────
+export const CURATED_TV_DEFAULTS = [
+  // 1. Forex Majors & Crosses (OANDA)
+  { symbol: 'OANDA:EURUSD', name: 'EUR/USD', nameFa: 'یورو / دلار آمریکا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:GBPUSD', name: 'GBP/USD', nameFa: 'پوند انگلیس / دلار آمریکا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:USDJPY', name: 'USD/JPY', nameFa: 'دلار آمریکا / ین ژاپن', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 10000 },
+  { symbol: 'OANDA:AUDUSD', name: 'AUD/USD', nameFa: 'دلار استرالیا / دلار آمریکا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:USDCAD', name: 'USD/CAD', nameFa: 'دلار آمریکا / دلار کانادا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'CAD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:USDCHF', name: 'USD/CHF', nameFa: 'دلار آمریکا / فرانک سوئیس', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'CHF', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:NZDUSD', name: 'NZD/USD', nameFa: 'دلار نیوزیلند / دلار آمریکا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:EURGBP', name: 'EUR/GBP', nameFa: 'یورو / پوند بریتانیا', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'GBP', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:EURJPY', name: 'EUR/JPY', nameFa: 'یورو / ین ژاپن', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 10000 },
+  { symbol: 'OANDA:GBPJPY', name: 'GBP/JPY', nameFa: 'پوند بریتانیا / ین ژاپن', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 10000 },
+  { symbol: 'OANDA:EURCHF', name: 'EUR/CHF', nameFa: 'یورو / فرانک سوئیس', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'CHF', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 5, minTick: 0.00001, lotSize: 10000 },
+  { symbol: 'OANDA:AUDJPY', name: 'AUD/JPY', nameFa: 'دلار استرالیا / ین ژاپن', exchange: 'OANDA', type: 'forex', category: 'forex', currency: 'JPY', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 10000 },
+
+  // 2. Metals (OANDA / TVC)
+  { symbol: 'OANDA:XAUUSD', name: 'Gold / US Dollar', nameFa: 'انس طلای جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'OANDA:XAGUSD', name: 'Silver / US Dollar', nameFa: 'انس نقره جهانی', exchange: 'OANDA', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'live', delaySec: 0, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 50 },
+  { symbol: 'TVC:PLATINUM', name: 'Platinum Spot', nameFa: 'پلاتین جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.05, lotSize: 1 },
+  { symbol: 'TVC:PALLADIUM', name: 'Palladium Spot', nameFa: 'پالادیوم جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.05, lotSize: 1 },
+  { symbol: 'TVC:COPPER', name: 'Copper Spot', nameFa: 'مس جهانی', exchange: 'TVC', type: 'commodity', category: 'metals', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 4, minTick: 0.0001, lotSize: 1 },
+
+  // 3. Energy & Commodities (TVC)
+  { symbol: 'TVC:USOIL', name: 'WTI Crude Oil', nameFa: 'نفت خام وست تگزاس', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
+  { symbol: 'TVC:UKOIL', name: 'Brent Crude Oil', nameFa: 'نفت خام برنت دریای شمال', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 10 },
+  { symbol: 'TVC:NATGAS', name: 'Natural Gas', nameFa: 'گاز طبیعی هنری هاب', exchange: 'TVC', type: 'commodity', category: 'energy', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 100 },
+
+  // 4. Major Global Indices
+  { symbol: 'SP:SPX', name: 'S&P 500 Index', nameFa: 'شاخص اس‌اندپی ۵۰۰', exchange: 'SP', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:NDX', name: 'Nasdaq 100 Index', nameFa: 'شاخص نزدک ۱۰۰', exchange: 'NASDAQ', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'DJ:DJI', name: 'Dow Jones Industrial Average', nameFa: 'شاخص داو جونز', exchange: 'DJ', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 1.0, lotSize: 1 },
+  { symbol: 'TVC:VIX', name: 'CBOE Volatility Index', nameFa: 'شاخص نوسان VIX', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'TVC:DAX', name: 'DAX 40 Index', nameFa: 'شاخص داکس آلمان', exchange: 'TVC', type: 'index', category: 'indices', currency: 'EUR', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 0.1, lotSize: 1 },
+  { symbol: 'TVC:FTSE', name: 'FTSE 100 Index', nameFa: 'شاخص فوتسی ۱۰۰ بریتانیا', exchange: 'TVC', type: 'index', category: 'indices', currency: 'GBP', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 0.1, lotSize: 1 },
+  { symbol: 'TVC:NI225', name: 'Nikkei 225', nameFa: 'شاخص نیکی ۲۲۵ ژاپن', exchange: 'TVC', type: 'index', category: 'indices', currency: 'JPY', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 1, minTick: 1.0, lotSize: 1 },
+  { symbol: 'TVC:DXY', name: 'US Dollar Currency Index', nameFa: 'شاخص دلار آمریکا (DXY)', exchange: 'TVC', type: 'index', category: 'indices', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 },
+
+  // 5. Top US/EU Stocks
+  { symbol: 'NASDAQ:AAPL', name: 'Apple Inc.', nameFa: 'سهام شرکت اپل', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:NVDA', name: 'NVIDIA Corporation', nameFa: 'سهام شرکت انویدیا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:MSFT', name: 'Microsoft Corporation', nameFa: 'سهام مایکروسافت', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:AMZN', name: 'Amazon.com Inc.', nameFa: 'سهام آمازون', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:GOOGL', name: 'Alphabet Inc.', nameFa: 'سهام آلفابت (گوگل)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:META', name: 'Meta Platforms Inc.', nameFa: 'سهام متا (فیسبوک)', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:TSLA', name: 'Tesla Inc.', nameFa: 'سهام شرکت تسلا', exchange: 'NASDAQ', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:BRK.A', name: 'Berkshire Hathaway Inc.', nameFa: 'سهام برکشایر هاتاوی', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:JPM', name: 'JPMorgan Chase & Co.', nameFa: 'سهام جی‌پی مورگان', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NYSE:V', name: 'Visa Inc.', nameFa: 'سهام ویزا', exchange: 'NYSE', type: 'stock', category: 'stocks', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'XETR:SAP', name: 'SAP SE', nameFa: 'سهام اس‌آپی آلمان', exchange: 'XETR', type: 'stock', category: 'stocks', currency: 'EUR', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+
+  // 6. ETFs
+  { symbol: 'AMEX:SPY', name: 'SPDR S&P 500 ETF Trust', nameFa: 'صندوق اس‌اندپی ۵۰۰ اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'NASDAQ:QQQ', name: 'Invesco QQQ Trust', nameFa: 'صندوق نزدک اینوسکو', exchange: 'NASDAQ', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:GLD', name: 'SPDR Gold Shares', nameFa: 'صندوق طلای اسپایدر', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:SLV', name: 'iShares Silver Trust', nameFa: 'صندوق نقره آی‌شیرز', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+  { symbol: 'AMEX:TLT', name: 'iShares 20+ Year Treasury Bond ETF', nameFa: 'صندوق اوراق ۲۰ ساله خزانه‌داری', exchange: 'AMEX', type: 'fund', category: 'etf', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 900, timeframes: STANDARD_TIMEFRAMES, precision: 2, minTick: 0.01, lotSize: 1 },
+
+  // 7. Yields & Bonds
+  { symbol: 'TVC:US10Y', name: 'US 10-Year Treasury Yield', nameFa: 'بازده اوراق ۱۰ ساله خزانه‌داری آمریکا', exchange: 'TVC', type: 'bond', category: 'bonds', currency: 'USD', source: 'tradingview', dataStatus: 'delayed', delaySec: 600, timeframes: STANDARD_TIMEFRAMES, precision: 3, minTick: 0.001, lotSize: 1 }
+];
+
+// Initial seed crypto pairs to guarantee synchronous availability
+const SEED_CRYPTO_PAIRS = [
+  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'TONUSDT', 'DOGEUSDT', 'ADAUSDT',
+  'AVAXUSDT', 'LINKUSDT', 'SUIUSDT', 'NEARUSDT', 'APTUSDT', 'PEPEUSDT', 'SHIBUSDT', 'TAOUSDT',
+  'RENDERUSDT', 'DOTUSDT', 'POLUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'ATOMUSDT', 'XLMUSDT',
+  'TRXUSDT', 'ETCUSDT', 'FILUSDT', 'ARBUSDT', 'OPUSDT', 'TIAUSDT', 'INJUSDT', 'FETUSDT',
+  'WIFUSDT', 'BONKUSDT', 'FLOKIUSDT', 'BTCUSDC', 'ETHUSDC', 'SOLUSDC', 'ETHBTC', 'SOLBTC',
+  'BNBBTC', 'XRPBTC', 'ADABTC', 'BTCEUR', 'ETHEUR', 'BTCTRY', 'ETHTRY'
+].map(pair => {
+  const quote = pair.endsWith('USDT') ? 'USDT' : pair.endsWith('USDC') ? 'USDC' : pair.endsWith('BTC') ? 'BTC' : pair.endsWith('EUR') ? 'EUR' : 'TRY';
+  const base = pair.slice(0, pair.length - quote.length);
+  const nameFa = CRYPTO_FA_NAMES[base] ? `${CRYPTO_FA_NAMES[base]} / ${quote}` : `${base} / ${quote}`;
+  const precision = quote === 'USDT' || quote === 'USDC' || quote === 'EUR' ? (pair === 'PEPEUSDT' || pair === 'SHIBUSDT' ? 8 : 2) : 6;
+  const minTick = precision === 8 ? 0.00000001 : precision === 6 ? 0.000001 : 0.01;
+  return {
+    symbol: `BINANCE:${pair}`,
+    name: `${base}/${quote}`,
+    nameFa,
+    exchange: 'Binance',
+    type: 'crypto',
+    category: 'crypto',
+    currency: quote,
+    base,
+    quote,
+    source: 'binance',
+    dataStatus: 'live',
+    delaySec: 0,
+    timeframes: STANDARD_TIMEFRAMES,
+    precision,
+    minTick,
+    lotSize: 1
+  };
+});
+
+// ── Legacy Alias Table ─────────────────────────────────────────────────────
+export const LEGACY_ALIASES = {
+  // Forex
+  'EURUSD': 'OANDA:EURUSD',
+  'GBPUSD': 'OANDA:GBPUSD',
+  'USDJPY': 'OANDA:USDJPY',
+  'AUDUSD': 'OANDA:AUDUSD',
+  'USDCAD': 'OANDA:USDCAD',
+  'USDCHF': 'OANDA:USDCHF',
+  'NZDUSD': 'OANDA:NZDUSD',
+  'EURGBP': 'OANDA:EURGBP',
+  'EURJPY': 'OANDA:EURJPY',
+  'GBPJPY': 'OANDA:GBPJPY',
+  'EURCHF': 'OANDA:EURCHF',
+  'AUDJPY': 'OANDA:AUDJPY',
+  // Metals & Energy
+  'XAUUSD': 'OANDA:XAUUSD',
+  'XAGUSD': 'OANDA:XAGUSD',
+  'USOIL': 'TVC:USOIL',
+  'UKOIL': 'TVC:UKOIL',
+  'NATGAS': 'TVC:NATGAS',
+  // Indices & Macro
+  'SPX': 'SP:SPX',
+  'NDX': 'NASDAQ:NDX',
+  'DJI': 'DJ:DJI',
+  'VIX': 'TVC:VIX',
+  'DAX': 'TVC:DAX',
+  'DXY': 'TVC:DXY',
+  'US10Y': 'TVC:US10Y',
+  // Equities & ETFs
+  'AAPL': 'NASDAQ:AAPL',
+  'NVDA': 'NASDAQ:NVDA',
+  'TSLA': 'NASDAQ:TSLA',
+  'MSFT': 'NASDAQ:MSFT',
+  'AMZN': 'NASDAQ:AMZN',
+  'GOOGL': 'NASDAQ:GOOGL',
+  'META': 'NASDAQ:META',
+  'SPY': 'AMEX:SPY',
+  'QQQ': 'NASDAQ:QQQ',
+  // Tehran / Iran
+  'GOLD_18K': 'IR:GOLD_18K',
+  'COIN_EMAMI': 'IR:COIN_EMAMI',
+  'COIN_BAHAR': 'IR:COIN_BAHAR',
+  'COIN_NIM': 'IR:COIN_NIM',
+  'COIN_ROB': 'IR:COIN_ROB',
+  'COIN_GERMI': 'IR:COIN_GERMI',
+  'USD_TEHRAN': 'IR:USD_FREE',
+  'USD_FREE': 'IR:USD_FREE',
+  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
+};
+
+// Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
+const binancePairSet = new Set();
+
+// Active catalog store and lookup map
+export const SYMBOL_CATALOG = [];
+const catalogMap = new Map();
+
+function rebuildCatalog(cryptoEntries) {
+  catalogMap.clear();
+  SYMBOL_CATALOG.length = 0;
+
+  // 1. Add curated TradingView entries
+  for (const item of CURATED_TV_DEFAULTS) {
+    SYMBOL_CATALOG.push(item);
+    catalogMap.set(item.symbol, item);
+  }
+
+  // 2. Add crypto entries
+  for (const item of cryptoEntries) {
+    if (!catalogMap.has(item.symbol)) {
+      SYMBOL_CATALOG.push(item);
+      catalogMap.set(item.symbol, item);
+      const bare = item.symbol.replace(/^BINANCE:/, '');
+      binancePairSet.add(bare);
     }
-    if (!matchCat) return false;
+  }
+}
 
-    // 2. Exchange filter
-    if (ex !== 'all') {
-      const itemEx = (item.exchange || '').toLowerCase();
-      if (!itemEx.includes(ex)) return false;
-    }
+// Initial bootstrap with seed crypto
+rebuildCatalog(SEED_CRYPTO_PAIRS);
 
-    // 3. Query string filter (Matches symbol, English name, Persian name, or base asset)
-    if (!q) return true;
+export function resolveSymbolAlias(raw) {
+  if (!raw) return raw;
+  const s = String(raw).trim().toUpperCase();
+  if (LEGACY_ALIASES[s]) return LEGACY_ALIASES[s];
+  if (s.includes(':')) return s;
 
-    const symMatch = item.symbol.toLowerCase().includes(q);
-    const nameMatch = item.name.toLowerCase().includes(q);
-    const nameFaMatch = item.nameFa && item.nameFa.toLowerCase().includes(q);
-    const baseMatch = item.base && item.base.toLowerCase().includes(q);
-    const tickerFaMatch = item.tickerFa && item.tickerFa.toLowerCase().includes(q);
+  if (binancePairSet.has(s) || catalogMap.has(`BINANCE:${s}`)) {
+    return `BINANCE:${s}`;
+  }
 
-    return symMatch || nameMatch || nameFaMatch || baseMatch || tickerFaMatch;
-  });
+  // Common crypto quote suffixes
+  if (/^(?:[A-Z0-9]{2,12})(USDT|USDC|BTC|ETH|BNB|EUR|FDUSD|TRY)$/.test(s)) {
+    return `BINANCE:${s}`;
+  }
+
+  return s;
 }
 
 export function getSymbolMeta(symbol) {
-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
-  const found = SYMBOL_CATALOG.find(s => s.symbol === clean);
-  if (found) return found;
+  if (!symbol) return null;
+  const canonical = resolveSymbolAlias(symbol);
+  if (catalogMap.has(canonical)) return catalogMap.get(canonical);
 
-  const isCrypto = clean.endsWith('USDT') || clean.endsWith('BTC') || clean.endsWith('ETH');
+  const raw = String(symbol).trim().toUpperCase();
+  if (catalogMap.has(raw)) return catalogMap.get(raw);
+
+  const bare = raw.replace(/^.*:/, '');
+  if (catalogMap.has(bare)) return catalogMap.get(bare);
+
+  const isCrypto = bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH');
   return {
-    symbol: clean,
-    name: clean,
-    nameFa: clean,
+    symbol: canonical,
+    name: bare,
+    nameFa: bare,
     category: isCrypto ? 'crypto' : 'stocks',
-    base: clean.replace(/(USDT|USD|EUR|BTC|IRR|TMN)$/, ''),
+    base: bare.replace(/(USDT|USD|EUR|BTC|IRR|TMN)$/, ''),
     quote: isCrypto ? 'USDT' : 'USD',
     precision: isCrypto ? 2 : 2,
     minTick: 0.01,
     lotSize: 1,
     exchange: isCrypto ? 'Binance' : 'Global',
     market: isCrypto ? 'crypto' : 'stocks',
-    currency: isCrypto ? 'USDT' : 'USD'
+    currency: isCrypto ? 'USDT' : 'USD',
+    syntheticFallback: true
   };
+}
+
+export function isKnownSymbol(sym) {
+  if (!sym) return false;
+  const canonical = resolveSymbolAlias(sym);
+  if (catalogMap.has(canonical)) return true;
+  if (LEGACY_ALIASES[String(sym).trim().toUpperCase()]) return true;
+  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
+    return true;
+  }
+  return false;
+}
+
+// ── Binance Spot Universe Loader (FR-005, 24 h refresh) ────────────────────
+export async function loadBinanceUniverse() {
+  for (const base of BINANCE_BASES) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 10000);
+      const res = await fetch(`${base}/exchangeInfo`, {
+        signal: ctl.signal,
+        headers: { accept: 'application/json' }
+      });
+      clearTimeout(timer);
+
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.symbols) || data.symbols.length === 0) continue;
+
+      const tradingPairs = data.symbols.filter(s => s.status === 'TRADING' && s.isSpotTradingAllowed !== false);
+      if (tradingPairs.length < 500) continue;
+
+      const cryptoEntries = tradingPairs.map(s => {
+        let minTick = 0.01;
+        let precision = 2;
+        let lotSize = 1;
+
+        if (Array.isArray(s.filters)) {
+          const priceFilter = s.filters.find(f => f.filterType === 'PRICE_FILTER');
+          if (priceFilter && priceFilter.tickSize) {
+            const rawTick = parseFloat(priceFilter.tickSize);
+            if (rawTick > 0) minTick = rawTick;
+            const cleanTick = String(priceFilter.tickSize).replace(/0+$/, '');
+            const dot = cleanTick.indexOf('.');
+            precision = dot >= 0 ? Math.max(0, cleanTick.length - dot - 1) : 0;
+          }
+          const lotFilter = s.filters.find(f => f.filterType === 'LOT_SIZE');
+          if (lotFilter && lotFilter.stepSize) {
+            const rawStep = parseFloat(lotFilter.stepSize);
+            if (rawStep > 0) lotSize = rawStep;
+          }
+        }
+
+        const baseAsset = s.baseAsset;
+        const quoteAsset = s.quoteAsset;
+        const nameFa = CRYPTO_FA_NAMES[baseAsset]
+          ? `${CRYPTO_FA_NAMES[baseAsset]} / ${quoteAsset}`
+          : `${baseAsset} / ${quoteAsset}`;
+
+        return {
+          symbol: `BINANCE:${s.symbol}`,
+          name: `${baseAsset}/${quoteAsset}`,
+          nameFa,
+          exchange: 'Binance',
+          type: 'crypto',
+          category: 'crypto',
+          currency: quoteAsset,
+          base: baseAsset,
+          quote: quoteAsset,
+          source: 'binance',
+          dataStatus: 'live',
+          delaySec: 0,
+          timeframes: STANDARD_TIMEFRAMES,
+          precision,
+          minTick,
+          lotSize
+        };
+      });
+
+      rebuildCatalog(cryptoEntries);
+      return SYMBOL_CATALOG;
+    } catch (e) {
+      // Try next mirror
+    }
+  }
+
+  return SYMBOL_CATALOG;
+}
+
+// 24 h auto-refresh
+const refreshTimer = setInterval(() => {
+  loadBinanceUniverse().catch(() => {});
+}, 24 * 60 * 60 * 1000);
+if (refreshTimer && refreshTimer.unref) refreshTimer.unref();
+
+export const initPromise = loadBinanceUniverse();
+
+// ── TradingView Symbol Search Proxy & Merge (/api/symbols?q=) ──────────────
+const tvSearchCache = new Map();
+const TV_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function mapTvType(rawType) {
+  const t = String(rawType || '').toLowerCase();
+  if (t === 'forex') return 'forex';
+  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
+  if (t === 'index') return 'index';
+  if (t === 'stock' || t === 'dr') return 'stock';
+  if (t === 'fund') return 'fund';
+  if (t === 'bond') return 'bond';
+  if (t === 'commodity' || t === 'futures') return 'commodity';
+  return t || 'stock';
+}
+
+function mapTvCategory(rawType, sym) {
+  const t = String(rawType || '').toLowerCase();
+  const s = String(sym || '').toUpperCase();
+  if (t === 'forex') return 'forex';
+  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
+  if (t === 'index') return 'indices';
+  if (t === 'fund') return 'etf';
+  if (t === 'bond') return 'bonds';
+  if (t === 'commodity' || t === 'futures') {
+    if (s.includes('XAU') || s.includes('XAG') || s.includes('GOLD') || s.includes('SILVER') || s.includes('PLATINUM') || s.includes('COPPER')) {
+      return 'metals';
+    }
+    if (s.includes('OIL') || s.includes('GAS') || s.includes('BRENT')) {
+      return 'energy';
+    }
+    return 'commodities';
+  }
+  return 'stocks';
+}
+
+export async function searchSymbols(query = '', category = 'all', exchange = 'all', limit = 200) {
+  const q = String(query || '').trim();
+  const cat = String(category || 'all').toLowerCase();
+  const ex = String(exchange || 'all').toLowerCase();
+  const maxLimit = Math.max(1, Math.min(2500, Number(limit) || 200));
+
+  const matchesCat = (itemCat) => {
+    if (cat === 'all') return true;
+    const ic = String(itemCat || '').toLowerCase();
+    if (cat === 'crypto') return ic === 'crypto';
+    if (cat === 'metals') return ic === 'metals';
+    if (cat === 'energy' || cat === 'commodities') return ic === 'energy' || ic === 'commodities';
+    if (cat === 'forex') return ic === 'forex';
+    if (cat === 'indices') return ic === 'indices';
+    if (cat === 'stocks') return ic === 'stocks';
+    if (cat === 'etf' || cat === 'fund') return ic === 'etf' || ic === 'fund';
+    if (cat === 'bonds' || cat === 'bond') return ic === 'bonds' || ic === 'bond';
+    return ic === cat;
+  };
+
+  const matchesEx = (itemEx) => {
+    if (ex === 'all') return true;
+    return String(itemEx || '').toLowerCase().includes(ex);
+  };
+
+  if (!q) {
+    const local = SYMBOL_CATALOG.filter(item => matchesCat(item.category) && matchesEx(item.exchange));
+    return local.slice(0, maxLimit);
+  }
+
+  const qLower = q.toLowerCase();
+  const localMatches = SYMBOL_CATALOG.filter(item => {
+    if (!matchesCat(item.category) || !matchesEx(item.exchange)) return false;
+    const symMatch = item.symbol.toLowerCase().includes(qLower);
+    const nameMatch = item.name && item.name.toLowerCase().includes(qLower);
+    const nameFaMatch = item.nameFa && item.nameFa.toLowerCase().includes(qLower);
+    const baseMatch = item.base && item.base.toLowerCase().includes(qLower);
+    return symMatch || nameMatch || nameFaMatch || baseMatch;
+  });
+
+  // Proxy TradingView symbol search (cached 10 min)
+  let tvMatches = [];
+  const now = Date.now();
+  const cached = tvSearchCache.get(qLower);
+  if (cached && (now - cached.at < TV_CACHE_TTL)) {
+    tvMatches = cached.items;
+  } else {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 4000);
+      const url = `${TV_SEARCH_URL}?text=${encodeURIComponent(q)}&hl=1`;
+      const res = await fetch(url, {
+        signal: ctl.signal,
+        headers: {
+          Origin: 'https://www.tradingview.com',
+          'User-Agent': TV_USER_AGENT
+        }
+      });
+      clearTimeout(timer);
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.symbols)) {
+          tvMatches = json.symbols.map(s => {
+            const cleanSym = String(s.symbol || '').replace(/<[^>]+>/g, '').trim();
+            const exch = String(s.exchange || 'GLOBAL').trim();
+            const canonicalSym = `${exch}:${cleanSym}`;
+            const mappedType = mapTvType(s.type);
+            const mappedCat = mapTvCategory(s.type, cleanSym);
+            const isEod = Array.isArray(s.params) && s.params.includes('eod');
+            const delaySec = s.delay ? Number(s.delay) : 0;
+            const dataStatus = isEod ? 'eod' : (delaySec > 0 ? 'delayed' : 'live');
+            return {
+              symbol: canonicalSym,
+              name: s.description || cleanSym,
+              nameFa: s.description || cleanSym,
+              exchange: exch,
+              type: mappedType,
+              category: mappedCat,
+              currency: s.currency_code || 'USD',
+              source: 'tradingview',
+              dataStatus,
+              delaySec,
+              timeframes: STANDARD_TIMEFRAMES,
+              precision: 2,
+              minTick: 0.01,
+              lotSize: 1
+            };
+          }).filter(e => e.symbol && e.name);
+          tvSearchCache.set(qLower, { at: now, items: tvMatches });
+        }
+      }
+    } catch (e) {
+      // Upstream TradingView error: fall back to local
+    }
+  }
+
+  // Merge local matches and TV matches, deduplicate by canonical symbol
+  const merged = [];
+  const seenSymbols = new Set();
+
+  for (const item of localMatches) {
+    if (!seenSymbols.has(item.symbol)) {
+      seenSymbols.add(item.symbol);
+      merged.push(item);
+    }
+  }
+
+  for (const item of tvMatches) {
+    if (!seenSymbols.has(item.symbol) && matchesCat(item.category) && matchesEx(item.exchange)) {
+      seenSymbols.add(item.symbol);
+      merged.push(item);
+    }
+  }
+
+  return merged.slice(0, 50);
 }

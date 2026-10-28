@@ -1,0 +1,49 @@
+{
+  "feature": "015-real-symbol-universe",
+  "phase": 2,
+  "attempt": 1,
+  "pass": true,
+  "at": "2026-10-28T04:59:35.404Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18088"
+    },
+    "acceptance": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "ui": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    }
+  },
+  "highRisk": [],
+  "knownGapsSkipped": [],
+  "deferredToLaterPhase": [
+    "tests/acceptance/015/03_tehran_sources_and_tse_gating.test.cjs",
+    "tests/acceptance/015/04_demo_removal_and_error_contracts.test.cjs",
+    "tests/acceptance/015/05_client_ux_badges_and_accuracy.test.cjs"
+  ],
+  "escalate": false
+}

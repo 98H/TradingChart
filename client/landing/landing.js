@@ -1,6 +1,17 @@
 // Chartivia landing page: bilingual (FA default / EN), live pricing from /api/plans.
 const LS_KEY = 'tradingchart_user_settings'; // shared with the chart app
 
+export const DEFAULT_LANDING_TICKERS = [
+  'BINANCE:BTCUSDT',
+  'OANDA:XAUUSD',
+  'OANDA:EURUSD',
+  'TVC:USOIL',
+  'SP:SPX',
+  'NASDAQ:AAPL',
+  'IR:USD_FREE',
+  'IR:COIN_EMAMI'
+];
+
 const EN = {
   skip: 'Skip to main content', navAria: 'Primary', navFeatures: 'Features', navMarkets: 'Markets', navPricing: 'Pricing', navFaq: 'FAQ',
   ctaOpen: 'Open chart', ctaStart: 'Start free', ctaPlans: 'Compare plans',

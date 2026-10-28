@@ -7,9 +7,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus, isKnownSymbol, resolveSymbolId } from './dataFeed.js';
+import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus } from './dataFeed.js';
 import { parseTimeframe } from './timeframes.js';
-import { searchSymbols, getSymbolMeta } from './symbolCatalog.js';
+import { searchSymbols, getSymbolMeta, resolveSymbolAlias, isKnownSymbol, initPromise as initCatalogPromise } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
 import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
 import { getScreenerData } from './technicalScreener.js';
@@ -92,8 +92,9 @@ const bad = (res, error) => res.status(400).json({ ok: false, error });
 // 2. Historical & Live Candles (plan-gated depth)
 app.get('/api/candles', async (req, res) => {
   try {
-    const symbol = cleanSymbol(req.query.symbol, 'BTCUSDT');
-    if (!symbol) return bad(res, 'invalid_symbol');
+    const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
+    if (!raw) return bad(res, 'invalid_symbol');
+    const symbol = resolveSymbolAlias(raw);
 
     const tfParsed = parseTimeframe(req.query.timeframe || '60');
     if (!tfParsed) return bad(res, 'invalid_timeframe');
@@ -144,9 +145,9 @@ app.get('/api/candles', async (req, res) => {
 // 3. 24hr Ticker Overview (max 40 symbols per call)
 app.get('/api/tickers', async (req, res) => {
   try {
-    const raw = String(req.query.symbols || 'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XAUUSD,EURUSD');
+    const raw = String(req.query.symbols || 'BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:SOLUSDT,OANDA:XAUUSD,OANDA:EURUSD');
     const rawSymbols = raw.split(',').map(s => s.trim()).filter(Boolean);
-    const symbols = [...new Set(rawSymbols.map(s => cleanSymbol(s)).filter(Boolean))].slice(0, 40);
+    const symbols = [...new Set(rawSymbols.map(s => resolveSymbolAlias(cleanSymbol(s))).filter(Boolean))].slice(0, 40);
     if (!symbols.length) return bad(res, 'invalid_symbol');
 
     const results = await Promise.all(symbols.map(s => get24hTicker(s)));
@@ -171,18 +172,26 @@ app.get('/api/tickers', async (req, res) => {
 });
 
 // 4. Symbol Search & Catalog
-app.get('/api/symbols', (req, res) => {
-  const query = String(req.query.q || '').slice(0, 64);
-  const category = String(req.query.category || 'all').slice(0, 32);
-  const exchange = String(req.query.exchange || 'all').slice(0, 32);
-  res.json(searchSymbols(query, category, exchange));
+app.get('/api/symbols', async (req, res) => {
+  try {
+    const query = String(req.query.q || '').slice(0, 64);
+    const category = String(req.query.category || 'all').slice(0, 32);
+    const exchange = String(req.query.exchange || 'all').slice(0, 32);
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 200;
+    res.json(await searchSymbols(query, category, exchange, limit));
+  } catch (error) { serverError(res, '/api/symbols', error); }
 });
 
 // 5. Symbol Metadata
 app.get('/api/symbol-info', (req, res) => {
-  const symbol = cleanSymbol(req.query.symbol, 'BTCUSDT');
-  if (!symbol) return bad(res, 'invalid_symbol');
-  res.json(getSymbolMeta(symbol));
+  const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
+  if (!raw) return bad(res, 'invalid_symbol');
+  const symbol = resolveSymbolAlias(raw);
+  const meta = getSymbolMeta(symbol);
+  if (!meta || meta.syntheticFallback) {
+    return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+  }
+  res.json(meta);
 });
 
 // 5b. Market data sources status
@@ -198,8 +207,9 @@ app.get('/api/gold-snapshot', (req, res) => {
 // 5d. Tehran Stock Exchange tape
 app.get('/api/tse-tape', (req, res) => {
   try {
-    const symbol = cleanSymbol(req.query.symbol, 'FOOLAD');
-    if (!symbol) return bad(res, 'invalid_symbol');
+    const raw = cleanSymbol(req.query.symbol, 'FOOLAD');
+    if (!raw) return bad(res, 'invalid_symbol');
+    const symbol = resolveSymbolAlias(raw);
     res.json(getTseMarketTape(symbol));
   } catch (error) { serverError(res, '/api/tse-tape', error); }
 });
@@ -234,8 +244,9 @@ app.get('/api/screener', async (req, res) => {
 // 6d. Depth of Market
 app.get('/api/depth', async (req, res) => {
   try {
-    const symbol = cleanSymbol(req.query.symbol, 'BTCUSDT');
-    if (!symbol) return bad(res, 'invalid_symbol');
+    const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
+    if (!raw) return bad(res, 'invalid_symbol');
+    const symbol = resolveSymbolAlias(raw);
     res.json(await getOrderBookDepth(symbol, clampInt(req.query.levels || req.query.limit, 15, 1, 50)));
   } catch (error) { serverError(res, '/api/depth', error); }
 });
@@ -244,7 +255,7 @@ app.get('/api/depth', async (req, res) => {
 app.get('/api/news', (req, res) => {
   try {
     const category = String(req.query.category || 'all').slice(0, 32);
-    const symbol = req.query.symbol ? cleanSymbol(req.query.symbol) : null;
+    const symbol = req.query.symbol ? resolveSymbolAlias(cleanSymbol(req.query.symbol)) : null;
     const news = getMarketNews({ category, symbol, limit: clampInt(req.query.limit, 20, 1, 100) });
     res.json({ total: news.length, news });
   } catch (error) { serverError(res, '/api/news', error); }
@@ -275,7 +286,7 @@ const MAX_WS_CLIENTS = Number(process.env.TC_MAX_WS || 2000);
 wss.on('connection', (ws) => {
   if (wss.clients.size > MAX_WS_CLIENTS) { ws.close(1013, 'busy'); return; }
   ws.on('error', () => {});
-  activeSubscriptions.set(ws, new Set(['BTCUSDT']));
+  activeSubscriptions.set(ws, new Set(['BINANCE:BTCUSDT']));
 
   ws.on('message', async (msgStr) => {
     try {
@@ -285,7 +296,7 @@ wss.on('connection', (ws) => {
 
       if (isSub && msg.symbol) {
         const rawSym = String(msg.symbol || '').trim();
-        const sym = cleanSymbol(rawSym);
+        const sym = resolveSymbolAlias(cleanSymbol(rawSym));
         if (!sym || !isKnownSymbol(sym)) {
           ws.send(JSON.stringify({ type: 'error', error: 'unknown_symbol', symbol: msg.symbol }));
           return;
@@ -314,13 +325,13 @@ wss.on('connection', (ws) => {
         }).catch(() => {});
 
         // If TradingView symbol, ensure real-time quote updates are active (ticks broadcasted via tvClient.onLiveTick)
-        const resolved = resolveSymbolId(sym);
+        const resolved = resolveSymbolAlias(sym);
         if (resolved.includes(':') && !resolved.startsWith('BINANCE:')) {
           tvClient.ensureQuote(resolved);
         }
       } else if (isUnsub && msg.symbol) {
         const subs = activeSubscriptions.get(ws);
-        const sym = cleanSymbol(msg.symbol);
+        const sym = resolveSymbolAlias(cleanSymbol(msg.symbol));
         if (subs && sym) subs.delete(sym);
       }
     } catch (e) {
@@ -351,7 +362,7 @@ tvClient.onLiveTick((tick) => {
   for (const [client, subs] of activeSubscriptions.entries()) {
     if (client.readyState === WebSocket.OPEN) {
       for (const s of subs) {
-        if (s === tick.symbol || resolveSymbolId(s) === tick.symbol) {
+        if (s === tick.symbol || resolveSymbolAlias(s) === tick.symbol) {
           client.send(payload);
           break;
         }
@@ -368,7 +379,7 @@ setInterval(async () => {
   for (const subs of activeSubscriptions.values()) {
     for (const s of subs) allSymbols.add(s);
   }
-  if (allSymbols.size === 0) allSymbols.add('BTCUSDT');
+  if (allSymbols.size === 0) allSymbols.add('BINANCE:BTCUSDT');
 
   for (const sym of allSymbols) {
     try {
@@ -399,6 +410,10 @@ setInterval(async () => {
 }, 1200);
 
 const HOST = process.env.HOST || '0.0.0.0'; // set HOST=127.0.0.1 once traffic arrives via the HTTPS tunnel
+
+// Ensure catalog is initialized with real Binance spot universe before listening
+await initCatalogPromise;
+
 server.listen(PORT, HOST, () => {
   console.log(`[Chartivia Server] Running on http://${HOST}:${PORT}`);
   console.log(`[Chartivia Server] WebSocket live stream on ws://${HOST}:${PORT}/ws/live`);

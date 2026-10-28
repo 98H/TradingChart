@@ -9,36 +9,94 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+export const CLIENT_LEGACY_ALIASES = {
+  'BTCUSDT': 'BINANCE:BTCUSDT',
+  'ETHUSDT': 'BINANCE:ETHUSDT',
+  'SOLUSDT': 'BINANCE:SOLUSDT',
+  'BNBUSDT': 'BINANCE:BNBUSDT',
+  'XRPUSDT': 'BINANCE:XRPUSDT',
+  'TONUSDT': 'BINANCE:TONUSDT',
+  'DOGEUSDT': 'BINANCE:DOGEUSDT',
+  'ADAUSDT': 'BINANCE:ADAUSDT',
+  'AVAXUSDT': 'BINANCE:AVAXUSDT',
+  'LINKUSDT': 'BINANCE:LINKUSDT',
+  'SUIUSDT': 'BINANCE:SUIUSDT',
+  'NEARUSDT': 'BINANCE:NEARUSDT',
+  'XAUUSD': 'OANDA:XAUUSD',
+  'XAGUSD': 'OANDA:XAGUSD',
+  'USOIL': 'TVC:USOIL',
+  'UKOIL': 'TVC:UKOIL',
+  'NATGAS': 'TVC:NATGAS',
+  'EURUSD': 'OANDA:EURUSD',
+  'GBPUSD': 'OANDA:GBPUSD',
+  'USDJPY': 'OANDA:USDJPY',
+  'AUDUSD': 'OANDA:AUDUSD',
+  'USDCAD': 'OANDA:USDCAD',
+  'USDCHF': 'OANDA:USDCHF',
+  'EURGBP': 'OANDA:EURGBP',
+  'EURJPY': 'OANDA:EURJPY',
+  'GBPJPY': 'OANDA:GBPJPY',
+  'SPX': 'SP:SPX',
+  'NDX': 'NASDAQ:NDX',
+  'DJI': 'DJ:DJI',
+  'AAPL': 'NASDAQ:AAPL',
+  'NVDA': 'NASDAQ:NVDA',
+  'TSLA': 'NASDAQ:TSLA',
+  'MSFT': 'NASDAQ:MSFT',
+  'AMZN': 'NASDAQ:AMZN',
+  'GOOGL': 'NASDAQ:GOOGL',
+  'META': 'NASDAQ:META',
+  'USD_TEHRAN': 'IR:USD_FREE',
+  'USD_FREE': 'IR:USD_FREE',
+  'COIN_EMAMI': 'IR:COIN_EMAMI',
+  'COIN_BAHAR': 'IR:COIN_BAHAR',
+  'COIN_NIM': 'IR:COIN_NIM',
+  'COIN_ROB': 'IR:COIN_ROB',
+  'COIN_GERMI': 'IR:COIN_GERMI',
+  'GOLD_18K': 'IR:GOLD_18K',
+  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
+};
+
+export function migrateClientSymbol(s) {
+  if (!s) return s;
+  const sym = String(s).trim().toUpperCase();
+  if (CLIENT_LEGACY_ALIASES[sym]) return CLIENT_LEGACY_ALIASES[sym];
+  if (!sym.includes(':') && (sym.endsWith('USDT') || sym.endsWith('USDC') || sym.endsWith('BTC'))) {
+    return `BINANCE:${sym}`;
+  }
+  return sym;
+}
+
 export const PRESET_WATCHLISTS = {
   crypto: {
     id: 'crypto',
     name: 'Crypto Top Assets',
-    symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'TONUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'SUIUSDT', 'NEARUSDT']
+    symbols: ['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT', 'BINANCE:SOLUSDT', 'BINANCE:BNBUSDT', 'BINANCE:XRPUSDT', 'BINANCE:TONUSDT', 'BINANCE:DOGEUSDT', 'BINANCE:ADAUSDT', 'BINANCE:AVAXUSDT', 'BINANCE:LINKUSDT', 'BINANCE:SUIUSDT', 'BINANCE:NEARUSDT']
   },
   metals: {
     id: 'metals',
     name: 'Metals & Commodities',
-    symbols: ['XAUUSD', 'XAGUSD', 'USOIL', 'UKOIL', 'NATGAS']
+    symbols: ['OANDA:XAUUSD', 'OANDA:XAGUSD', 'TVC:USOIL', 'TVC:UKOIL', 'TVC:NATGAS']
   },
   forex: {
     id: 'forex',
     name: 'Forex Majors',
-    symbols: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP', 'GBPJPY']
+    symbols: ['OANDA:EURUSD', 'OANDA:GBPUSD', 'OANDA:USDJPY', 'OANDA:AUDUSD', 'OANDA:USDCAD', 'OANDA:USDCHF', 'OANDA:EURGBP', 'OANDA:GBPJPY']
   },
   equities: {
     id: 'equities',
     name: 'Indices & US Tech',
-    symbols: ['SPX', 'NDX', 'DJI', 'AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN', 'GOOGL', 'META']
+    symbols: ['SP:SPX', 'NASDAQ:NDX', 'DJ:DJI', 'NASDAQ:AAPL', 'NASDAQ:NVDA', 'NASDAQ:TSLA', 'NASDAQ:MSFT', 'NASDAQ:AMZN', 'NASDAQ:GOOGL', 'NASDAQ:META']
   },
   iran_gold: {
     id: 'iran_gold',
     name: 'Tehran Gold & Currencies',
-    symbols: ['GOLD_ABSHODEH', 'GOLD_18K', 'COIN_EMAMI', 'COIN_BAHAR', 'COIN_NIM', 'COIN_ROB', 'USD_TEHRAN', 'USDT_TOMAN', 'AED_DIRHAM']
+    symbols: ['IR:GOLD_18K', 'IR:GOLD_ABSHODEH', 'IR:COIN_EMAMI', 'IR:COIN_BAHAR', 'IR:COIN_NIM', 'IR:COIN_ROB', 'IR:USD_FREE']
   },
   iran_tse: {
     id: 'iran_tse',
     name: 'Iran Bourse & ETFs',
-    symbols: ['FOOLAD', 'FAMELI', 'KHODRO', 'SAIPA', 'SHASTA', 'AHRAM', 'AGAS', 'TALA', 'AYAR', 'TAVAN', 'PALAYESH']
+    symbols: []
   }
 };
 
@@ -52,8 +110,9 @@ export class WatchlistManager {
     this.sortField = null; // 'symbol', 'price', 'chg'
     this.sortAsc = true;
     this.tickers = new Map();
-    this.customSymbols = JSON.parse(localStorage.getItem('tradingchart_custom_watchlist') || '["BTCUSDT", "ETHUSDT", "SOLUSDT", "XAUUSD"]');
-    this.flags = JSON.parse(localStorage.getItem('tradingchart_watchlist_flags') || '{}'); // { "BTCUSDT": "red" }
+    const savedCustom = localStorage.getItem('tradingchart_custom_watchlist');
+    this.customSymbols = (savedCustom ? JSON.parse(savedCustom) : ['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT', 'BINANCE:SOLUSDT', 'OANDA:XAUUSD']).map(migrateClientSymbol);
+    this.flags = JSON.parse(localStorage.getItem('tradingchart_watchlist_flags') || '{}');
     this.loadUserLists();
 
     this.render();
@@ -77,7 +136,10 @@ export class WatchlistManager {
       const raw = JSON.parse(localStorage.getItem('tradingchart_user_watchlists') || 'null');
       const deleted = JSON.parse(localStorage.getItem('tradingchart_watchlist_deleted') || '{}');
       if (raw && Array.isArray(raw.lists) && raw.lists.length > 0) {
-        this.userLists = raw.lists.filter(l => l && l.id && !deleted[l.id]);
+        this.userLists = raw.lists.filter(l => l && l.id && !deleted[l.id]).map(l => ({
+          ...l,
+          symbols: (l.symbols || []).map(migrateClientSymbol)
+        }));
         if (this.userLists.length === 0) throw new Error('empty after deleted filter');
         this.activeListId = (raw.activeId && !deleted[raw.activeId]) ? raw.activeId : this.userLists[0].id;
       } else {
@@ -262,8 +324,14 @@ export class WatchlistManager {
       const res = await fetch(`/api/tickers?symbols=${list.join(',')}`);
       if (res.ok) {
         const data = await res.json();
-        for (const t of data) {
-          this.tickers.set(t.symbol, t);
+        const tickers = Array.isArray(data) ? data : (data.tickers || []);
+        for (const t of tickers) {
+          if (t && t.symbol) this.tickers.set(t.symbol, t);
+        }
+        if (data.unknown && Array.isArray(data.unknown)) {
+          for (const u of data.unknown) {
+            this.tickers.set(u, { symbol: u, unavailable: true, unsupported: true });
+          }
         }
         this.updateListUI();
       }
@@ -274,7 +342,7 @@ export class WatchlistManager {
 
   addSymbol(symbol) {
     if (!symbol) return;
-    const clean = symbol.replace(/^.*:/, '').toUpperCase();
+    const clean = migrateClientSymbol(symbol.trim().toUpperCase());
     if (!this.customSymbols.includes(clean)) {
       this.customSymbols.push(clean);
       localStorage.setItem('tradingchart_custom_watchlist', JSON.stringify(this.customSymbols));
@@ -288,7 +356,7 @@ export class WatchlistManager {
 
   removeSymbol(symbol) {
     if (!symbol) return;
-    const clean = symbol.replace(/^.*:/, '').toUpperCase();
+    const clean = migrateClientSymbol(symbol.trim().toUpperCase());
     const idx = this.customSymbols.indexOf(clean);
     if (idx !== -1) {
       this.customSymbols.splice(idx, 1);
@@ -487,17 +555,40 @@ export class WatchlistManager {
     };
 
     listEl.innerHTML = symbols.map(sym => {
-      const t = this.tickers.get(sym) || {
+      const t = this.tickers.get(sym);
+      const isUnsupported = t?.unsupported || t?.unavailable;
+      const currentFlag = this.flags[sym] || 'none';
+      const flagDisplay = flagIcons[currentFlag] || '⚐';
+
+      if (isUnsupported) {
+        const notice = isFa ? 'این نماد دیگر پشتیبانی نمی‌شود' : 'This symbol is no longer supported';
+        return `
+          <div class="wl-item" data-symbol="${sym}" style="display: grid; grid-template-columns: 32px 1fr 2fr 32px; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; opacity: 0.6;">
+            <button class="btn-toggle-flag" data-symbol="${sym}" title="${isFa ? 'تغییر برچسب رنگی' : 'Change Flag Tag'}" aria-label="Change flag for ${sym}" style="background: transparent; border: none; font-size: 14px; cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); opacity: 0.5;">
+              ${flagDisplay}
+            </button>
+            <div>
+              <span style="font-weight: 800; font-family: var(--font-mono); font-size: 11px; color: #fff;">${sym}</span>
+            </div>
+            <div style="text-align: right; font-size: 10px; color: #f87171;">
+              ${notice}
+            </div>
+            <button class="btn-remove-wl" data-symbol="${sym}" title="${isFa ? 'حذف نماد از دیده‌بان' : 'Remove symbol'}" aria-label="Remove ${sym} from watchlist" style="background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 4px; min-width: 32px; min-height: 32px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.15s;">
+              ✕
+            </button>
+          </div>
+        `;
+      }
+
+      const tickerData = t || {
         lastPrice: 0,
         priceChange: 0,
         priceChangePercent: 0
       };
 
-      const isPos = t.priceChangePercent >= 0;
+      const isPos = tickerData.priceChangePercent >= 0;
       const color = isPos ? 'var(--accent-green)' : 'var(--accent-red)';
       const bg = isPos ? 'rgba(14, 203, 129, 0.1)' : 'rgba(246, 70, 93, 0.1)';
-      const currentFlag = this.flags[sym] || 'none';
-      const flagDisplay = flagIcons[currentFlag] || '⚐';
 
       return `
         <div class="wl-item" data-symbol="${sym}" style="display: grid; grid-template-columns: 32px 1fr 1fr 1fr 32px; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; cursor: pointer; transition: background 0.15s;">
@@ -513,13 +604,13 @@ export class WatchlistManager {
 
           <!-- Last Price -->
           <div style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #fff; font-size: 11px;" class="num-ltr">
-            $${Number(t.lastPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+            $${Number(tickerData.lastPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
           </div>
 
           <!-- Change Percent -->
           <div style="text-align: right; font-family: var(--font-mono); font-weight: 700; font-size: 10px;" class="num-ltr">
             <span style="display: inline-block; padding: 2px 6px; border-radius: 3px; background: ${bg}; color: ${color};">
-              ${isPos ? '+' : ''}${t.priceChangePercent.toFixed(2)}%
+              ${isPos ? '+' : ''}${tickerData.priceChangePercent.toFixed(2)}%
             </span>
           </div>
 
