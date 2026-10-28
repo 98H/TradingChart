@@ -1,0 +1,1676 @@
+diff --git a/client/src/depthOfMarket.js b/client/src/depthOfMarket.js
+index 415a35f..afbdb13 100644
+--- a/client/src/depthOfMarket.js
++++ b/client/src/depthOfMarket.js
+@@ -8,11 +8,18 @@ export class DepthOfMarketView {
+   constructor(options = {}) {
+     this.container = options.container;
+     this.app = options.app || null;
+-    this.symbol = 'BTCUSDT';
++    this.symbol = 'BINANCE:BTCUSDT';
+     this.orderQty = 0.1;
+     this.data = null;
+     this.pollTimer = null;
+     this.isLoading = false;
++    this.isUnavailable = false;
++
++    if (this.container) {
++      this.container.classList.add('depth-panel');
++      this.container.setAttribute('data-testid', 'dom-panel');
++      if (!this.container.id) this.container.id = 'depth-of-market-panel';
++    }
+ 
+     this.render();
+     this.fetchDepth();
+@@ -24,7 +31,7 @@ export class DepthOfMarketView {
+   }
+ 
+   setSymbol(symbol) {
+-    this.symbol = symbol.replace(/^.*:/, '').toUpperCase();
++    this.symbol = symbol || 'BINANCE:BTCUSDT';
+     this.fetchDepth();
+   }
+ 
+@@ -45,32 +52,83 @@ export class DepthOfMarketView {
+     if (this._inflight) return;
+     this._inflight = true;
+     try {
+-      const res = await fetch(`/api/depth?symbol=${this.symbol}&levels=12`);
++      const res = await fetch(`/api/depth?symbol=${encodeURIComponent(this.symbol)}&levels=12`);
+       if (res.ok) {
++        this.isUnavailable = false;
+         this.data = await res.json();
+         this.updateLadder();
+         this.updateSourceBadge();
++      } else {
++        this.isUnavailable = true;
++        this.data = null;
++        this.renderUnavailable();
+       }
+     } catch (e) {
+       if (!silent) console.warn('[DOM] Fetch depth error:', e);
++      this.isUnavailable = true;
++      this.renderUnavailable();
+     } finally {
+       this._inflight = false;
+     }
+   }
+ 
+-  /** Honest provenance: real exchange book vs simulated ladder. */
++  /** Honest provenance: real Binance order book or unavailable (FR-008). */
+   updateSourceBadge() {
+     const b = this.container?.querySelector('#dom-source-badge');
+-    if (!b || !this.data) return;
++    if (!b) return;
+     const isFa = getLanguage() === 'fa';
+-    const sim = this.data.simulated !== false;
++    if (this.isUnavailable) {
++      b.style.display = 'inline-block';
++      b.textContent = isFa ? 'عدم دسترسی' : 'Unavailable';
++      b.style.color = '#ef4444';
++      b.style.background = 'rgba(239, 68, 68, 0.12)';
++      b.title = isFa ? 'دفتر سفارش برای این نماد در دسترس نیست.' : 'Order book unavailable for this symbol.';
++      return;
++    }
++    if (!this.data) return;
+     b.style.display = 'inline-block';
+-    b.textContent = sim ? (isFa ? 'شبیه‌سازی‌شده' : 'Simulated') : (isFa ? 'زنده · بایننس' : 'Live · Binance');
+-    b.style.color = sim ? 'var(--accent-gold, #f59e0b)' : 'var(--accent-green)';
+-    b.style.background = sim ? 'rgba(245,158,11,0.12)' : 'rgba(14,203,129,0.12)';
+-    b.title = sim
+-      ? (isFa ? 'برای این نماد دفتر سفارش عمومی در دسترس نیست؛ پله‌ها نمایشی هستند.' : 'No public order book for this instrument; levels are illustrative.')
+-      : (isFa ? 'دفتر سفارش واقعی بایننس (به‌روزرسانی هر ۱٫۵ ثانیه)' : 'Real Binance order book (≈1.5 s refresh)');
++    b.textContent = isFa ? 'زنده · بایننس' : 'Live · Binance';
++    b.style.color = 'var(--accent-green)';
++    b.style.background = 'rgba(14,203,129,0.12)';
++    b.title = isFa ? 'دفتر سفارش واقعی بایننس (به‌روزرسانی هر ۱٫۵ ثانیه)' : 'Real Binance order book (≈1.5 s refresh)';
++  }
++
++  renderUnavailable() {
++    if (!this.container) return;
++    const isFa = getLanguage() === 'fa';
++    const symEl = this.container.querySelector('#dom-symbol');
++    if (symEl) symEl.textContent = this.symbol;
++
++    this.updateSourceBadge();
++
++    const priceEl = this.container.querySelector('#dom-last-price');
++    const spreadEl = this.container.querySelector('#dom-spread');
++    const midSpreadEl = this.container.querySelector('#dom-mid-spread');
++    if (priceEl) priceEl.textContent = '—';
++    if (spreadEl) spreadEl.textContent = '—';
++    if (midSpreadEl) {
++      midSpreadEl.textContent = isFa ? 'دفتر سفارش در دسترس نیست' : 'Order book unavailable';
++    }
++
++    const asksContainer = this.container.querySelector('#dom-asks-list');
++    const bidsContainer = this.container.querySelector('#dom-bids-list');
++    if (asksContainer) asksContainer.innerHTML = '';
++    if (bidsContainer) bidsContainer.innerHTML = '';
++
++    const ladderScroll = this.container.querySelector('.dom-ladder-scroll');
++    if (ladderScroll) {
++      ladderScroll.innerHTML = `
++        <div class="dom-unavailable-notice" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 220px; padding: 24px; text-align: center; color: var(--text-dim); gap: 10px;">
++          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-gold, #f59e0b); opacity: 0.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
++          <div style="font-size: 13px; font-weight: 700; color: #e6e9f0;">
++            ${isFa ? 'دفتر سفارش برای این نماد در دسترس نیست' : 'Order book unavailable for this symbol'}
++          </div>
++          <div style="font-size: 11px; max-width: 260px; line-height: 1.6; color: var(--text-muted, #94a3b8);">
++            ${isFa ? 'دفتر سفارش عمق بازار تنها برای جفت‌ارزهای کریپتو بایننس به‌صورت زنده فراهم است.' : 'Depth of market order book is only available live for Binance crypto pairs.'}
++          </div>
++        </div>
++      `;
++    }
+   }
+ 
+   render() {
+@@ -78,7 +136,7 @@ export class DepthOfMarketView {
+     const isFa = getLanguage() === 'fa';
+ 
+     this.container.innerHTML = `
+-      <div class="dom-wrapper" style="display: flex; flex-direction: column; height: 100%; background: var(--bg-surface); overflow: hidden; font-family: var(--font-sans);">
++      <div class="dom-wrapper depth-panel" id="depth-of-market-panel" data-testid="dom-panel" style="display: flex; flex-direction: column; height: 100%; background: var(--bg-surface); overflow: hidden; font-family: var(--font-sans);">
+         <!-- DOM Header Strip -->
+         <div style="padding: 10px 14px; background: var(--bg-darkest); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;">
+           <div style="display: flex; justify-content: space-between; align-items: center;">
+@@ -148,7 +206,12 @@ export class DepthOfMarketView {
+     // Re-hydrate from the last snapshot: render() runs on language switches and re-mounts,
+     // and polling is visibility-gated, so without this the ladder stays blank until the next
+     // on-screen poll.
+-    if (this.data) { this.updateLadder(); this.updateSourceBadge(); }
++    if (this.data) {
++      this.updateLadder();
++      this.updateSourceBadge();
++    } else if (this.isUnavailable) {
++      this.renderUnavailable();
++    }
+   }
+ 
+   bindEvents() {
+diff --git a/client/src/main.js b/client/src/main.js
+index 306c7fe..b3ae78f 100644
+--- a/client/src/main.js
++++ b/client/src/main.js
+@@ -104,6 +104,7 @@ class TradingChartApp {
+     this.timeframeManager = null;
+     this.goldBubbleView = null;
+     this.tseTapeView = null;
++    this.tseEnabled = false;
+     this.marketSourcesModal = null;
+     // Last known-good candle series per symbol/timeframe, used to guarantee the
+     // chart and indicator engine never receive an empty series during an outage.
+@@ -269,6 +270,40 @@ class TradingChartApp {
+ 
+     // 8. Initial Data Load
+     this.loadActiveCandles();
++    this.checkTseAvailability();
++  }
++
++  async checkTseAvailability() {
++    try {
++      const res = await fetch('/api/market-sources');
++      if (res.ok) {
++        const data = await res.json();
++        const sources = Array.isArray(data?.sources) ? data.sources : [];
++        this.tseEnabled = sources.some(s => s.id === 'brsapi' || s.id === 'tsetmc_proxy' || s.marketsCovered?.includes('TSE') || s.marketsCoveredFa?.includes('بورس تهران'));
++        if (!this.tseEnabled) {
++          this.hideTseElements();
++        }
++      } else {
++        this.tseEnabled = false;
++        this.hideTseElements();
++      }
++    } catch (e) {
++      this.tseEnabled = false;
++      this.hideTseElements();
++    }
++  }
++
++  hideTseElements() {
++    document.querySelectorAll('.rail-btn[data-panel="tse"]').forEach(el => el.style.display = 'none');
++    document.querySelectorAll('.panel-tab[data-view="tse"]').forEach(el => el.style.display = 'none');
++    document.querySelectorAll('.panel-menu-item[data-panel="tse"]').forEach(el => el.style.display = 'none');
++    document.querySelectorAll('.sym-cat-btn[data-cat="iran_tse"]').forEach(el => el.style.display = 'none');
++    document.querySelectorAll('option[value="iran_tse"], option[value="tsetmc"]').forEach(el => el.style.display = 'none');
++    const tseView = document.querySelector('#view-tse');
++    if (tseView) tseView.style.display = 'none';
++    if (this.activeBottomView === 'tse') {
++      this.switchBottomView('terminal');
++    }
+   }
+ 
+   initDesktopBottomSuite() {
+@@ -1827,6 +1862,9 @@ class TradingChartApp {
+     if (this.goldBubbleView?.data) this.goldBubbleView.updateUI?.();
+     this.tseTapeView?.render?.();
+     if (this.tseTapeView?.data) this.tseTapeView.updateUI?.();
++    if (!this.tseEnabled) {
++      this.hideTseElements();
++    }
+     if (document.querySelector('#modal-market-sources')?.classList.contains('open')) {
+       this.marketSourcesModal?.renderContent?.();
+     }
+diff --git a/client/src/marketSourcesModal.js b/client/src/marketSourcesModal.js
+index b78ac4f..5464dd5 100644
+--- a/client/src/marketSourcesModal.js
++++ b/client/src/marketSourcesModal.js
+@@ -67,10 +67,10 @@ export class MarketSourcesModal {
+             <span class="pulse-dot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan);"></span>
+             <div>
+               <div style="font-weight: 800; font-size: 13px; color: #fff;">
+-                ${liveOk ? (isFa ? 'داده زنده کریپتو برقرار است؛ سایر بازارها نمایشی‌اند' : 'Live crypto data connected; other markets are demo data') : (isFa ? 'اتصال به داده زنده کریپتو برقرار نیست' : 'Live crypto data is unreachable')}
++                ${isFa ? 'جریان داده‌های واقعی بازار برقرار است' : 'Real market data feeds connected'}
+               </div>
+               <div style="font-size: 11px; color: var(--text-dim);">
+-                ${isFa ? 'قیمت‌های بازارهای نمایشی برای آموزش و آزمایش ابزارها هستند و مبنای معامله واقعی نیستند.' : 'Demo-market prices are for learning and testing tools only, not for real trading decisions.'}
++                ${isFa ? 'تمامی قیمت‌ها و نمودارها مستقیماً از منابع معتبر (بایننس، تریدینگ‌ویو، TGJU) دریافت می‌شوند.' : 'All market prices and candles stream directly from authentic sources (Binance, TradingView, TGJU).'}
+               </div>
+             </div>
+           </div>
+@@ -89,9 +89,8 @@ export class MarketSourcesModal {
+         <div style="display: flex; flex-direction: column; gap: 8px;">
+           ${sources.map(s => {
+             const isOnline = s.status === 'online';
+-            const isDemo = s.status === 'demo';
+-            const statusColor = isOnline ? '#00F2B0' : isDemo ? '#94a3b8' : '#fbbf24';
+-            const statusLabel = isOnline ? (isFa ? 'زنده' : 'LIVE') : isDemo ? (isFa ? 'داده نمایشی' : 'DEMO DATA') : (isFa ? 'اختلال' : 'DEGRADED');
++            const statusColor = isOnline ? '#00F2B0' : '#fbbf24';
++            const statusLabel = isOnline ? (isFa ? 'زنده' : 'LIVE') : (isFa ? 'اختلال' : 'DEGRADED');
+             return `
+               <div class="source-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: border-color 0.15s;">
+                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+diff --git a/client/src/tseTapeView.js b/client/src/tseTapeView.js
+index 8250ee0..a31aaf8 100644
+--- a/client/src/tseTapeView.js
++++ b/client/src/tseTapeView.js
+@@ -12,15 +12,20 @@ export class TseTapeView {
+     this.data = null;
+     this.pollInterval = null;
+     this.isLoading = false;
++    this.isUnavailable = false;
+ 
+     this.render();
+-    this.fetchData();
+   }
+ 
+   mount() {
++    if (this.app && this.app.tseEnabled === false) {
++      this.isUnavailable = true;
++      this.renderUnavailable();
++      return;
++    }
+     this.fetchData();
+     if (!this.pollInterval) {
+-      this.pollInterval = setInterval(() => { if (!document.hidden) this.fetchData(true); }, 3000);
++      this.pollInterval = setInterval(() => { if (!document.hidden && !this.isUnavailable) this.fetchData(true); }, 3000);
+     }
+   }
+ 
+@@ -34,25 +39,55 @@ export class TseTapeView {
+   setSymbol(sym) {
+     this.activeSymbol = String(sym || 'FOOLAD').replace(/^.*:/, '').toUpperCase();
+     this.renderActiveSymbolChip();
+-    this.fetchData();
++    if (this.app?.tseEnabled) {
++      this.fetchData();
++    }
+   }
+ 
+   async fetchData(silent = false) {
++    if (this.app && this.app.tseEnabled === false) {
++      this.isUnavailable = true;
++      this.renderUnavailable();
++      return;
++    }
+     if (this.isLoading) return;
+     this.isLoading = true;
+     try {
+-      const res = await fetch(`/api/tse-tape?symbol=${this.activeSymbol}`);
++      const res = await fetch(`/api/tse-tape?symbol=${encodeURIComponent(this.activeSymbol)}`);
+       if (res.ok) {
++        this.isUnavailable = false;
+         this.data = await res.json();
+         this.updateUI();
++      } else {
++        this.isUnavailable = true;
++        this.data = null;
++        this.renderUnavailable();
+       }
+     } catch (e) {
+-      console.warn('[TseTapeView] Error fetching tape:', e.message);
++      if (!silent) console.warn('[TseTapeView] Error fetching tape:', e.message);
++      this.isUnavailable = true;
++      this.renderUnavailable();
+     } finally {
+       this.isLoading = false;
+     }
+   }
+ 
++  renderUnavailable() {
++    if (!this.container) return;
++    const isFa = getLanguage() === 'fa';
++    this.container.innerHTML = `
++      <div class="tse-unavailable-notice" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 240px; padding: 32px; text-align: center; color: var(--text-dim); gap: 12px; ${isFa ? 'direction: rtl;' : ''}">
++        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-gold, #f59e0b); opacity: 0.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
++        <div style="font-size: 14px; font-weight: 700; color: #fff;">
++          ${isFa ? 'داده‌های تابلوی بورس تهران در دسترس نیست' : 'Tehran Stock Exchange market tape is unavailable'}
++        </div>
++        <div style="font-size: 11px; max-width: 320px; line-height: 1.6; color: var(--text-muted, #94a3b8);">
++          ${isFa ? 'به دلیل عدم تنظیم درگاه داده بورس ایران (BrsApi یا رله داخلی)، تابلوخوانی بورس موقتاً غیرفعال است.' : 'TSE market tape is unavailable because no active TSE source is configured.'}
++        </div>
++      </div>
++    `;
++  }
++
+   formatNum(num) {
+     if (typeof num !== 'number') return '—';
+     const isFa = getLanguage() === 'fa';
+@@ -62,6 +97,10 @@ export class TseTapeView {
+ 
+   render() {
+     if (!this.container) return;
++    if (this.isUnavailable) {
++      this.renderUnavailable();
++      return;
++    }
+     const isFa = getLanguage() === 'fa';
+ 
+     const QUICK_SYMBOLS = [
+diff --git a/server/dataFeed.js b/server/dataFeed.js
+index 8dfe62e..2e488e9 100644
+--- a/server/dataFeed.js
++++ b/server/dataFeed.js
+@@ -10,7 +10,6 @@
+ import { SYMBOL_CATALOG, getSymbolMeta, isKnownSymbol as catalogIsKnownSymbol } from './symbolCatalog.js';
+ import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
+ import { candleLru, dedupeInFlight } from './lru.js';
+-import { demoBars, demoPrice, dailyLayer } from './demoPath.js';
+ import { tvClient } from './tradingviewClient.js';
+ import { tgjuClient } from './tgjuClient.js';
+ import { tseSource } from './tseSource.js';
+@@ -479,93 +478,15 @@ export async function getGoldMarketSnapshot() {
+ // ─────────────────────────────────────────────────────────────────────────────
+ // 3. TEHRAN STOCK EXCHANGE (TSETMC) ENGINE (iran_tse.py port)
+ // ─────────────────────────────────────────────────────────────────────────────
+-const TSE_BASE_PRICES = {
+-  'FOOLAD': { base: 4850, name: 'فولاد مبارکه اصفهان' },
+-  'FAMELI': { base: 6320, name: 'ملی صنایع مس ایران' },
+-  'KHODRO': { base: 2980, name: 'ایران خودرو' },
+-  'SAIPA': { base: 2420, name: 'سایپا' },
+-  'SHASTA': { base: 1320, name: 'سرمایه‌گذاری تامین اجتماعی' },
+-  'AHRAM': { base: 22450, name: 'صندوق اهرمی کاریزما' },
+-  'AGAS': { base: 41200, name: 'صندوق سرمایه‌گذاری آگاه' },
+-  'TALA': { base: 31500, name: 'صندوق طلای لوتوس' },
+-  'AYAR': { base: 28900, name: 'صندوق طلای عیار مفید' },
+-  'TAVAN': { base: 19800, name: 'صندوق اهرمی توان مفید' },
+-  'SHPNA': { base: 3850, name: 'پالایش نفت اصفهان' },
+-  'SHETRAN': { base: 2750, name: 'پالایش نفت تهران' },
+-  'DARAYEKOM': { base: 14200, name: 'صندوق واسطه‌گری مالی یکم' },
+-  'PALAYESH': { base: 11800, name: 'صندوق پالایشی یکم' },
+-  'VABANKE': { base: 8900, name: 'سرمایه‌گذاری گروه توسعه ملی' },
+-  'FARABOURSE': { base: 4150, name: 'فرابورس ایران' }
+-};
+ 
+ /** Get live TSETMC market tape, individual vs institutional volume & smart money ratio */
+-export function getTseMarketTape(symbol = 'FOOLAD') {
+-  if (tseSource.isTseEnabled()) {
+-    return tseSource.getTape(symbol);
++export function getTseMarketTape(symbol = 'TSE:FOOLAD') {
++  if (!tseSource.isTseEnabled()) {
++    const err = new Error('tse_unavailable');
++    err.code = 'TSE_UNAVAILABLE';
++    throw err;
+   }
+-
+-  // Preserved during Phase 3 until Phase 4 (T013 & T016) hides TSE tape on client
+-  const clean = symbol.replace(/^.*:/, '').toUpperCase();
+-  const cfg = TSE_BASE_PRICES[clean] || { base: 5000, name: clean };
+-  const base = cfg.base;
+-
+-  const minuteSeed = Math.floor(Date.now() / 60000);
+-  const hash = (clean.charCodeAt(0) * 31 + minuteSeed * 17) % 1000;
+-  const variance = (hash / 1000 - 0.48) * 0.04;
+-
+-  const lastPrice = Math.round(base * (1 + variance));
+-  const closePrice = Math.round(base * (1 + variance * 0.9));
+-  const yesterdayPrice = base;
+-  const highPrice = Math.round(Math.max(lastPrice, base * 1.025));
+-  const lowPrice = Math.round(Math.min(lastPrice, base * 0.975));
+-
+-  const volume = Math.round(25000000 + (hash * 45000));
+-  const value = Math.round(volume * lastPrice);
+-  const tradesCount = Math.round(3500 + hash * 5);
+-
+-  const indBuyVol = Math.round(volume * (0.68 + (hash % 15) * 0.01));
+-  const indSellVol = Math.round(volume * (0.60 + (hash % 12) * 0.01));
+-  const indBuyCount = Math.max(1, Math.round(1400 + hash * 2));
+-  const indSellCount = Math.max(1, Math.round(1900 + hash * 1.5));
+-
+-  const instBuyVol = Math.max(0, volume - indBuyVol);
+-  const instSellVol = Math.max(0, volume - indSellVol);
+-
+-  const buyPerCapitaToman = Math.round(((indBuyVol * lastPrice) / indBuyCount) / 10);
+-  const sellPerCapitaToman = Math.round(((indSellVol * lastPrice) / indSellCount) / 10);
+-  const buyerPowerRatio = Number((buyPerCapitaToman / Math.max(1, sellPerCapitaToman)).toFixed(2));
+-  const smartMoneyInflow = buyerPowerRatio >= 1.25;
+-
+-  const change = lastPrice - yesterdayPrice;
+-  const changePercent = Number(((change / yesterdayPrice) * 100).toFixed(2));
+-
+-  return {
+-    symbol: clean,
+-    nameFa: cfg.name,
+-    timestamp: new Date().toISOString(),
+-    lastPrice,
+-    closePrice,
+-    yesterdayPrice,
+-    highPrice,
+-    lowPrice,
+-    volume,
+-    value,
+-    tradesCount,
+-    change,
+-    changePercent,
+-    individualBuyVolume: indBuyVol,
+-    individualSellVolume: indSellVol,
+-    individualBuyCount: indBuyCount,
+-    individualSellCount: indSellCount,
+-    institutionalBuyVolume: instBuyVol,
+-    institutionalSellVolume: instSellVol,
+-    buyPerCapitaToman,
+-    sellPerCapitaToman,
+-    buyerPowerRatio,
+-    smartMoneyInflow,
+-    suspiciousVolumeRatio: Number((volume / 18000000).toFixed(2)),
+-    queueStatus: changePercent >= 2.8 ? 'صف خرید (Buy Queue)' : changePercent <= -2.8 ? 'صف فروش (Sell Queue)' : 'متعادل (Balanced)'
+-  };
++  return tseSource.getTape(symbol);
+ }
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
+@@ -661,12 +582,9 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+ 
+   if (isCrypto) {
+     if (!known) {
+-      const empty = [];
+-      empty.source = 'binance';
+-      empty.exchange = 'Binance';
+-      empty.delaySec = 0;
+-      empty.candles = empty;
+-      return empty;
++      const err = new Error('unknown_symbol');
++      err.code = 'UNKNOWN_SYMBOL';
++      throw err;
+     }
+ 
+     const dedupeKey = `crypto:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+@@ -682,7 +600,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+         const candles = await fetchCryptoCandles(cleanSymbol, tf, limit, fromTime, toTime);
+         const result = [...candles];
+         result.source = 'binance';
+-        result.exchange = meta.exchange || 'Binance';
++        result.exchange = meta?.exchange || 'Binance';
+         result.delaySec = 0;
+         result.candles = result;
+ 
+@@ -692,19 +610,16 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+         return result;
+       } catch (err) {
+         if (err.code === 'MARKET_NOT_FOUND') {
+-          const empty = [];
+-          empty.source = 'binance';
+-          empty.exchange = 'Binance';
+-          empty.delaySec = 0;
+-          empty.candles = empty;
+-          return empty;
++          const errNotFound = new Error('unknown_symbol');
++          errNotFound.code = 'UNKNOWN_SYMBOL';
++          throw errNotFound;
+         }
+ 
+         const lastGood = candleLru.get(lastGoodKey);
+         if (lastGood && lastGood.length > 0) {
+           const result = [...lastGood];
+           result.source = 'cache';
+-          result.exchange = meta.exchange || 'Binance';
++          result.exchange = meta?.exchange || 'Binance';
+           result.delaySec = 0;
+           result.candles = result;
+           return result;
+@@ -717,30 +632,10 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+     });
+   }
+ 
+-  // 3. Known non-crypto assets (demo series)
+-  if (!known) {
+-    const empty = [];
+-    empty.source = 'demo';
+-    empty.exchange = 'Demo';
+-    empty.delaySec = 0;
+-    empty.candles = empty;
+-    return empty;
+-  }
+-
+-  const demoKey = `demo:${cleanSymbol}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+-  const cachedDemo = candleLru.get(demoKey);
+-  if (cachedDemo) {
+-    return cachedDemo;
+-  }
+-
+-  const rawBars = demoBars(cleanSymbol, tf, { limit, from: fromTime, to: toTime });
+-  const result = [...rawBars];
+-  result.source = 'demo';
+-  result.exchange = meta.exchange || 'Demo';
+-  result.delaySec = 0;
+-  result.candles = result;
+-  candleLru.set(demoKey, result, result.length, 3000);
+-  return result;
++  // Any instrument without a real source MUST return unknown_symbol (FR-008)
++  const unknownErr = new Error('unknown_symbol');
++  unknownErr.code = 'UNKNOWN_SYMBOL';
++  throw unknownErr;
+ }
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
+@@ -826,68 +721,14 @@ export async function get24hTicker(symbol) {
+     }
+   }
+ 
+-  // 3. Unknown check
+-  if (!isKnownSymbol(clean) && !isKnownSymbol(resolved)) {
+-    return { unknown: true, symbol };
+-  }
+-
+-  // 4. All non-crypto demo markets: derived from demoPath (FR-009)
+-  const now = Date.now();
+-  const lastPrice = demoPrice(clean, now);
+-  const precision = meta.precision ?? 2;
+-  const t24h = now - 24 * 3600 * 1000;
+-  const bars24h = demoBars(clean, '1', { from: t24h, to: now, limit: 1440 });
+-
+-  let openPrice = lastPrice;
+-  let highPrice = lastPrice;
+-  let lowPrice = lastPrice;
+-  let volume = 0;
+-
+-  if (bars24h.length > 0) {
+-    openPrice = bars24h[0].open;
+-    highPrice = Math.max(lastPrice, ...bars24h.map(b => b.high));
+-    lowPrice = Math.min(lastPrice, ...bars24h.map(b => b.low));
+-    volume = Math.round(bars24h.reduce((s, b) => s + b.volume, 0));
+-  } else {
+-    // If market was closed all 24h, fallback to last daily bar
+-    const days = dailyLayer(clean);
+-    const lastDay = days[days.length - 1];
+-    if (lastDay) {
+-      openPrice = lastDay.open;
+-      highPrice = Math.max(lastPrice, lastDay.high);
+-      lowPrice = Math.min(lastPrice, lastDay.low);
+-      volume = lastDay.volume;
+-    }
+-  }
+-
+-  const priceChange = Number((lastPrice - openPrice).toFixed(precision));
+-  const priceChangePercent = openPrice > 0 ? Number(((priceChange / openPrice) * 100).toFixed(2)) : 0;
+-  const quoteVolume = Math.round(volume * lastPrice);
+-
+-  return {
+-    symbol: clean,
+-    lastPrice,
+-    priceChange,
+-    priceChangePercent,
+-    highPrice,
+-    lowPrice,
+-    volume,
+-    quoteVolume,
+-    exchange: meta.exchange,
+-    category: meta.category,
+-    currency: meta.currency,
+-    source: 'demo',
+-    dataStatus: 'demo',
+-    delaySec: 0,
+-    time: now
+-  };
++  // 3. Unknown check & demo removal: no demo tickers remain (FR-008)
++  return { unknown: true, symbol };
+ }
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
+ // 7. DATA SOURCES STATUS & WATERFALL TELEMETRY
+ // ─────────────────────────────────────────────────────────────────────────────
+-// Real Binance reachability (cached 30s). Every other feed below is a
+-// modelled/demo series and is reported as such — never as "online".
++// Real Binance reachability (cached 30s). Real market sources only (Binance, TradingView, TGJU, and TSE when enabled).
+ let binanceProbe = { at: 0, ok: false, ms: null };
+ async function probeBinance() {
+   if (Date.now() - binanceProbe.at < 30000) return binanceProbe;
+diff --git a/server/demoPath.js b/server/demoPath.js
+deleted file mode 100644
+index f0df907..0000000
+--- a/server/demoPath.js
++++ /dev/null
+@@ -1,698 +0,0 @@
+-// server/demoPath.js
+-// Deterministic hierarchical price path engine for demo markets (FR-007, FR-008).
+-// Daily layer -> minute Brownian bridge -> second Brownian bridge.
+-// Guarantees:
+-// 1. Fully deterministic and stable across calls (seeded per symbol & timestamp).
+-// 2. Exact aggregation across all timeframes (sub-minute -> minute -> hourly -> daily -> weekly/monthly).
+-// 3. Follows session calendars per market category (no weekend forex bars, proper TSE/Gold windows).
+-// 4. One unified price for candles, tickers, live ticks and orderbook depth (FR-009).
+-
+-import { getSymbolMeta } from './symbolCatalog.js';
+-import { parseTimeframe, bucketStart, nextBucket, aggregate } from './timeframes.js';
+-import { isSessionDay, sessionWindows, isSessionTime } from './marketSessions.js';
+-import { candleLru } from './lru.js';
+-
+-// Epoch ms for 2000-01-03 00:00:00 UTC (Monday)
+-export const START_DAY_MS = 946857600000;
+-const DAY_MS = 86400000;
+-
+-export const SYMBOL_BASE_CONFIG = {
+-  // 1. Forex
+-  'EURUSD': { base: 1.08450, precision: 5, minTick: 0.00001, dailyVol: 0.0035, baseVol: 85000 },
+-  'GBPUSD': { base: 1.29800, precision: 5, minTick: 0.00001, dailyVol: 0.0040, baseVol: 72000 },
+-  'USDJPY': { base: 152.400, precision: 3, minTick: 0.001, dailyVol: 0.0045, baseVol: 90000 },
+-  'AUDUSD': { base: 0.65800, precision: 5, minTick: 0.00001, dailyVol: 0.0045, baseVol: 65000 },
+-  'USDCAD': { base: 1.38500, precision: 5, minTick: 0.00001, dailyVol: 0.0038, baseVol: 58000 },
+-  'USDCHF': { base: 0.86500, precision: 5, minTick: 0.00001, dailyVol: 0.0035, baseVol: 54000 },
+-  'EURGBP': { base: 0.83500, precision: 5, minTick: 0.00001, dailyVol: 0.0030, baseVol: 48000 },
+-  'EURJPY': { base: 165.200, precision: 3, minTick: 0.001, dailyVol: 0.0045, baseVol: 62000 },
+-  'GBPJPY': { base: 197.800, precision: 3, minTick: 0.001, dailyVol: 0.0050, baseVol: 68000 },
+-
+-  // 2. Metals & Commodities
+-  'XAUUSD': { base: 2718.40, precision: 2, minTick: 0.05, dailyVol: 0.006, baseVol: 120000 },
+-  'XAGUSD': { base: 31.850, precision: 3, minTick: 0.005, dailyVol: 0.009, baseVol: 95000 },
+-  'USOIL': { base: 71.20, precision: 2, minTick: 0.01, dailyVol: 0.012, baseVol: 110000 },
+-  'UKOIL': { base: 75.10, precision: 2, minTick: 0.01, dailyVol: 0.012, baseVol: 105000 },
+-  'NATGAS': { base: 2.850, precision: 3, minTick: 0.001, dailyVol: 0.018, baseVol: 80000 },
+-
+-  // 3. Indices & Stocks
+-  'SPX': { base: 5880.00, precision: 2, minTick: 0.1, dailyVol: 0.005, baseVol: 250000 },
+-  'NDX': { base: 20650.00, precision: 2, minTick: 0.25, dailyVol: 0.008, baseVol: 320000 },
+-  'DJI': { base: 42800.0, precision: 1, minTick: 1.0, dailyVol: 0.0045, baseVol: 180000 },
+-  'AAPL': { base: 232.50, precision: 2, minTick: 0.01, dailyVol: 0.009, baseVol: 450000 },
+-  'NVDA': { base: 138.80, precision: 2, minTick: 0.01, dailyVol: 0.015, baseVol: 650000 },
+-  'TSLA': { base: 245.20, precision: 2, minTick: 0.01, dailyVol: 0.018, baseVol: 550000 },
+-  'MSFT': { base: 428.50, precision: 2, minTick: 0.01, dailyVol: 0.008, baseVol: 350000 },
+-  'AMZN': { base: 188.00, precision: 2, minTick: 0.01, dailyVol: 0.010, baseVol: 400000 },
+-  'GOOGL': { base: 166.50, precision: 2, minTick: 0.01, dailyVol: 0.010, baseVol: 380000 },
+-  'META': { base: 585.00, precision: 2, minTick: 0.01, dailyVol: 0.012, baseVol: 420000 },
+-
+-  // 4. Tehran Gold & FX
+-  'GOLD_ABSHODEH': { base: 18450000, precision: 0, minTick: 1000, dailyVol: 0.007, baseVol: 15000 },
+-  'GOLD_18K': { base: 4250000, precision: 0, minTick: 1000, dailyVol: 0.007, baseVol: 22000 },
+-  'COIN_EMAMI': { base: 52400000, precision: 0, minTick: 10000, dailyVol: 0.009, baseVol: 8500 },
+-  'COIN_BAHAR': { base: 47200000, precision: 0, minTick: 10000, dailyVol: 0.009, baseVol: 7200 },
+-  'COIN_NIM': { base: 28100000, precision: 0, minTick: 10000, dailyVol: 0.010, baseVol: 9800 },
+-  'COIN_ROB': { base: 18200000, precision: 0, minTick: 10000, dailyVol: 0.012, baseVol: 12000 },
+-  'COIN_GERMI': { base: 8700000, precision: 0, minTick: 10000, dailyVol: 0.010, baseVol: 6500 },
+-  'USD_TEHRAN': { base: 62800, precision: 0, minTick: 50, dailyVol: 0.004, baseVol: 35000 },
+-  'USDT_TOMAN': { base: 63100, precision: 0, minTick: 50, dailyVol: 0.004, baseVol: 45000 },
+-  'AED_DIRHAM': { base: 17150, precision: 0, minTick: 20, dailyVol: 0.004, baseVol: 28000 },
+-
+-  // 5. TSE
+-  'FOOLAD': { base: 4850, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 25000000 },
+-  'FAMELI': { base: 6320, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 22000000 },
+-  'KHODRO': { base: 2980, precision: 0, minTick: 10, dailyVol: 0.014, baseVol: 45000000 },
+-  'SAIPA': { base: 2420, precision: 0, minTick: 10, dailyVol: 0.014, baseVol: 40000000 },
+-  'SHASTA': { base: 1320, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 35000000 },
+-  'AHRAM': { base: 22450, precision: 0, minTick: 10, dailyVol: 0.016, baseVol: 18000000 },
+-  'AGAS': { base: 41200, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 12000000 },
+-  'TALA': { base: 31500, precision: 0, minTick: 10, dailyVol: 0.009, baseVol: 15000000 },
+-  'AYAR': { base: 28900, precision: 0, minTick: 10, dailyVol: 0.009, baseVol: 14000000 },
+-  'TAVAN': { base: 19800, precision: 0, minTick: 10, dailyVol: 0.016, baseVol: 16000000 },
+-  'SHPNA': { base: 3850, precision: 0, minTick: 10, dailyVol: 0.013, baseVol: 28000000 },
+-  'SHETRAN': { base: 2750, precision: 0, minTick: 10, dailyVol: 0.013, baseVol: 24000000 },
+-  'DARAYEKOM': { base: 14200, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 10000000 },
+-  'PALAYESH': { base: 11800, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 11000000 },
+-  'VABANKE': { base: 8900, precision: 0, minTick: 10, dailyVol: 0.011, baseVol: 15000000 },
+-  'FARABOURSE': { base: 4150, precision: 0, minTick: 10, dailyVol: 0.013, baseVol: 13000000 }
+-};
+-
+-export function getSymbolConfig(symbol) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  if (SYMBOL_BASE_CONFIG[clean]) return { ...SYMBOL_BASE_CONFIG[clean], symbol: clean };
+-  const meta = getSymbolMeta(clean) || {};
+-  return {
+-    symbol: clean,
+-    base: 100.0,
+-    precision: meta.precision ?? 2,
+-    minTick: meta.minTick ?? 0.01,
+-    dailyVol: 0.008,
+-    baseVol: 50000
+-  };
+-}
+-
+-// 32-bit FNV-1a hash
+-function hashString(str) {
+-  let h = 2166136261 >>> 0;
+-  for (let i = 0; i < str.length; i++) {
+-    h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0;
+-  }
+-  return h;
+-}
+-
+-// Fast Mulberry32 PRNG
+-function mulberry32(seed) {
+-  let s = seed >>> 0;
+-  return function() {
+-    var t = (s += 0x6D2B79F5);
+-    t = Math.imul(t ^ (t >>> 15), t | 1);
+-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+-  };
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+-// 1. MEMOIZED DAILY LAYER (since 2000-01-03 on session days)
+-// ─────────────────────────────────────────────────────────────────────────────
+-const DAILY_LAYER_MAX = 80;
+-const dailyLayerCache = new Map(); // symbol -> array of closed session day bars
+-
+-function getDailyLayer(clean) {
+-  if (!dailyLayerCache.has(clean)) return undefined;
+-  const bars = dailyLayerCache.get(clean);
+-  dailyLayerCache.delete(clean);
+-  dailyLayerCache.set(clean, bars);
+-  return bars;
+-}
+-
+-function setDailyLayer(clean, bars) {
+-  if (dailyLayerCache.has(clean)) {
+-    dailyLayerCache.delete(clean);
+-  }
+-  dailyLayerCache.set(clean, bars);
+-  while (dailyLayerCache.size > DAILY_LAYER_MAX) {
+-    const oldestKey = dailyLayerCache.keys().next().value;
+-    dailyLayerCache.delete(oldestKey);
+-  }
+-}
+-
+-export function dailyLayer(symbol) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  const cached = getDailyLayer(clean);
+-  if (cached) return cached;
+-
+-  const cfg = getSymbolConfig(clean);
+-  const prng = mulberry32(hashString(clean));
+-  const precision = cfg.precision;
+-  const dailyVol = cfg.dailyVol;
+-  const basePrice = cfg.base;
+-  const baseVol = cfg.baseVol;
+-
+-  const todayStart = bucketStart('D', Date.now());
+-  const bars = [];
+-
+-  let curPrice = basePrice * 0.95;
+-
+-  let dayIndex = 0;
+-  for (let dayMs = START_DAY_MS; dayMs < todayStart; dayMs += DAY_MS) {
+-    if (!isSessionDay(clean, dayMs)) continue;
+-
+-    dayIndex++;
+-    // Deterministic macro trend & mean reversion pull
+-    const macroCycle = Math.sin(dayIndex / 160) * 0.08 + Math.cos(dayIndex / 60) * 0.04;
+-    const target = basePrice * (0.90 + 0.10 * (dayIndex / 7000) + macroCycle);
+-    const noise = (prng() - 0.495) * 2;
+-    const drift = 0.04 * (target - curPrice) / curPrice;
+-    const returnPct = Math.max(-0.06, Math.min(0.06, drift + noise * dailyVol));
+-
+-    const open = curPrice;
+-    const close = Number((curPrice * (1 + returnPct)).toFixed(precision));
+-
+-    const wickHigh = Math.max(open, close) * (prng() * dailyVol * 0.8);
+-    const wickLow = Math.min(open, close) * (prng() * dailyVol * 0.8);
+-
+-    let high = Number((Math.max(open, close) + wickHigh).toFixed(precision));
+-    let low = Number((Math.min(open, close) - wickLow).toFixed(precision));
+-
+-    high = Math.max(high, open, close);
+-    low = Math.max(Math.min(low, open, close), Number((open * 0.1).toFixed(precision)));
+-
+-    const volume = Math.round(baseVol * (0.6 + prng() * 0.8));
+-
+-    bars.push({
+-      time: dayMs,
+-      open,
+-      high,
+-      low,
+-      close,
+-      volume,
+-      closeTime: dayMs + DAY_MS - 1
+-    });
+-
+-    curPrice = close;
+-  }
+-
+-  setDailyLayer(clean, bars);
+-  return bars;
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+-// 2. MINUTE BROWNIAN-BRIDGE LAYER (aggregates exactly to daily bar)
+-// ─────────────────────────────────────────────────────────────────────────────
+-export function minuteBars(symbol, dayMs, options = {}) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  const t = bucketStart('D', dayMs);
+-  const cacheKey = `demo:min:${clean}:${t}`;
+-  const hit = candleLru.get(cacheKey);
+-  if (hit) return hit;
+-
+-  if (!isSessionDay(clean, t)) return [];
+-
+-  const windows = sessionWindows(clean, t);
+-  if (windows.length === 0) return [];
+-
+-  const cfg = getSymbolConfig(clean);
+-  const precision = cfg.precision;
+-
+-  // Find parent daily bar
+-  let parentBar = null;
+-  const days = dailyLayer(clean);
+-  const found = days.find(b => b.time === t);
+-  if (found) {
+-    parentBar = found;
+-  } else {
+-    // If today is a session day, generate today's parent bar parameters deterministically
+-    const lastPast = days[days.length - 1];
+-    const prevClose = lastPast ? lastPast.close : cfg.base;
+-    const prngToday = mulberry32(hashString(`${clean}:today:${t}`));
+-    const returnPct = (prngToday() - 0.49) * cfg.dailyVol;
+-    const close = Number((prevClose * (1 + returnPct)).toFixed(precision));
+-    const high = Number((Math.max(prevClose, close) * (1 + prngToday() * cfg.dailyVol * 0.7)).toFixed(precision));
+-    const low = Number((Math.min(prevClose, close) * (1 - prngToday() * cfg.dailyVol * 0.7)).toFixed(precision));
+-    parentBar = {
+-      time: t,
+-      open: prevClose,
+-      high: Math.max(high, prevClose, close),
+-      low: Math.min(low, prevClose, close),
+-      close,
+-      volume: Math.round(cfg.baseVol * (0.7 + prngToday() * 0.6)),
+-      closeTime: t + DAY_MS - 1
+-    };
+-  }
+-
+-  // Calculate total minutes across windows
+-  let totalMinutes = 0;
+-  for (const w of windows) {
+-    totalMinutes += Math.round((w.endMs - w.startMs) / 60000);
+-  }
+-  if (totalMinutes <= 0) return [];
+-
+-  const prng = mulberry32(hashString(`${clean}:${t}:minutes`));
+-  const N = totalMinutes;
+-
+-  // Pick peak high and low minute indices
+-  let iH = Math.max(1, Math.min(N - 2, Math.floor(0.15 * N + prng() * 0.70 * N)));
+-  let iL = Math.max(1, Math.min(N - 2, Math.floor(0.15 * N + prng() * 0.70 * N)));
+-  if (iH === iL) {
+-    if (iL < N - 2) iL++; else iL--;
+-  }
+-
+-  const anchors = [
+-    { idx: 0, price: parentBar.open },
+-    iH < iL ? { idx: iH, price: parentBar.high } : { idx: iL, price: parentBar.low },
+-    iH < iL ? { idx: iL, price: parentBar.low } : { idx: iH, price: parentBar.high },
+-    { idx: N, price: parentBar.close }
+-  ];
+-
+-  const p = new Array(N + 1);
+-  const spread = Math.max(10 ** (-precision), parentBar.high - parentBar.low);
+-  const sigma = Math.max(spread * 0.04, 10 ** (-precision));
+-
+-  for (let s = 0; s < 3; s++) {
+-    const a1 = anchors[s];
+-    const a2 = anchors[s + 1];
+-    const L = a2.idx - a1.idx;
+-    const B = new Array(L + 1);
+-    B[0] = 0;
+-    for (let j = 1; j <= L; j++) {
+-      B[j] = B[j - 1] + (prng() - 0.5) * 2;
+-    }
+-    const BL = B[L];
+-    for (let j = 0; j <= L; j++) {
+-      if (j === 0) {
+-        p[a1.idx] = a1.price;
+-      } else if (j === L) {
+-        p[a2.idx] = a2.price;
+-      } else {
+-        const trend = a1.price + (j / L) * (a2.price - a1.price);
+-        const bridge = (B[j] - (j / L) * BL) * sigma;
+-        let val = trend + bridge;
+-        val = Math.max(parentBar.low, Math.min(parentBar.high, val));
+-        p[a1.idx + j] = Number(val.toFixed(precision));
+-      }
+-    }
+-  }
+-
+-  // Volume distribution weights
+-  const weights = new Array(N);
+-  let totalW = 0;
+-  for (let k = 0; k < N; k++) {
+-    weights[k] = 0.5 + prng();
+-    totalW += weights[k];
+-  }
+-
+-  const result = [];
+-  let volSum = 0;
+-  let minIdx = 0;
+-  const wick = spread * 0.02;
+-
+-  for (const w of windows) {
+-    const winMinutes = Math.round((w.endMs - w.startMs) / 60000);
+-    for (let m = 0; m < winMinutes; m++) {
+-      const k = minIdx;
+-      const barTime = w.startMs + m * 60000;
+-      const open = p[k];
+-      const close = p[k + 1];
+-
+-      let high = Math.max(open, close);
+-      let low = Math.min(open, close);
+-
+-      if (k === iH || open >= parentBar.high || close >= parentBar.high) {
+-        high = parentBar.high;
+-      } else {
+-        high = Math.min(parentBar.high, Number((high + prng() * wick).toFixed(precision)));
+-      }
+-
+-      if (k === iL || open <= parentBar.low || close <= parentBar.low) {
+-        low = parentBar.low;
+-      } else {
+-        low = Math.max(parentBar.low, Number((low - prng() * wick).toFixed(precision)));
+-      }
+-
+-      high = Math.max(high, open, close);
+-      low = Math.min(low, open, close);
+-
+-      const vol = (k === N - 1)
+-        ? Math.round((parentBar.volume - volSum) * 100) / 100
+-        : Math.round(((parentBar.volume * weights[k]) / totalW) * 100) / 100;
+-      volSum += vol;
+-
+-      result.push({
+-        time: barTime,
+-        open,
+-        high,
+-        low,
+-        close,
+-        volume: vol,
+-        closeTime: barTime + 60000 - 1
+-      });
+-
+-      minIdx++;
+-    }
+-  }
+-
+-  const noCache = typeof options === 'boolean' ? options : !!options?.noCache;
+-  if (!noCache) {
+-    candleLru.set(cacheKey, result, result.length);
+-  }
+-
+-  return result;
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+-// 3. SECOND BROWNIAN-BRIDGE LAYER (aggregates exactly to minute bar)
+-// ─────────────────────────────────────────────────────────────────────────────
+-export function secondBars(symbol, minuteMs) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  const mTime = bucketStart('1', minuteMs);
+-  const cacheKey = `demo:sec:${clean}:${mTime}`;
+-  const hit = candleLru.get(cacheKey);
+-  if (hit) return hit;
+-
+-  const dayMs = bucketStart('D', mTime);
+-  const dayMins = minuteBars(clean, dayMs);
+-  const parent = dayMins.find(b => b.time === mTime);
+-  if (!parent) return [];
+-
+-  const cfg = getSymbolConfig(clean);
+-  const precision = cfg.precision;
+-  const N = 60;
+-  const prng = mulberry32(hashString(`${clean}:${mTime}:seconds`));
+-
+-  let iH = Math.max(1, Math.min(N - 2, Math.floor(0.15 * N + prng() * 0.70 * N)));
+-  let iL = Math.max(1, Math.min(N - 2, Math.floor(0.15 * N + prng() * 0.70 * N)));
+-  if (iH === iL) {
+-    if (iL < N - 2) iL++; else iL--;
+-  }
+-
+-  const anchors = [
+-    { idx: 0, price: parent.open },
+-    iH < iL ? { idx: iH, price: parent.high } : { idx: iL, price: parent.low },
+-    iH < iL ? { idx: iL, price: parent.low } : { idx: iH, price: parent.high },
+-    { idx: N, price: parent.close }
+-  ];
+-
+-  const p = new Array(N + 1);
+-  const spread = Math.max(10 ** (-precision), parent.high - parent.low);
+-  const sigma = Math.max(spread * 0.04, 10 ** (-precision));
+-
+-  for (let s = 0; s < 3; s++) {
+-    const a1 = anchors[s];
+-    const a2 = anchors[s + 1];
+-    const L = a2.idx - a1.idx;
+-    const B = new Array(L + 1);
+-    B[0] = 0;
+-    for (let j = 1; j <= L; j++) {
+-      B[j] = B[j - 1] + (prng() - 0.5) * 2;
+-    }
+-    const BL = B[L];
+-    for (let j = 0; j <= L; j++) {
+-      if (j === 0) {
+-        p[a1.idx] = a1.price;
+-      } else if (j === L) {
+-        p[a2.idx] = a2.price;
+-      } else {
+-        const trend = a1.price + (j / L) * (a2.price - a1.price);
+-        const bridge = (B[j] - (j / L) * BL) * sigma;
+-        let val = trend + bridge;
+-        val = Math.max(parent.low, Math.min(parent.high, val));
+-        p[a1.idx + j] = Number(val.toFixed(precision));
+-      }
+-    }
+-  }
+-
+-  const weights = new Array(N);
+-  let totalW = 0;
+-  for (let k = 0; k < N; k++) {
+-    weights[k] = 0.5 + prng();
+-    totalW += weights[k];
+-  }
+-
+-  const result = [];
+-  let volSum = 0;
+-  const wick = spread * 0.02;
+-
+-  for (let k = 0; k < N; k++) {
+-    const barTime = mTime + k * 1000;
+-    const open = p[k];
+-    const close = p[k + 1];
+-
+-    let high = Math.max(open, close);
+-    let low = Math.min(open, close);
+-
+-    if (k === iH || open >= parent.high || close >= parent.high) {
+-      high = parent.high;
+-    } else {
+-      high = Math.min(parent.high, Number((high + prng() * wick).toFixed(precision)));
+-    }
+-
+-    if (k === iL || open <= parent.low || close <= parent.low) {
+-      low = parent.low;
+-    } else {
+-      low = Math.max(parent.low, Number((low - prng() * wick).toFixed(precision)));
+-    }
+-
+-    high = Math.max(high, open, close);
+-    low = Math.min(low, open, close);
+-
+-    const vol = (k === N - 1)
+-      ? Math.round((parent.volume - volSum) * 100) / 100
+-      : Math.round(((parent.volume * weights[k]) / totalW) * 100) / 100;
+-    volSum += vol;
+-
+-    result.push({
+-      time: barTime,
+-      open,
+-      high,
+-      low,
+-      close,
+-      volume: vol,
+-      closeTime: barTime + 999
+-    });
+-  }
+-
+-  candleLru.set(cacheKey, result, result.length);
+-  return result;
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+-// 4. DEMO PRICE: Last price on path <= now (FR-009)
+-// ─────────────────────────────────────────────────────────────────────────────
+-export function demoPrice(symbol, now = Date.now()) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  const t = Number(now);
+-
+-  if (isSessionTime(clean, t)) {
+-    const todayMs = bucketStart('D', t);
+-    const mins = minuteBars(clean, todayMs);
+-    const curMin = bucketStart('1', t);
+-    const mBar = mins.find(b => b.time === curMin);
+-    if (mBar) {
+-      return mBar.close;
+-    }
+-    const pastMins = mins.filter(b => b.time <= t);
+-    if (pastMins.length > 0) {
+-      return pastMins[pastMins.length - 1].close;
+-    }
+-  }
+-
+-  // Market is closed: find the last session day <= t
+-  let checkDay = bucketStart('D', t);
+-  for (let i = 0; i < 14; i++) {
+-    if (isSessionDay(clean, checkDay)) {
+-      const mins = minuteBars(clean, checkDay);
+-      const valid = (checkDay === bucketStart('D', t)) ? mins.filter(b => b.time <= t) : mins;
+-      if (valid.length > 0) {
+-        return valid[valid.length - 1].close;
+-      }
+-    }
+-    checkDay -= DAY_MS;
+-  }
+-
+-  const cfg = getSymbolConfig(clean);
+-  return cfg.base;
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+-// 5. DEMO BARS: Query engine across all timeframes (FR-007, FR-008)
+-// ─────────────────────────────────────────────────────────────────────────────
+-export function demoBars(symbol, tf, options = {}) {
+-  const clean = String(symbol || '').replace(/^.*:/, '').toUpperCase();
+-  const parsed = typeof tf === 'object' && tf !== null && tf.canonical ? tf : parseTimeframe(tf);
+-  if (!parsed) throw new Error(`Invalid timeframe: ${tf}`);
+-
+-  const limit = Math.max(1, Math.min(20000, Number(options.limit) || 500));
+-  let from = options.from !== null && options.from !== undefined ? Number(options.from) : null;
+-  let to = options.to !== null && options.to !== undefined ? Number(options.to) : null;
+-
+-  if (from !== null && from < 1e11) from *= 1000;
+-  if (to !== null && to < 1e11) to *= 1000;
+-
+-  const now = Date.now();
+-  const maxTo = (to !== null && to !== undefined) ? to : now;
+-  const effectiveTo = Math.min(maxTo, now);
+-
+-  if (effectiveTo < START_DAY_MS) return [];
+-  if (from !== null && from > effectiveTo) return [];
+-
+-  // Case A: Daily, Weekly, Monthly timeframes
+-  if (parsed.unit === 'D' || parsed.unit === 'W' || parsed.unit === 'M') {
+-    let days = dailyLayer(clean);
+-
+-    // If today is a session day and effectiveTo >= todayStart, include today's forming bar
+-    const todayMs = bucketStart('D', now);
+-    if (isSessionDay(clean, todayMs) && effectiveTo >= todayMs) {
+-      const todayMins = minuteBars(clean, todayMs).filter(b => b.time <= effectiveTo);
+-      if (todayMins.length > 0) {
+-        const forming = {
+-          time: todayMs,
+-          open: todayMins[0].open,
+-          high: Math.max(...todayMins.map(b => b.high)),
+-          low: Math.min(...todayMins.map(b => b.low)),
+-          close: todayMins[todayMins.length - 1].close,
+-          volume: Math.round(todayMins.reduce((s, b) => s + b.volume, 0)),
+-          closeTime: nextBucket('D', todayMs) - 1
+-        };
+-        days = [...days, forming];
+-      }
+-    }
+-
+-    if (parsed.canonical === 'D') {
+-      let filtered = days.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-      return filtered.slice(-limit);
+-    }
+-
+-    // Multi-day (e.g. 3D), Weekly (W, 2W), Monthly (M, 3M)
+-    const aggregated = aggregate(days, parsed);
+-    let filtered = aggregated.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-    return filtered.slice(-limit);
+-  }
+-
+-  // Case B: Minute & Hourly timeframes (unit 'm')
+-  if (parsed.unit === 'm') {
+-    if (parsed.count >= 60) {
+-      // Intraday buckets >= 60 minutes: stream aggregation per day (T019)
+-      const dayChunks = [];
+-      let totalAgg = 0;
+-
+-      let scanDay = bucketStart('D', effectiveTo);
+-      while (scanDay >= START_DAY_MS && totalAgg < limit + 10) {
+-        if (from !== null && scanDay + DAY_MS < from) break;
+-
+-        if (isSessionDay(clean, scanDay)) {
+-          // Do not retain per-minute arrays in cache for days that are only aggregated
+-          let mins = minuteBars(clean, scanDay, { noCache: true });
+-          mins = mins.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-          if (mins.length > 0) {
+-            const dayAgg = aggregate(mins, parsed);
+-            if (dayAgg.length > 0) {
+-              dayChunks.push(dayAgg);
+-              totalAgg += dayAgg.length;
+-            }
+-          }
+-        }
+-        scanDay -= DAY_MS;
+-      }
+-
+-      if (dayChunks.length === 0) return [];
+-
+-      dayChunks.reverse();
+-      const aggregated = dayChunks.flat();
+-      let filtered = aggregated.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-      return filtered.slice(-limit);
+-    }
+-
+-    const needed = (limit + 10) * parsed.count;
+-    const dayChunks = [];
+-    let collectedCount = 0;
+-
+-    let scanDay = bucketStart('D', effectiveTo);
+-    while (scanDay >= START_DAY_MS && collectedCount < needed) {
+-      if (from !== null && scanDay + DAY_MS < from) break;
+-
+-      if (isSessionDay(clean, scanDay)) {
+-        let mins = minuteBars(clean, scanDay);
+-        mins = mins.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-        if (mins.length > 0) {
+-          dayChunks.push(mins);
+-          collectedCount += mins.length;
+-        }
+-      }
+-      scanDay -= DAY_MS;
+-    }
+-
+-    if (dayChunks.length === 0) return [];
+-
+-    dayChunks.reverse();
+-    const collectedMinutes = dayChunks.flat();
+-
+-    if (parsed.canonical === '1') {
+-      return collectedMinutes.slice(-limit);
+-    }
+-
+-    const aggregated = aggregate(collectedMinutes, parsed);
+-    let filtered = aggregated.filter(b => b.time <= effectiveTo && (from === null || b.time >= from));
+-    return filtered.slice(-limit);
+-  }
+-
+-  // Case C: Sub-minute timeframes (unit 's')
+-  if (parsed.unit === 's') {
+-    // If market is closed right now and no to_time was explicitly requested,
+-    // anchor to the last session's end
+-    let anchorTime = effectiveTo;
+-    if (to === null && !isSessionTime(clean, effectiveTo)) {
+-      let checkDay = bucketStart('D', effectiveTo);
+-      for (let i = 0; i < 14; i++) {
+-        if (isSessionDay(clean, checkDay)) {
+-          const windows = sessionWindows(clean, checkDay);
+-          if (windows.length > 0) {
+-            const lastWin = windows[windows.length - 1];
+-            if (checkDay === bucketStart('D', effectiveTo)) {
+-              if (anchorTime > lastWin.endMs) anchorTime = lastWin.endMs - 1000;
+-            } else {
+-              anchorTime = lastWin.endMs - 1000;
+-            }
+-            break;
+-          }
+-        }
+-        checkDay -= DAY_MS;
+-      }
+-    }
+-
+-    const neededSeconds = (limit + 10) * parsed.count;
+-    const chunkList = [];
+-    let collectedSecondsCount = 0;
+-
+-    let scanMin = bucketStart('1', anchorTime);
+-    while (scanMin >= START_DAY_MS && collectedSecondsCount < neededSeconds) {
+-      if (from !== null && scanMin + 60000 < from) break;
+-
+-      const scanDay = bucketStart('D', scanMin);
+-      if (isSessionDay(clean, scanDay)) {
+-        const secs = secondBars(clean, scanMin);
+-        const valid = secs.filter(b => b.time <= anchorTime && (from === null || b.time >= from));
+-        if (valid.length > 0) {
+-          chunkList.push(valid);
+-          collectedSecondsCount += valid.length;
+-        }
+-      }
+-      scanMin -= 60000;
+-    }
+-
+-    if (chunkList.length === 0) return [];
+-
+-    chunkList.reverse();
+-    const collectedSeconds = chunkList.flat();
+-
+-    if (parsed.canonical === '1s') {
+-      return collectedSeconds.slice(-limit);
+-    }
+-
+-    const aggregated = aggregate(collectedSeconds, parsed);
+-    let filtered = aggregated.filter(b => b.time <= anchorTime && (from === null || b.time >= from));
+-    return filtered.slice(-limit);
+-  }
+-
+-  return [];
+-}
+diff --git a/server/depthFeed.js b/server/depthFeed.js
+index cf1fcfd..84de92d 100644
+--- a/server/depthFeed.js
++++ b/server/depthFeed.js
+@@ -1,12 +1,8 @@
+ // server/depthFeed.js
+ // Level 2 Depth of Market (DOM) / Order Book for TradingChart.
+-//
+-// Binance-listed symbols get the REAL order book (public market-data mirror,
+-// reachable from restricted regions). Instruments without a public book
+-// (Tehran bazaar, TSE, OTC FX) get a clearly-flagged SIMULATED ladder — the
+-// payload carries `source` + `simulated` so the UI can label it honestly.
++// Binance-listed symbols get the REAL order book (public market-data mirror).
++// Instruments without a real order book answer 404 depth_unavailable (FR-008).
+ 
+-import { get24hTicker } from './dataFeed.js';
+ import { getSymbolMeta } from './symbolCatalog.js';
+ 
+ const BOOK_BASES = [
+@@ -62,82 +58,39 @@ export async function getOrderBookDepth(symbol, levels = 15) {
+   const hit = cache.get(key);
+   if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
+ 
+-  const meta = getSymbolMeta(clean) || {};
+-  let data = null;
+-
+-  if (meta.exchange === 'Binance' || meta.market === 'crypto') {
+-    const j = await realBook(clean, n);
+-    if (j) {
+-      const bids = ladder(j.bids, n);
+-      const asks = ladder(j.asks, n);
+-      const bestBid = bids[0].price, bestAsk = asks[0].price;
+-      const mid = (bestBid + bestAsk) / 2;
+-      const spread = bestAsk - bestBid;
+-      data = {
+-        symbol: clean,
+-        lastPrice: mid,
+-        spread: Number(spread.toFixed(8)),
+-        spreadPct: Number(((spread / mid) * 100).toFixed(5)),
+-        bids,
+-        asks,
+-        maxDepth: Math.max(bids.at(-1).total, asks.at(-1).total),
+-        source: 'binance',
+-        simulated: false,
+-        timestamp: Date.now()
+-      };
+-    }
++  const meta = getSymbolMeta(clean) || getSymbolMeta(symbol) || {};
++  const isBinance = meta.exchange === 'Binance' || meta.source === 'binance' || meta.market === 'crypto' || String(symbol || '').startsWith('BINANCE:');
++  if (!isBinance) {
++    const err = new Error('depth_unavailable');
++    err.code = 'DEPTH_UNAVAILABLE';
++    throw err;
+   }
+ 
+-  if (!data) {
+-    // Simulated ladder around the real last price (deterministic sizes per
+-    // level so the book does not flicker randomly on every poll).
+-    const ticker = await get24hTicker(clean);
+-    const lastPrice = Number(ticker?.lastPrice) || 0;
+-    const tickSize = meta.minTick || (lastPrice > 1000 ? 0.5 : 0.01);
+-    const precision = meta.precision ?? 2;
+-    const halfSpread = tickSize * 1.5;
+-    const bestBid = lastPrice - halfSpread;
+-    const bestAsk = lastPrice + halfSpread;
+-    const bids = [], asks = [];
+-    let cb = 0, ca = 0;
+-    for (let i = 0; i < n; i++) {
+-      const bp = Number((bestBid - i * tickSize * (1 + i * 0.1)).toFixed(precision));
+-      const ap = Number((bestAsk + i * tickSize * (1 + i * 0.1)).toFixed(precision));
+-      const bs = Number((Math.abs(Math.sin((i + 1) * 1.7)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
+-      const as = Number((Math.abs(Math.cos((i + 1) * 1.3)) * 2.4 + 0.2 + i * 0.15).toFixed(3));
+-      cb += bs; ca += as;
+-      bids.push({
+-        0: bp,
+-        1: bs,
+-        level: i + 1,
+-        price: bp,
+-        size: bs,
+-        total: Number(cb.toFixed(3))
+-      });
+-      asks.push({
+-        0: ap,
+-        1: as,
+-        level: i + 1,
+-        price: ap,
+-        size: as,
+-        total: Number(ca.toFixed(3))
+-      });
+-    }
+-    const spread = Number((bestAsk - bestBid).toFixed(precision));
+-    data = {
+-      symbol: clean,
+-      lastPrice,
+-      spread,
+-      spreadPct: lastPrice ? Number(((spread / lastPrice) * 100).toFixed(4)) : 0,
+-      bids,
+-      asks,
+-      maxDepth: Math.max(cb, ca),
+-      source: 'simulated',
+-      simulated: true,
+-      timestamp: Date.now()
+-    };
++  const j = await realBook(clean, n);
++  if (!j) {
++    const err = new Error('depth_unavailable');
++    err.code = 'DEPTH_UNAVAILABLE';
++    throw err;
+   }
+ 
++  const bids = ladder(j.bids, n);
++  const asks = ladder(j.asks, n);
++  const bestBid = bids[0].price, bestAsk = asks[0].price;
++  const mid = (bestBid + bestAsk) / 2;
++  const spread = bestAsk - bestBid;
++  const data = {
++    symbol: clean,
++    lastPrice: mid,
++    spread: Number(spread.toFixed(8)),
++    spreadPct: Number(((spread / mid) * 100).toFixed(5)),
++    bids,
++    asks,
++    maxDepth: Math.max(bids.at(-1)?.total || 0, asks.at(-1)?.total || 0),
++    source: 'binance',
++    simulated: false,
++    timestamp: Date.now()
++  };
++
+   cache.set(key, { at: Date.now(), data });
+   if (cache.size > 200) cache.delete(cache.keys().next().value);
+   return data;
+diff --git a/server/index.js b/server/index.js
+index 1e37590..a88df86 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -164,19 +164,25 @@ app.get('/api/tickers', async (req, res) => {
+   try {
+     const raw = String(req.query.symbols || 'BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:SOLUSDT,OANDA:XAUUSD,OANDA:EURUSD');
+     const rawSymbols = raw.split(',').map(s => s.trim()).filter(Boolean);
+-    const symbols = [...new Set(rawSymbols.map(s => resolveSymbolAlias(cleanSymbol(s))).filter(Boolean))].slice(0, 40);
+-    if (!symbols.length) return bad(res, 'invalid_symbol');
++    if (!rawSymbols.length) return bad(res, 'invalid_symbol');
++
++    const results = await Promise.all(rawSymbols.map(rawSym => {
++      const cleaned = cleanSymbol(rawSym);
++      if (!cleaned) return Promise.resolve({ unknown: true, symbol: rawSym });
++      const resolved = resolveSymbolAlias(cleaned);
++      if (!isKnownSymbol(resolved)) return Promise.resolve({ unknown: true, symbol: rawSym });
++      return get24hTicker(resolved);
++    }));
+ 
+-    const results = await Promise.all(symbols.map(s => get24hTicker(s)));
+     const tickers = [];
+     const unknown = [];
+ 
+-    for (let i = 0; i < symbols.length; i++) {
++    for (let i = 0; i < rawSymbols.length; i++) {
+       const t = results[i];
+       if (t && !t.unknown && typeof t.lastPrice === 'number' && Number.isFinite(t.lastPrice)) {
+         tickers.push(t);
+       } else {
+-        unknown.push(symbols[i]);
++        unknown.push(rawSymbols[i]);
+       }
+     }
+ 
+@@ -201,9 +207,12 @@ app.get('/api/symbols', async (req, res) => {
+ 
+ // 5. Symbol Metadata
+ app.get('/api/symbol-info', (req, res) => {
+-  const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
+-  if (!raw) return bad(res, 'invalid_symbol');
++  const raw = cleanSymbol(req.query.symbol);
++  if (!raw) return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+   const symbol = resolveSymbolAlias(raw);
++  if (!isKnownSymbol(symbol)) {
++    return res.status(404).json({ ok: false, error: 'unknown_symbol' });
++  }
+   const meta = getSymbolMeta(symbol);
+   if (!meta || meta.syntheticFallback) {
+     return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+@@ -233,7 +242,10 @@ app.get('/api/gold-snapshot', async (req, res) => {
+ // 5d. Tehran Stock Exchange tape
+ app.get('/api/tse-tape', (req, res) => {
+   try {
+-    const raw = cleanSymbol(req.query.symbol, 'FOOLAD');
++    if (!tseSource.isTseEnabled()) {
++      return res.status(404).json({ ok: false, error: 'tse_unavailable' });
++    }
++    const raw = cleanSymbol(req.query.symbol, 'TSE:FOOLAD');
+     if (!raw) return bad(res, 'invalid_symbol');
+     const symbol = resolveSymbolAlias(raw);
+     res.json(getTseMarketTape(symbol));
+@@ -275,11 +287,27 @@ app.get('/api/screener', async (req, res) => {
+ // 6d. Depth of Market
+ app.get('/api/depth', async (req, res) => {
+   try {
+-    const raw = cleanSymbol(req.query.symbol, 'BINANCE:BTCUSDT');
+-    if (!raw) return bad(res, 'invalid_symbol');
++    const raw = cleanSymbol(req.query.symbol);
++    if (!raw) return res.status(404).json({ ok: false, error: 'unknown_symbol' });
+     const symbol = resolveSymbolAlias(raw);
++    if (!isKnownSymbol(symbol)) {
++      return res.status(404).json({ ok: false, error: 'unknown_symbol' });
++    }
++    const meta = getSymbolMeta(symbol);
++    const isBinance = symbol.startsWith('BINANCE:') || meta?.source === 'binance' || meta?.exchange === 'Binance';
++    if (!isBinance) {
++      return res.status(404).json({ ok: false, error: 'depth_unavailable' });
++    }
+     res.json(await getOrderBookDepth(symbol, clampInt(req.query.levels || req.query.limit, 15, 1, 50)));
+-  } catch (error) { serverError(res, '/api/depth', error); }
++  } catch (error) {
++    if (error?.code === 'DEPTH_UNAVAILABLE' || error?.message === 'depth_unavailable') {
++      return res.status(404).json({ ok: false, error: 'depth_unavailable' });
++    }
++    if (error?.code === 'UNKNOWN_SYMBOL' || error?.message === 'unknown_symbol') {
++      return res.status(404).json({ ok: false, error: 'unknown_symbol' });
++    }
++    serverError(res, '/api/depth', error);
++  }
+ });
+ 
+ // 6e. Market News
+diff --git a/server/symbolCatalog.js b/server/symbolCatalog.js
+index 5bf3f33..e1998c5 100644
+--- a/server/symbolCatalog.js
++++ b/server/symbolCatalog.js
+@@ -196,6 +196,8 @@ export const LEGACY_ALIASES = {
+   'QQQ': 'NASDAQ:QQQ',
+   // Tehran / Iran
+   'GOLD_18K': 'IR:GOLD_18K',
++  'GOLD_24K': 'IR:GOLD_24K',
++  'GERAM24': 'IR:GOLD_24K',
+   'COIN_EMAMI': 'IR:COIN_EMAMI',
+   'COIN_BAHAR': 'IR:COIN_BAHAR',
+   'COIN_NIM': 'IR:COIN_NIM',
+@@ -203,8 +205,13 @@ export const LEGACY_ALIASES = {
+   'COIN_GERMI': 'IR:COIN_GERMI',
+   'USD_TEHRAN': 'IR:USD_FREE',
+   'USD_FREE': 'IR:USD_FREE',
++  'USDT_FREE': 'IR:USDT_FREE',
++  'USDT_IRR': 'IR:USDT_FREE',
+   'GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
+-  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL'
++  'IR:GOLD_ABSHODEH': 'IR:GOLD_MESGHAL',
++  'GOLD_MESGHAL': 'IR:GOLD_MESGHAL',
++  'MESGHAL': 'IR:GOLD_MESGHAL',
++  'ABSHODEH': 'IR:GOLD_MESGHAL'
+ };
+ 
+ // Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
+@@ -286,22 +293,30 @@ export function getSymbolMeta(symbol) {
+   const tgjuEntry = TGJU_ENTRIES.find(e => e.symbol === canonical || e.symbol === raw);
+   if (tgjuEntry) return tgjuEntry;
+ 
+-  const isCrypto = bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH');
+-  return {
+-    symbol: canonical,
+-    name: bare,
+-    nameFa: bare,
+-    category: isCrypto ? 'crypto' : 'stocks',
+-    base: bare.replace(/(USDT|USD|EUR|BTC|IRR|TMN)$/, ''),
+-    quote: isCrypto ? 'USDT' : 'USD',
+-    precision: 2,
+-    minTick: 0.01,
+-    lotSize: 1,
+-    exchange: isCrypto ? 'Binance' : 'Global',
+-    market: isCrypto ? 'crypto' : 'stocks',
+-    currency: isCrypto ? 'USDT' : 'USD',
+-    syntheticFallback: true
+-  };
++  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL)
++  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
++    const parts = canonical.split(':');
++    const exch = parts[0];
++    const ticker = parts[1];
++    return {
++      symbol: canonical,
++      name: ticker,
++      nameFa: ticker,
++      category: 'stocks',
++      exchange: exch,
++      type: 'stock',
++      currency: 'USD',
++      source: 'tradingview',
++      dataStatus: 'delayed',
++      delaySec: 600,
++      timeframes: STANDARD_TIMEFRAMES,
++      precision: 2,
++      minTick: 0.01,
++      lotSize: 1
++    };
++  }
++
++  return null;
+ }
+ 
+ export function isKnownSymbol(sym) {
+diff --git a/server/tgjuClient.js b/server/tgjuClient.js
+index 86b10cc..781cad6 100644
+--- a/server/tgjuClient.js
++++ b/server/tgjuClient.js
+@@ -11,6 +11,7 @@ import { aggregate } from './timeframes.js';
+ 
+ export const TGJU_SLUG_MAP = {
+   'IR:USD_FREE': 'price_dollar_rl',
++  'IR:USDT_FREE': 'crypto-tether-irr',
+   'IR:EUR_FREE': 'price_eur',
+   'IR:AED_FREE': 'price_aed',
+   'IR:COIN_EMAMI': 'sekee',
+@@ -19,6 +20,7 @@ export const TGJU_SLUG_MAP = {
+   'IR:COIN_ROB': 'rob',
+   'IR:COIN_GERMI': 'gerami',
+   'IR:GOLD_18K': 'geram18',
++  'IR:GOLD_24K': 'geram24',
+   'IR:GOLD_MESGHAL': 'mesghal',
+   'IR:GOLD_ABSHODEH': 'mesghal'
+ };
+@@ -40,6 +42,22 @@ export const TGJU_ENTRIES = [
+     minTick: 10,
+     lotSize: 1
+   },
++  {
++    symbol: 'IR:USDT_FREE',
++    name: 'Tether / IRR (Tehran Free Market)',
++    nameFa: 'تتر به ریال / تومان (بازار آزاد)',
++    exchange: 'TGJU',
++    type: 'currency',
++    category: 'iran_fx',
++    currency: 'TMN',
++    source: 'tgju',
++    dataStatus: 'live',
++    delaySec: 0,
++    timeframes: ['D', 'W', 'M'],
++    precision: 0,
++    minTick: 10,
++    lotSize: 1
++  },
+   {
+     symbol: 'IR:EUR_FREE',
+     name: 'Euro (Tehran Free Market)',
+@@ -168,6 +186,22 @@ export const TGJU_ENTRIES = [
+     minTick: 100,
+     lotSize: 1
+   },
++  {
++    symbol: 'IR:GOLD_24K',
++    name: 'Gold 24 Karat (per gram)',
++    nameFa: 'طلای ۲۴ عیار (هر گرم)',
++    exchange: 'TGJU',
++    type: 'gold',
++    category: 'iran_gold',
++    currency: 'TMN',
++    source: 'tgju',
++    dataStatus: 'live',
++    delaySec: 0,
++    timeframes: ['D', 'W', 'M'],
++    precision: 0,
++    minTick: 100,
++    lotSize: 1
++  },
+   {
+     symbol: 'IR:GOLD_MESGHAL',
+     name: 'Gold Melted (Mesghal / 17 Karat)',
