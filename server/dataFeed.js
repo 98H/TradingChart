@@ -487,7 +487,7 @@ export async function getGoldMarketSnapshot() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Get live TSETMC market tape, individual vs institutional volume & smart money ratio */
-export function getTseMarketTape(symbol = 'TSE:FOOLAD') {
+export function getTseMarketTape(symbol = 'TSETMC:FOOLAD') {
   if (!tseSource.isTseEnabled()) {
     const err = new Error('tse_unavailable');
     err.code = 'TSE_UNAVAILABLE';
@@ -514,7 +514,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
   const canonical = tf.canonical;
 
   // 1. TradingView-routed symbols: exchange-qualified non-Binance
-  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
+  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSETMC:');
   if (isTvSymbol) {
     const dedupeKey = `tv:${resolved}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
     return dedupeInFlight(dedupeKey, async () => {
@@ -535,6 +535,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         }
         const candles = result.candles || [];
         const finalResult = [...candles];
+        finalResult.symbol = resolved;
         finalResult.source = result.source || 'tradingview';
         finalResult.exchange = result.exchange;
         finalResult.delaySec = result.delaySec || 0;
@@ -585,8 +586,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
     });
   }
 
-  // 1c. Tehran Stock Exchange (TSE) when enabled
-  const isTseSymbol = resolved.startsWith('TSE:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
+  // 1c. Tehran Stock Exchange (TSETMC) when enabled
+  const isTseSymbol = resolved.startsWith('TSETMC:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
   if (isTseSymbol) {
     if (!tseSource.isTseEnabled()) {
       const err = new Error('unknown_symbol');
@@ -667,7 +668,7 @@ export async function get24hTicker(symbol) {
   const meta = getSymbolMeta(clean) || getSymbolMeta(resolved);
 
   // 1. Exchange-qualified non-Binance symbols -> TradingView
-  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
+  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSETMC:');
   if (isTvSymbol) {
     try {
       const q = await tvClient.getQuote(resolved);
@@ -698,8 +699,8 @@ export async function get24hTicker(symbol) {
     return await tgjuClient.getQuote(resolved);
   }
 
-  // 1c. TSE symbols
-  const isTseSymbol = resolved.startsWith('TSE:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
+  // 1c. TSETMC symbols
+  const isTseSymbol = resolved.startsWith('TSETMC:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
   if (isTseSymbol) {
     if (!tseSource.isTseEnabled()) {
       return { unknown: true, symbol };
@@ -828,7 +829,7 @@ export async function getMarketSourceStatus() {
       live: true,
       protocol: tseStatus.mode === 'tsetmc_proxy' ? 'Iran-IP Relay' : 'BrsApi REST v2',
       protocolFa: tseStatus.mode === 'tsetmc_proxy' ? 'رله پروکسی ایران' : 'ای‌پی‌آی BrsApi',
-      marketsCovered: ['TSE', 'IFB'],
+      marketsCovered: ['TSETMC', 'IFB'],
       marketsCoveredFa: ['بورس تهران', 'فرابورس'],
       tier: 4,
       activeSymbols: countCat('iran_tse')

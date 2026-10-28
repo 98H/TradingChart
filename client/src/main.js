@@ -1587,13 +1587,36 @@ class TradingChartApp {
     });
 
     const exchangeSelect = document.querySelector('#symbol-exchange-filter');
+    let typeSelect = document.querySelector('#symbol-type-filter');
+    const isFa = getLanguage() === 'fa';
+    if (!typeSelect && exchangeSelect && exchangeSelect.parentNode) {
+      typeSelect = document.createElement('select');
+      typeSelect.id = 'symbol-type-filter';
+      typeSelect.style.cssText = 'height: 36px; padding: 0 8px; font-size: 11px; font-weight: 600; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px; cursor: pointer; flex-shrink: 0;';
+      typeSelect.innerHTML = `
+        <option value="all">${isFa ? 'همه انواع دارایی' : 'All Types'}</option>
+        <option value="stock">${isFa ? 'سهام' : 'Stocks'}</option>
+        <option value="fund">${isFa ? 'صندوق ETF' : 'Funds / ETF'}</option>
+        <option value="forex">${isFa ? 'ارزها (فارکس)' : 'Forex'}</option>
+        <option value="crypto">${isFa ? 'رمزارز' : 'Crypto'}</option>
+        <option value="commodity">${isFa ? 'کالاها و آتی' : 'Commodities'}</option>
+        <option value="index">${isFa ? 'شاخص‌ها' : 'Indices'}</option>
+        <option value="bond">${isFa ? 'اوراق قرضه' : 'Bonds'}</option>
+        <option value="economic">${isFa ? 'داده‌های اقتصادی' : 'Economic'}</option>
+      `;
+      exchangeSelect.parentNode.insertBefore(typeSelect, exchangeSelect.nextSibling);
+      typeSelect.addEventListener('change', () => updateSearch());
+    }
 
     const updateSearch = () => {
-      const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
+      const activeBtn = document.querySelector('.sym-cat-btn.active');
+      const activeCat = activeBtn?.getAttribute('data-cat') || 'all';
+      const activeMarket = activeBtn?.getAttribute('data-market') || null;
       const activeEx = exchangeSelect ? exchangeSelect.value : 'all';
+      const activeType = typeSelect ? typeSelect.value : 'all';
       const q = input ? input.value.trim() : '';
       if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
-      this.populateSymbolSearch(q, activeCat, activeEx);
+      this.populateSymbolSearch(q, activeCat, activeEx, activeMarket, activeType);
     };
 
     input?.addEventListener('input', updateSearch);
@@ -1605,6 +1628,55 @@ class TradingChartApp {
         input.focus();
       }
     });
+
+    // Market browser tabs: populate all markets from /api/symbols/markets
+    fetch('/api/symbols/markets').then(r => r.ok ? r.json() : []).then(markets => {
+      if (!Array.isArray(markets) || markets.length === 0) return;
+      const tabsBar = document.querySelector('.sym-cat-btn')?.parentNode;
+      if (!tabsBar) return;
+      this.scannerMarkets = markets;
+      const isPersian = getLanguage() === 'fa';
+      const marketTabs = [
+        { id: 'all', cat: 'all', market: null, labelEn: 'All', labelFa: 'همه' },
+        { id: 'america', cat: 'stocks', market: 'america', labelEn: 'US Stocks', labelFa: 'سهام آمریکا' },
+        { id: 'forex', cat: 'forex', market: 'forex', labelEn: 'Forex', labelFa: 'فارکس' },
+        { id: 'crypto', cat: 'crypto', market: 'crypto', labelEn: 'Crypto', labelFa: 'رمزارزها' },
+        { id: 'futures', cat: 'commodities', market: 'futures', labelEn: 'Futures', labelFa: 'آتی و کالا' },
+        { id: 'bonds', cat: 'bonds', market: 'bonds', labelEn: 'Bonds', labelFa: 'اوراق قرضه' },
+        { id: 'global', cat: 'all', market: 'global', labelEn: 'Global', labelFa: 'کل جهان' },
+        { id: 'germany', cat: 'stocks', market: 'germany', labelEn: 'Germany', labelFa: 'آلمان' },
+        { id: 'uk', cat: 'stocks', market: 'uk', labelEn: 'UK', labelFa: 'بریتانیا' },
+        { id: 'india', cat: 'stocks', market: 'india', labelEn: 'India', labelFa: 'هند' },
+        { id: 'japan', cat: 'stocks', market: 'japan', labelEn: 'Japan', labelFa: 'ژاپن' },
+        { id: 'turkey', cat: 'stocks', market: 'turkey', labelEn: 'Turkey', labelFa: 'ترکیه' },
+        { id: 'economics2', cat: 'indices', market: 'economics2', labelEn: 'Economics', labelFa: 'داده‌های اقتصادی' },
+        { id: 'iran_gold', cat: 'iran_gold', market: null, labelEn: 'Gold & FX', labelFa: 'طلای تهران و ارز' },
+        { id: 'iran_tse', cat: 'iran_tse', market: null, labelEn: 'Iran TSE', labelFa: 'بورس تهران' }
+      ];
+
+      tabsBar.innerHTML = marketTabs.map(t => {
+        const activeClass = (this.activeMarket === t.market && (!t.market || this.activeMarket)) || (!this.activeMarket && t.id === 'all') ? 'active' : '';
+        const bg = activeClass ? 'var(--accent-cyan-dim)' : 'transparent';
+        const color = activeClass ? 'var(--accent-cyan)' : 'var(--text-dim)';
+        const display = (t.id === 'iran_tse' && !this.tseEnabled) ? 'none' : 'inline-block';
+        const label = isPersian ? t.labelFa : t.labelEn;
+        return `<button class="sym-cat-btn ${activeClass}" data-cat="${t.cat}" ${t.market ? `data-market="${t.market}"` : ''} style="display: ${display}; background: ${bg}; color: ${color}; white-space: nowrap; padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 4px; border: none; cursor: pointer;">${label}</button>`;
+      }).join('');
+
+      tabsBar.querySelectorAll('.sym-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabsBar.querySelectorAll('.sym-cat-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = 'var(--text-dim)';
+          });
+          btn.classList.add('active');
+          btn.style.background = 'var(--accent-cyan-dim)';
+          btn.style.color = 'var(--accent-cyan)';
+          updateSearch();
+        });
+      });
+    }).catch(() => {});
 
     document.querySelectorAll('.sym-cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1621,14 +1693,179 @@ class TradingChartApp {
     });
   }
 
-  async populateSymbolSearch(query = '', category = 'all', exchange = 'all') {
+  renderSymbolRowHtml(s, isFa) {
+    const CAT_COLORS = {
+      crypto: { bg: 'rgba(0, 242, 176, 0.12)', color: '#00F2B0' },
+      metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
+      commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
+      forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
+      indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
+      stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' },
+      iran_gold: { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
+      iran_tse: { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }
+    };
+
+    const CAT_NAMES_FA = {
+      crypto: 'رمزارزها',
+      metals: 'فلزات',
+      commodities: 'کالاها',
+      forex: 'فارکس',
+      indices: 'شاخص‌ها',
+      stocks: 'سهام بین‌الملل',
+      iran_gold: 'طلای تهران و ارز',
+      iran_tse: 'بورس و فرابورس ایران'
+    };
+
+    const TYPE_NAMES_FA = {
+      crypto: 'رمزارز',
+      forex: 'ارز',
+      stock: 'سهام',
+      index: 'شاخص',
+      commodity: 'کالا',
+      metal: 'فلز',
+      gold: 'طلا',
+      coin: 'سکه',
+      currency: 'ارز',
+      fund: 'صندوق',
+      etf: 'صندوق',
+      bond: 'اوراق',
+      economic: 'شاخص اقتصادی'
+    };
+
+    const SOURCE_NAMES_FA = {
+      binance: 'بایننس',
+      tradingview: 'تریدینگ‌ویو',
+      tgju: 'TGJU',
+      brsapi: 'بورس',
+      tsetmc_proxy: 'TSETMC'
+    };
+
+    const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
+    const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : String(s.category || '').toUpperCase();
+    const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
+    const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
+    const typeLabel = isFa ? (TYPE_NAMES_FA[s.type] || s.type || 'دارایی') : String(s.type || 'asset').toUpperCase();
+    const sourceLabel = isFa ? (SOURCE_NAMES_FA[s.source] || s.source || 'زنده') : String(s.source || 'live').toUpperCase();
+    const displayName = (isFa && s.nameFa) ? s.nameFa : (s.name || s.symbol);
+    const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
+    const glyph = (isFa && s.tickerFa) ? s.tickerFa.replace(/\s+/g, '').slice(0, 3) : s.symbol.slice(0, 3);
+
+    let statusBadgeHtml = '';
+    if (s.dataStatus === 'delayed' || (s.delaySec && s.delaySec > 0)) {
+      const delayMin = Math.max(1, Math.round((s.delaySec || 600) / 60));
+      const txt = isFa ? `تأخیر ${toPersianDigits(delayMin)} دقیقه` : `Delayed ${delayMin}m`;
+      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.2);">${txt}</span>`;
+    } else if (s.dataStatus === 'eod') {
+      const txt = isFa ? 'پایان روز' : 'EOD';
+      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2);">${txt}</span>`;
+    } else if (s.dataStatus === 'live') {
+      const txt = isFa ? 'زنده' : 'LIVE';
+      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #00F2B0; background: rgba(0, 242, 176, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">${txt}</span>`;
+    }
+
+    return `
+      <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
+            ${glyph}
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 800; font-size: 14px; color: #fff;">${displayTicker}</span>
+              <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
+                ${catLabel}
+              </span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : (s.base && s.quote ? ` (${s.base}/${s.quote})` : '')}</div>
+          </div>
+        </div>
+        <div style="text-align: end; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+          <span class="sym-badge-exchange" style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+            ${exchangeLabel}
+          </span>
+          <span class="sym-badge-type" style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+            ${typeLabel}
+          </span>
+          ${statusBadgeHtml}
+          <span class="sym-badge-source" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.08); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">
+            ${sourceLabel}
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
+  bindSymbolRowEvents(row) {
+    row.addEventListener('click', () => {
+      const sym = row.getAttribute('data-symbol');
+      this.switchSymbol(sym);
+      document.querySelector('#modal-symbol-search')?.classList.remove('open');
+    });
+    row.addEventListener('mouseenter', () => {
+      row.style.borderColor = 'var(--accent-cyan)';
+      row.style.background = 'var(--bg-card-hover)';
+    });
+    row.addEventListener('mouseleave', () => {
+      row.style.borderColor = 'var(--border-subtle)';
+      row.style.background = 'var(--bg-card)';
+    });
+  }
+
+  async populateSymbolSearch(query = '', category = 'all', exchange = 'all', market = null, type = 'all') {
     const listCont = document.querySelector('#symbol-results-list');
     const countBadge = document.querySelector('#sym-count-badge');
     if (!listCont) return;
 
     const isFa = getLanguage() === 'fa';
+    this.activeMarket = market;
 
     try {
+      if (market) {
+        const url = `/api/symbols/browse?market=${encodeURIComponent(market)}&exchange=${encodeURIComponent(exchange)}&type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}&offset=0&limit=50`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data.items) ? data.items : [];
+          const total = typeof data.total === 'number' ? data.total : items.length;
+          this.browseItems = items;
+          this.browseTotal = total;
+          this.browseMarket = market;
+          this.browseExchange = exchange;
+          this.browseType = type;
+          this.browseQuery = query;
+
+          if (countBadge) {
+            countBadge.innerText = isFa
+              ? `${toPersianDigits(items.length)} از ${toPersianDigits(total)} نماد معاملاتی`
+              : `${items.length} of ${total.toLocaleString()} Instruments`;
+          }
+
+          if (items.length === 0) {
+            listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 13px;">${isFa ? 'هیچ نمادی در این بازار یافت نشد.' : 'No instruments found in this market.'}</div>`;
+            return;
+          }
+
+          listCont.innerHTML = items.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
+          listCont.querySelectorAll('.sym-search-row').forEach(row => this.bindSymbolRowEvents(row));
+
+          // Infinite scroll
+          if (!this._browseScrollAttached) {
+            this._browseScrollAttached = true;
+            listCont.addEventListener('scroll', () => {
+              if (!this.browseMarket || this._browseLoading || !this.browseItems || this.browseItems.length >= this.browseTotal) return;
+              if (listCont.scrollTop + listCont.clientHeight >= listCont.scrollHeight - 80) {
+                this.loadMoreBrowseSymbols();
+              }
+            });
+          }
+
+          this.symbolSelectedIndex = 0;
+          this.highlightSymbolRow(listCont.querySelectorAll('.sym-search-row'), 0);
+        }
+        return;
+      }
+
+      this.browseMarket = null;
       const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}&exchange=${exchange}`);
       if (res.ok) {
         const symbols = await res.json();
@@ -1641,114 +1878,46 @@ class TradingChartApp {
           return;
         }
 
-        const CAT_COLORS = {
-          crypto: { bg: 'rgba(0, 242, 176, 0.12)', color: '#00F2B0' },
-          metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
-          commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
-          forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
-          indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
-          stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' },
-          iran_gold: { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
-          iran_tse: { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }
-        };
-
-        const CAT_NAMES_FA = {
-          crypto: 'رمزارزها',
-          metals: 'فلزات',
-          commodities: 'کالاها',
-          forex: 'فارکس',
-          indices: 'شاخص‌ها',
-          stocks: 'سهام بین‌الملل',
-          iran_gold: 'طلای تهران و ارز',
-          iran_tse: 'بورس و فرابورس ایران'
-        };
-
-        const TYPE_NAMES_FA = {
-          crypto: 'رمزارز',
-          forex: 'ارز',
-          stock: 'سهام',
-          index: 'شاخص',
-          commodity: 'کالا',
-          metal: 'فلز',
-          gold: 'طلا',
-          coin: 'سکه',
-          currency: 'ارز',
-          fund: 'صندوق',
-          etf: 'صندوق',
-          bond: 'اوراق'
-        };
-
-        const SOURCE_NAMES_FA = {
-          binance: 'بایننس',
-          tradingview: 'تریدینگ‌ویو',
-          tgju: 'TGJU',
-          brsapi: 'بورس',
-          tsetmc_proxy: 'TSETMC'
-        };
-
-        listCont.innerHTML = symbols.map(s => {
-          const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
-          const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
-          const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
-          const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
-          const typeLabel = isFa ? (TYPE_NAMES_FA[s.type] || s.type || 'دارایی') : String(s.type || 'asset').toUpperCase();
-          const sourceLabel = isFa ? (SOURCE_NAMES_FA[s.source] || s.source || 'زنده') : String(s.source || 'live').toUpperCase();
-          const displayName = (isFa && s.nameFa) ? s.nameFa : s.name;
-          // Iranian instruments: show the Persian ticker (نماد) as primary label
-          const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
-          const glyph = (isFa && s.tickerFa) ? s.tickerFa.replace(/\s+/g, '').slice(0, 3) : s.symbol.slice(0, 3);
-          return `
-            <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
-                  ${glyph}
-                </div>
-                <div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 800; font-size: 14px; color: #fff;">${displayTicker}</span>
-                    <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
-                      ${catLabel}
-                    </span>
-                  </div>
-                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : (s.base && s.quote ? ` (${s.base}/${s.quote})` : '')}</div>
-                </div>
-              </div>
-              <div style="text-align: end; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-                <span class="sym-badge-exchange" style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-                  ${exchangeLabel}
-                </span>
-                <span class="sym-badge-type" style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-                  ${typeLabel}
-                </span>
-                <span class="sym-badge-source" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.08); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">
-                  ${sourceLabel}
-                </span>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        listCont.querySelectorAll('.sym-search-row').forEach(row => {
-          row.addEventListener('click', () => {
-            const sym = row.getAttribute('data-symbol');
-            this.switchSymbol(sym);
-            document.querySelector('#modal-symbol-search')?.classList.remove('open');
-          });
-          row.addEventListener('mouseenter', () => {
-            row.style.borderColor = 'var(--accent-cyan)';
-            row.style.background = 'var(--bg-card-hover)';
-          });
-          row.addEventListener('mouseleave', () => {
-            row.style.borderColor = 'var(--border-subtle)';
-            row.style.background = 'var(--bg-card)';
-          });
-        });
+        listCont.innerHTML = symbols.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
+        listCont.querySelectorAll('.sym-search-row').forEach(row => this.bindSymbolRowEvents(row));
         this.symbolSelectedIndex = 0;
         this.highlightSymbolRow(listCont.querySelectorAll('.sym-search-row'), 0);
       }
     } catch (e) {
       listCont.innerHTML = `<div style="color: var(--accent-red); padding: 16px;">Error searching symbols</div>`;
     }
+  }
+
+  loadMoreBrowseSymbols() {
+    if (this._browseLoading || !this.browseMarket || !this.browseItems || this.browseItems.length >= this.browseTotal) return;
+    this._browseLoading = true;
+    const listCont = document.querySelector('#symbol-results-list');
+    const countBadge = document.querySelector('#sym-count-badge');
+    const isFa = getLanguage() === 'fa';
+    const offset = this.browseItems.length;
+
+    fetch(`/api/symbols/browse?market=${encodeURIComponent(this.browseMarket)}&exchange=${encodeURIComponent(this.browseExchange)}&type=${encodeURIComponent(this.browseType)}&q=${encodeURIComponent(this.browseQuery)}&offset=${offset}&limit=50`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        this._browseLoading = false;
+        if (!data || !Array.isArray(data.items) || data.items.length === 0) return;
+        this.browseItems.push(...data.items);
+        if (countBadge) {
+          countBadge.innerText = isFa
+            ? `${toPersianDigits(this.browseItems.length)} از ${toPersianDigits(this.browseTotal)} نماد معاملاتی`
+            : `${this.browseItems.length} of ${this.browseTotal.toLocaleString()} Instruments`;
+        }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = data.items.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
+        while (tempDiv.firstChild) {
+          const row = tempDiv.firstChild;
+          listCont.appendChild(row);
+          this.bindSymbolRowEvents(row);
+        }
+      })
+      .catch(() => {
+        this._browseLoading = false;
+      });
   }
 
   highlightSymbolRow(rows, idx) {

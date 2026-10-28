@@ -267,6 +267,9 @@ export class TradingViewClient {
     this.quotes = new CostLruCache(5000);
     this.barsCache = new CostLruCache(150000);
     this.lastGoodCache = new CostLruCache(150000);
+    this.browseCache = new CostLruCache(2000);
+    this.marketsCache = null;
+    this.marketsCacheTime = 0;
 
     this.quoteListeners = new Map();
     this.liveTickListeners = new Set();
@@ -890,7 +893,216 @@ export class TradingViewClient {
       });
     });
   }
+
+  async getScannerMarkets() {
+    const now = Date.now();
+    if (this.marketsCache && (now - this.marketsCacheTime < 10 * 60 * 1000)) {
+      return this.marketsCache;
+    }
+
+    const results = await Promise.all(SCANNER_MARKETS.map(async (m) => {
+      try {
+        const res = await fetch(`https://scanner.tradingview.com/${encodeURIComponent(m.market)}/scan`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Origin: 'https://www.tradingview.com',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          body: JSON.stringify({ columns: ['name'], range: [0, 1] }),
+          signal: AbortSignal.timeout(6000)
+        });
+        if (res.ok) {
+          const j = await res.json();
+          const total = typeof j.totalCount === 'number' && j.totalCount > 0 ? j.totalCount : m.minEstimate;
+          return { market: m.market, labelEn: m.labelEn, labelFa: m.labelFa, total };
+        }
+      } catch (e) {}
+      return { market: m.market, labelEn: m.labelEn, labelFa: m.labelFa, total: m.minEstimate };
+    }));
+
+    this.marketsCache = results;
+    this.marketsCacheTime = now;
+    return results;
+  }
+
+  async browseScanner(options = {}) {
+    const market = String(options.market || 'global').trim().toLowerCase();
+    const exchange = options.exchange && options.exchange !== 'all' ? String(options.exchange).trim().toUpperCase() : null;
+    const type = options.type && options.type !== 'all' ? String(options.type).trim().toLowerCase() : null;
+    const q = options.q ? String(options.q).trim() : null;
+    const offset = Math.max(0, parseInt(options.offset, 10) || 0);
+    const limit = Math.max(1, Math.min(200, parseInt(options.limit, 10) || 50));
+
+    const cacheKey = `${market}:${exchange || 'all'}:${type || 'all'}:${q || ''}:${offset}:${limit}`;
+    const cached = this.browseCache.get(cacheKey);
+    if (cached) return cached;
+
+    const filter = [];
+    if (exchange) {
+      filter.push({ left: 'exchange', operation: 'equal', right: exchange });
+    }
+    if (type) {
+      filter.push({ left: 'type', operation: 'equal', right: type });
+    }
+    if (q) {
+      filter.push({ left: 'name,description', operation: 'match', right: q });
+    }
+
+    const payload = {
+      columns: ['name', 'description', 'exchange', 'type', 'subtype', 'currency', 'pricescale', 'minmov', 'update_mode'],
+      range: [offset, offset + limit]
+    };
+    if (filter.length > 0) {
+      payload.filter = filter;
+    }
+
+    const res = await fetch(`https://scanner.tradingview.com/${encodeURIComponent(market)}/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://www.tradingview.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (!res.ok) {
+      throw new Error(`scanner_error_${res.status}`);
+    }
+
+    const json = await res.json();
+    const total = Number(json.totalCount) || 0;
+    const items = (json.data || []).map(row => {
+      const symbol = String(row.s || '').trim();
+      const [name, description, exch, rawType, subtype, currency, pricescale, minmov, update_mode] = Array.isArray(row.d) ? row.d : [];
+
+      let dataStatus = 'live';
+      let delaySec = 0;
+      const mode = String(update_mode || '').toLowerCase();
+      if (mode === 'streaming') {
+        dataStatus = 'live';
+        delaySec = 0;
+      } else if (mode.startsWith('delayed')) {
+        dataStatus = 'delayed';
+        const m = mode.match(/\d+/);
+        delaySec = m ? parseInt(m[0], 10) : 600;
+      } else if (mode === 'endofday' || mode === 'eod') {
+        dataStatus = 'eod';
+        delaySec = 0;
+      } else {
+        if (mode.includes('delay')) {
+          dataStatus = 'delayed';
+          delaySec = 600;
+        } else if (mode.includes('end') || mode.includes('eod')) {
+          dataStatus = 'eod';
+          delaySec = 0;
+        } else {
+          dataStatus = 'live';
+          delaySec = 0;
+        }
+      }
+
+      let minTick = 0.01;
+      let precision = 2;
+      if (typeof pricescale === 'number' && pricescale > 0) {
+        const mm = (typeof minmov === 'number' && minmov > 0) ? minmov : 1;
+        minTick = mm / pricescale;
+        precision = getMinTickDecimals(minTick, 2);
+      }
+
+      const cleanType = String(rawType || '').toLowerCase();
+      let mappedType = cleanType === 'economic' ? 'economic' : mapScannerType(cleanType);
+      let mappedCat = cleanType === 'economic' ? 'economics' : mapScannerCategory(cleanType, name || symbol);
+      const isBinance = symbol.startsWith('BINANCE:');
+
+      const entry = {
+        symbol,
+        name: description || name || symbol.split(':')[1] || symbol,
+        nameFa: description || name || symbol.split(':')[1] || symbol,
+        exchange: exch || symbol.split(':')[0] || 'TradingView',
+        type: mappedType,
+        category: mappedCat,
+        currency: currency || 'USD',
+        source: isBinance ? 'binance' : 'tradingview',
+        dataStatus,
+        delaySec,
+        timeframes: ['1s', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', '3D', 'W', 'M'],
+        precision,
+        minTick,
+        lotSize: 1
+      };
+
+      this.metaCache.set(symbol, {
+        symbol,
+        name: entry.name,
+        exchange: entry.exchange,
+        type: entry.type,
+        dataStatus,
+        delaySec,
+        precision,
+        minTick
+      });
+
+      return entry;
+    });
+
+    const result = { total, items };
+    this.browseCache.set(cacheKey, result, items.length || 1, 10 * 60 * 1000);
+    return result;
+  }
 }
+
+function mapScannerType(rawType) {
+  const t = String(rawType || '').toLowerCase();
+  if (t === 'forex') return 'forex';
+  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
+  if (t === 'index') return 'index';
+  if (t === 'stock' || t === 'dr') return 'stock';
+  if (t === 'fund') return 'fund';
+  if (t === 'bond') return 'bond';
+  if (t === 'commodity' || t === 'futures') return 'commodity';
+  if (t === 'economic') return 'economic';
+  return t || 'stock';
+}
+
+function mapScannerCategory(rawType, sym) {
+  const t = String(rawType || '').toLowerCase();
+  const s = String(sym || '').toUpperCase();
+  if (t === 'forex') return 'forex';
+  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
+  if (t === 'index') return 'indices';
+  if (t === 'fund') return 'etf';
+  if (t === 'bond') return 'bonds';
+  if (t === 'economic') return 'economics';
+  if (t === 'commodity' || t === 'futures') {
+    if (s.includes('XAU') || s.includes('XAG') || s.includes('GOLD') || s.includes('SILVER') || s.includes('PLATINUM') || s.includes('COPPER')) {
+      return 'metals';
+    }
+    if (s.includes('OIL') || s.includes('GAS') || s.includes('BRENT')) {
+      return 'energy';
+    }
+    return 'commodities';
+  }
+  return 'stocks';
+}
+
+export const SCANNER_MARKETS = [
+  { market: 'global', labelEn: 'Global (All Markets)', labelFa: 'کل بازارهای جهانی', minEstimate: 454562 },
+  { market: 'crypto', labelEn: 'Crypto', labelFa: 'بازار رمزارزها', minEstimate: 64494 },
+  { market: 'futures', labelEn: 'Futures & Commodities', labelFa: 'قراردادهای آتی و کالا', minEstimate: 52622 },
+  { market: 'america', labelEn: 'United States', labelFa: 'ایالات متحده آمریکا', minEstimate: 20053 },
+  { market: 'forex', labelEn: 'Forex (Currencies)', labelFa: 'بازار تبادلات ارزی (فارکس)', minEstimate: 6332 },
+  { market: 'bonds', labelEn: 'Bonds & Rates', labelFa: 'اوراق قرضه و نرخ بهره', minEstimate: 1163 },
+  { market: 'economics2', labelEn: 'Economic Indicators', labelFa: 'شاخص‌های کلان اقتصادی', minEstimate: 15167 },
+  { market: 'cfd', labelEn: 'CFD Contracts', labelFa: 'قراردادهای مابه‌التفاوت (CFD)', minEstimate: 650 },
+  { market: 'germany', labelEn: 'Germany', labelFa: 'آلمان', minEstimate: 39830 },
+  { market: 'uk', labelEn: 'United Kingdom', labelFa: 'بریتانیا', minEstimate: 9509 },
+  { market: 'india', labelEn: 'India', labelFa: 'هند', minEstimate: 8759 },
+  { market: 'turkey', labelEn: 'Turkey', labelFa: 'ترکیه', minEstimate: 650 },
+  { market: 'japan', labelEn: 'Japan', labelFa: 'ژاپن', minEstimate: 4384 }
+];
 
 export const tvClient = new TradingViewClient();
 export default tvClient;

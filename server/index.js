@@ -9,7 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus } from './dataFeed.js';
 import { parseTimeframe } from './timeframes.js';
-import { searchSymbols, getSymbolMeta, resolveSymbolAlias, isKnownSymbol, initPromise as initCatalogPromise } from './symbolCatalog.js';
+import { searchSymbols, getSymbolMeta, resolveSymbolAlias, isKnownSymbol, initPromise as initCatalogPromise, getMarkets, browseSymbols } from './symbolCatalog.js';
 import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
 import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
 import { getScreenerData } from './technicalScreener.js';
@@ -21,8 +21,8 @@ import { tvClient } from './tradingviewClient.js';
 import { tgjuClient } from './tgjuClient.js';
 import { tseSource } from './tseSource.js';
 
-// Preserve EXCHANGE:SYMBOL in cleanSymbol (FR-002, FR-003)
-const SYMBOL_RE = /^[A-Z0-9_]{1,16}:[A-Z0-9._\-]{1,32}$|^[A-Z0-9._\-]{1,32}$/;
+// Preserve EXCHANGE:SYMBOL in cleanSymbol (FR-002, FR-003, FR-013)
+const SYMBOL_RE = /^[A-Z0-9_.]{1,24}:[^\s]{1,40}$|^[A-Z0-9._\-!&]{1,40}$/;
 export function cleanSymbol(raw, fallback = null) {
   if (raw === undefined || raw === null || raw === '') return fallback;
   const s = String(raw).trim().toUpperCase();
@@ -51,7 +51,7 @@ app.use((req, res, next) => {
 });
 app.use(securityHeaders);
 // Same-origin app: CORS is only opened for read-only public market data.
-const PUBLIC_CORS = /^\/api\/(candles|tickers|symbols|symbol-info|news|economic-calendar|screener|depth)$/;
+const PUBLIC_CORS = /^\/api\/(candles|tickers|symbols|symbols\/.*|symbol-info|news|economic-calendar|screener|depth)$/;
 app.use((req, res, next) => (PUBLIC_CORS.test(req.path) && req.method === 'GET') ? cors({ credentials: false })(req, res, next) : next());
 app.use(apiRateLimit);
 app.use(sameOriginWrites);
@@ -195,6 +195,26 @@ app.get('/api/tickers', async (req, res) => {
 });
 
 // 4. Symbol Search & Catalog
+app.get('/api/symbols/markets', async (req, res) => {
+  try {
+    const markets = await getMarkets();
+    res.json(markets);
+  } catch (error) { serverError(res, '/api/symbols/markets', error); }
+});
+
+app.get('/api/symbols/browse', async (req, res) => {
+  try {
+    const market = String(req.query.market || 'global').slice(0, 32);
+    const exchange = req.query.exchange ? String(req.query.exchange).slice(0, 32) : 'all';
+    const type = req.query.type ? String(req.query.type).slice(0, 32) : 'all';
+    const q = req.query.q ? String(req.query.q).slice(0, 64) : '';
+    const offset = req.query.offset ? parseInt(req.query.offset, 10) : 0;
+    const limit = req.query.limit ? Math.min(200, parseInt(req.query.limit, 10)) : 50;
+    const result = await browseSymbols({ market, exchange, type, q, offset, limit });
+    res.json(result);
+  } catch (error) { serverError(res, '/api/symbols/browse', error); }
+});
+
 app.get('/api/symbols', async (req, res) => {
   try {
     const query = String(req.query.q || '').slice(0, 64);
@@ -245,7 +265,7 @@ app.get('/api/tse-tape', (req, res) => {
     if (!tseSource.isTseEnabled()) {
       return res.status(404).json({ ok: false, error: 'tse_unavailable' });
     }
-    const raw = cleanSymbol(req.query.symbol, 'TSE:FOOLAD');
+    const raw = cleanSymbol(req.query.symbol, 'TSETMC:FOOLAD');
     if (!raw) return bad(res, 'invalid_symbol');
     const symbol = resolveSymbolAlias(raw);
     res.json(getTseMarketTape(symbol));

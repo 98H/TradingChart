@@ -274,7 +274,20 @@ export function resolveSymbolAlias(raw) {
   if (!raw) return raw;
   const s = String(raw).trim().toUpperCase();
   if (LEGACY_ALIASES[s]) return LEGACY_ALIASES[s];
+
+  if (s.startsWith('TSE:')) {
+    const ticker = s.slice(4);
+    if (tseSource.isTseEnabled() && tseSource.isKnownSymbol(ticker)) {
+      return `TSETMC:${ticker}`;
+    }
+    return s;
+  }
+
   if (s.includes(':')) return s;
+
+  if (tseSource.isTseEnabled() && tseSource.isKnownSymbol(s)) {
+    return `TSETMC:${s}`;
+  }
 
   if (binancePairSet.has(s) || catalogMap.has(`BINANCE:${s}`)) {
     return `BINANCE:${s}`;
@@ -301,11 +314,11 @@ export function getSymbolMeta(symbol) {
   const tgjuEntry = TGJU_ENTRIES.find(e => e.symbol === canonical || e.symbol === raw);
   if (tgjuEntry) return tgjuEntry;
 
-  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL)
-  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
+  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL, TSE:7203)
+  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSETMC:')) {
     const parts = canonical.split(':');
     const exch = parts[0];
-    const ticker = parts[1];
+    const ticker = parts.slice(1).join(':');
     const cachedMeta = tvClient?.metaCache?.get(canonical);
     if (cachedMeta) {
       return {
@@ -353,7 +366,7 @@ export function isKnownSymbol(sym) {
   if (catalogMap.has(canonical) || catalogMap.has(raw)) return true;
   if (LEGACY_ALIASES[raw]) return true;
 
-  if (canonical.startsWith('TSE:') || raw.startsWith('TSE:')) {
+  if (canonical.startsWith('TSETMC:') || raw.startsWith('TSETMC:')) {
     return tseSource.isTseEnabled() && (catalogMap.has(canonical) || catalogMap.has(raw));
   }
 
@@ -544,7 +557,7 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
 
   const matchesEx = (itemEx) => {
     const ie = String(itemEx || '').toLowerCase();
-    if (ie === 'tse' && !tseSource.isTseEnabled()) return false;
+    if (ie === 'tsetmc' && !tseSource.isTseEnabled()) return false;
     if (ex === 'all') return true;
     return ie.includes(ex);
   };
@@ -690,4 +703,12 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
   }
 
   return merged.slice(0, 50);
+}
+
+export async function getMarkets() {
+  return tvClient.getScannerMarkets();
+}
+
+export async function browseSymbols(options = {}) {
+  return tvClient.browseScanner(options);
 }
