@@ -37,6 +37,6 @@ Architect note (escalation of attempt 1): this phase's code already exists in th
 
 Architect note: after phase 3 merged, the production sweep (all symbols × 17 timeframes, limit 1500, 8 concurrent) crashed the 256 MB server with heap OOM (reproduced: NATGAS `240` grows heap past 111 MB alone). Cause: `dailyLayerCache`, `minuteCache` and `secondCache` in server/demoPath.js are unbounded `Map`s, and higher intraday timeframes materialise every minute of every covered day. New locked test tests/acceptance/014/05_full_sweep_memory_bound.test.cjs reproduces it.
 
-- [ ] T018 [US5] In server/demoPath.js replace the unbounded `minuteCache`/`secondCache` with the shared cost-bounded LRU of server/lru.js (cost = bars; shared 300 000 budget) and bound `dailyLayerCache` (LRU, ≤ 80 symbols) (FR-010)
-- [ ] T019 [US5] In server/demoPath.js build intraday buckets of ≥ 60 minutes by streaming aggregation per day (do not retain per-minute arrays for days that are only aggregated; keep only the aggregated bars) so a 1500-bar `240` request allocates O(bars), not O(minutes) (FR-010, FR-007)
-- [ ] T020 [US5] Keep exact consistency: aggregates must remain identical to the 1-minute path (tests 03 still pass) (FR-007, FR-010)
+- [x] T018 [US5] In server/demoPath.js replace the unbounded `minuteCache`/`secondCache` with the shared cost-bounded LRU of server/lru.js (cost = bars; shared 300 000 budget) and bound `dailyLayerCache` (LRU, ≤ 80 symbols) (FR-010)
+- [x] T019 [US5] In server/demoPath.js build intraday buckets of ≥ 60 minutes by streaming aggregation per day (do not retain per-minute arrays for days that are only aggregated; keep only the aggregated bars) so a 1500-bar `240` request allocates O(bars), not O(minutes) (FR-010, FR-007)
+- [x] T020 [US5] Keep exact consistency: aggregates must remain identical to the 1-minute path (tests 03 still pass) (FR-007, FR-010)

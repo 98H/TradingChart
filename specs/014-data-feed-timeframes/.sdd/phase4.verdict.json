@@ -1,0 +1,49 @@
+{
+  "feature": "014-data-feed-timeframes",
+  "phase": 4,
+  "attempt": 1,
+  "pass": true,
+  "at": "2026-10-28T02:08:15.911Z",
+  "gates": {
+    "lock": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "scope": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "build": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "unit": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "serve": {
+      "pass": true,
+      "summary": "up on :18088"
+    },
+    "acceptance": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "ui": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "spec": {
+      "pass": true,
+      "summary": "ok"
+    },
+    "regression": {
+      "pass": true,
+      "summary": "ok"
+    }
+  },
+  "highRisk": [],
+  "knownGapsSkipped": [],
+  "deferredToLaterPhase": [],
+  "escalate": false
+}
