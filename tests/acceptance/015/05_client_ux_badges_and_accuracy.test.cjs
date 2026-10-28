@@ -1,6 +1,6 @@
 /**
  * @spec 015
- * @covers FR-009, FR-010, FR-013
+ * @covers FR-008, FR-009, FR-010
  */
 const fs = require('fs');
 const path = require('path');
@@ -62,7 +62,7 @@ async function run() {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 2. Real Browser UX: Badges, Timeframe Gating & Notices (FR-009, FR-013)
+  // 2. Real Browser UX: Badges, Timeframe Gating & Notices (FR-008, FR-009)
   // ──────────────────────────────────────────────────────────────────────────
   let ctx = null;
   try {
@@ -173,7 +173,7 @@ async function run() {
         'Notice for removed symbol was not found in the DOM');
     }
 
-    // ── 2.4 Depth Panel for Non-Binance Instrument (FR-013) ──
+    // ── 2.4 Depth Panel for Non-Binance Instrument (FR-008) ──
     {
       await page.evaluate(() => {
         window.__TRADING_APP__?.switchLanguage?.('fa');
@@ -189,7 +189,7 @@ async function run() {
       assert(depthPanelText.includes('دفتر سفارش برای این نماد در دسترس نیست') ||
              depthPanelText.includes('Order book unavailable for this symbol') ||
              depthPanelText.includes('در دسترس نیست'),
-        'FR-013 depth panel displays unavailable notice for non-Binance symbol',
+        'FR-008 depth panel displays unavailable notice for non-Binance symbol',
         `Expected unavailable notice in depth panel, got "${depthPanelText}"`);
     }
 
