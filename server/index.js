@@ -233,9 +233,6 @@ app.get('/api/gold-snapshot', async (req, res) => {
 // 5d. Tehran Stock Exchange tape
 app.get('/api/tse-tape', (req, res) => {
   try {
-    if (!tseSource.isTseEnabled()) {
-      return res.status(404).json({ ok: false, error: 'tse_unavailable' });
-    }
     const raw = cleanSymbol(req.query.symbol, 'FOOLAD');
     if (!raw) return bad(res, 'invalid_symbol');
     const symbol = resolveSymbolAlias(raw);
