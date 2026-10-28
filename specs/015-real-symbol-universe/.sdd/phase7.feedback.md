@@ -1,6 +1,6 @@
-# Gate feedback — 015-real-symbol-universe phase 7, attempt 1
+# Gate feedback — 015-real-symbol-universe phase 7, attempt 2
 
-Result: FAIL
+Result: PASS
 
 ## PASS lock — ok
 
@@ -14,12 +14,7 @@ Result: FAIL
 
 ## PASS acceptance — ok
 
-## FAIL ui — exit 1
-```
-FAIL /chart desktop/fa defects=1
-   consoleErr: Failed to load resource: the server responded with a status of 404 (Not Found)
-UI PROBE FAIL defects=1 (new vs baseline .sdd/baseline/ui_probe_2026-10-23.json; known baseline defects still present=26)
-```
+## PASS ui — ok
 
 ## PASS spec — ok
 

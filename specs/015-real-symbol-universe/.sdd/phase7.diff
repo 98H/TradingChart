@@ -1,0 +1,1429 @@
+diff --git a/client/src/i18n.js b/client/src/i18n.js
+index 8b30a54..7e227ca 100644
+--- a/client/src/i18n.js
++++ b/client/src/i18n.js
+@@ -80,6 +80,34 @@ export const translations = {
+     symbolModalTitle: 'Symbol Search & Market Navigator',
+     symbolPlaceholder: 'Type symbol name (e.g. BTC, ETH, XAU, EURUSD, AAPL)...',
+     instrumentsCount: '30+ Instruments',
++    marketBrowser: 'Market Browser',
++    marketTabs: 'Markets',
++    tabAll: 'All',
++    tabGlobal: 'Global',
++    tabAmerica: 'US Stocks',
++    tabForex: 'Forex',
++    tabCrypto: 'Crypto',
++    tabFutures: 'Futures',
++    tabBonds: 'Bonds',
++    tabGermany: 'Germany',
++    tabUK: 'UK',
++    tabIndia: 'India',
++    tabJapan: 'Japan',
++    tabTurkey: 'Turkey',
++    tabEconomics: 'Economics',
++    tabIranGold: 'Tehran Gold & FX',
++    tabIranTse: 'Iran TSE',
++    filterAllTypes: 'All Types',
++    filterStock: 'Stocks',
++    filterFund: 'Funds / ETF',
++    filterForex: 'Forex',
++    filterCrypto: 'Crypto',
++    filterCommodity: 'Commodities',
++    filterIndex: 'Indices',
++    filterBond: 'Bonds',
++    filterEconomic: 'Economic',
++    browseLoadingMore: 'Loading more instruments...',
++    browseEndOfList: 'All instruments loaded',
+ 
+     // Indicators Modal
+     indicatorsModalTitle: 'Indicators, Metrics & Strategies (114+ Library)',
+@@ -220,6 +248,34 @@ export const translations = {
+     symbolModalTitle: 'جستجوی نماد در تمام بازارهای مالی',
+     symbolPlaceholder: 'نام یا نماد دارایی را تایپ کنید (مانند BTC، طلا، نفت، اپل)...',
+     instrumentsCount: 'بیش از ۳۰ نماد جهانی',
++    marketBrowser: 'مرورگر جامع بازارها',
++    marketTabs: 'بازارها',
++    tabAll: 'همه',
++    tabGlobal: 'کل جهان',
++    tabAmerica: 'سهام آمریکا',
++    tabForex: 'فارکس',
++    tabCrypto: 'رمزارزها',
++    tabFutures: 'آتی و کالا',
++    tabBonds: 'اوراق قرضه',
++    tabGermany: 'آلمان',
++    tabUK: 'بریتانیا',
++    tabIndia: 'هند',
++    tabJapan: 'ژاپن',
++    tabTurkey: 'ترکیه',
++    tabEconomics: 'داده‌های اقتصادی',
++    tabIranGold: 'طلای تهران و ارز',
++    tabIranTse: 'بورس و فرابورس ایران',
++    filterAllTypes: 'همه انواع دارایی',
++    filterStock: 'سهام',
++    filterFund: 'صندوق سرمایه‌گذاری / ETF',
++    filterForex: 'ارزها (فارکس)',
++    filterCrypto: 'رمزارز',
++    filterCommodity: 'کالاها',
++    filterIndex: 'شاخص‌ها',
++    filterBond: 'اوراق قرضه',
++    filterEconomic: 'شاخص اقتصادی',
++    browseLoadingMore: 'در حال بارگذاری نمادهای بیشتر...',
++    browseEndOfList: 'تمامی نمادها بارگذاری شدند',
+ 
+     // Indicators Modal
+     indicatorsModalTitle: 'دایره‌المعارف اندیکاتورها و استراتژی‌ها (۱۱۴ ابزار تخصصی)',
+diff --git a/client/src/main.js b/client/src/main.js
+index 0fedf28..ba1c5e5 100644
+--- a/client/src/main.js
++++ b/client/src/main.js
+@@ -1587,13 +1587,36 @@ class TradingChartApp {
+     });
+ 
+     const exchangeSelect = document.querySelector('#symbol-exchange-filter');
++    let typeSelect = document.querySelector('#symbol-type-filter');
++    const isFa = getLanguage() === 'fa';
++    if (!typeSelect && exchangeSelect && exchangeSelect.parentNode) {
++      typeSelect = document.createElement('select');
++      typeSelect.id = 'symbol-type-filter';
++      typeSelect.style.cssText = 'height: 36px; padding: 0 8px; font-size: 11px; font-weight: 600; background: var(--bg-card); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px; cursor: pointer; flex-shrink: 0;';
++      typeSelect.innerHTML = `
++        <option value="all">${isFa ? 'همه انواع دارایی' : 'All Types'}</option>
++        <option value="stock">${isFa ? 'سهام' : 'Stocks'}</option>
++        <option value="fund">${isFa ? 'صندوق ETF' : 'Funds / ETF'}</option>
++        <option value="forex">${isFa ? 'ارزها (فارکس)' : 'Forex'}</option>
++        <option value="crypto">${isFa ? 'رمزارز' : 'Crypto'}</option>
++        <option value="commodity">${isFa ? 'کالاها و آتی' : 'Commodities'}</option>
++        <option value="index">${isFa ? 'شاخص‌ها' : 'Indices'}</option>
++        <option value="bond">${isFa ? 'اوراق قرضه' : 'Bonds'}</option>
++        <option value="economic">${isFa ? 'داده‌های اقتصادی' : 'Economic'}</option>
++      `;
++      exchangeSelect.parentNode.insertBefore(typeSelect, exchangeSelect.nextSibling);
++      typeSelect.addEventListener('change', () => updateSearch());
++    }
+ 
+     const updateSearch = () => {
+-      const activeCat = document.querySelector('.sym-cat-btn.active')?.getAttribute('data-cat') || 'all';
++      const activeBtn = document.querySelector('.sym-cat-btn.active');
++      const activeCat = activeBtn?.getAttribute('data-cat') || 'all';
++      const activeMarket = activeBtn?.getAttribute('data-market') || null;
+       const activeEx = exchangeSelect ? exchangeSelect.value : 'all';
++      const activeType = typeSelect ? typeSelect.value : 'all';
+       const q = input ? input.value.trim() : '';
+       if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+-      this.populateSymbolSearch(q, activeCat, activeEx);
++      this.populateSymbolSearch(q, activeCat, activeEx, activeMarket, activeType);
+     };
+ 
+     input?.addEventListener('input', updateSearch);
+@@ -1606,6 +1629,55 @@ class TradingChartApp {
+       }
+     });
+ 
++    // Market browser tabs: populate all markets from /api/symbols/markets
++    fetch('/api/symbols/markets').then(r => r.ok ? r.json() : []).then(markets => {
++      if (!Array.isArray(markets) || markets.length === 0) return;
++      const tabsBar = document.querySelector('.sym-cat-btn')?.parentNode;
++      if (!tabsBar) return;
++      this.scannerMarkets = markets;
++      const isPersian = getLanguage() === 'fa';
++      const marketTabs = [
++        { id: 'all', cat: 'all', market: null, labelEn: 'All', labelFa: 'همه' },
++        { id: 'america', cat: 'stocks', market: 'america', labelEn: 'US Stocks', labelFa: 'سهام آمریکا' },
++        { id: 'forex', cat: 'forex', market: 'forex', labelEn: 'Forex', labelFa: 'فارکس' },
++        { id: 'crypto', cat: 'crypto', market: 'crypto', labelEn: 'Crypto', labelFa: 'رمزارزها' },
++        { id: 'futures', cat: 'commodities', market: 'futures', labelEn: 'Futures', labelFa: 'آتی و کالا' },
++        { id: 'bonds', cat: 'bonds', market: 'bonds', labelEn: 'Bonds', labelFa: 'اوراق قرضه' },
++        { id: 'global', cat: 'all', market: 'global', labelEn: 'Global', labelFa: 'کل جهان' },
++        { id: 'germany', cat: 'stocks', market: 'germany', labelEn: 'Germany', labelFa: 'آلمان' },
++        { id: 'uk', cat: 'stocks', market: 'uk', labelEn: 'UK', labelFa: 'بریتانیا' },
++        { id: 'india', cat: 'stocks', market: 'india', labelEn: 'India', labelFa: 'هند' },
++        { id: 'japan', cat: 'stocks', market: 'japan', labelEn: 'Japan', labelFa: 'ژاپن' },
++        { id: 'turkey', cat: 'stocks', market: 'turkey', labelEn: 'Turkey', labelFa: 'ترکیه' },
++        { id: 'economics2', cat: 'indices', market: 'economics2', labelEn: 'Economics', labelFa: 'داده‌های اقتصادی' },
++        { id: 'iran_gold', cat: 'iran_gold', market: null, labelEn: 'Gold & FX', labelFa: 'طلای تهران و ارز' },
++        { id: 'iran_tse', cat: 'iran_tse', market: null, labelEn: 'Iran TSE', labelFa: 'بورس تهران' }
++      ];
++
++      tabsBar.innerHTML = marketTabs.map(t => {
++        const activeClass = (this.activeMarket === t.market && (!t.market || this.activeMarket)) || (!this.activeMarket && t.id === 'all') ? 'active' : '';
++        const bg = activeClass ? 'var(--accent-cyan-dim)' : 'transparent';
++        const color = activeClass ? 'var(--accent-cyan)' : 'var(--text-dim)';
++        const display = (t.id === 'iran_tse' && !this.tseEnabled) ? 'none' : 'inline-block';
++        const label = isPersian ? t.labelFa : t.labelEn;
++        return `<button class="sym-cat-btn ${activeClass}" data-cat="${t.cat}" ${t.market ? `data-market="${t.market}"` : ''} style="display: ${display}; background: ${bg}; color: ${color}; white-space: nowrap; padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 4px; border: none; cursor: pointer;">${label}</button>`;
++      }).join('');
++
++      tabsBar.querySelectorAll('.sym-cat-btn').forEach(btn => {
++        btn.addEventListener('click', () => {
++          tabsBar.querySelectorAll('.sym-cat-btn').forEach(b => {
++            b.classList.remove('active');
++            b.style.background = 'transparent';
++            b.style.color = 'var(--text-dim)';
++          });
++          btn.classList.add('active');
++          btn.style.background = 'var(--accent-cyan-dim)';
++          btn.style.color = 'var(--accent-cyan)';
++          updateSearch();
++        });
++      });
++    }).catch(() => {});
++
+     document.querySelectorAll('.sym-cat-btn').forEach(btn => {
+       btn.addEventListener('click', () => {
+         document.querySelectorAll('.sym-cat-btn').forEach(b => {
+@@ -1621,14 +1693,179 @@ class TradingChartApp {
+     });
+   }
+ 
+-  async populateSymbolSearch(query = '', category = 'all', exchange = 'all') {
++  renderSymbolRowHtml(s, isFa) {
++    const CAT_COLORS = {
++      crypto: { bg: 'rgba(0, 242, 176, 0.12)', color: '#00F2B0' },
++      metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
++      commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
++      forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
++      indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
++      stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' },
++      iran_gold: { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
++      iran_tse: { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }
++    };
++
++    const CAT_NAMES_FA = {
++      crypto: 'رمزارزها',
++      metals: 'فلزات',
++      commodities: 'کالاها',
++      forex: 'فارکس',
++      indices: 'شاخص‌ها',
++      stocks: 'سهام بین‌الملل',
++      iran_gold: 'طلای تهران و ارز',
++      iran_tse: 'بورس و فرابورس ایران'
++    };
++
++    const TYPE_NAMES_FA = {
++      crypto: 'رمزارز',
++      forex: 'ارز',
++      stock: 'سهام',
++      index: 'شاخص',
++      commodity: 'کالا',
++      metal: 'فلز',
++      gold: 'طلا',
++      coin: 'سکه',
++      currency: 'ارز',
++      fund: 'صندوق',
++      etf: 'صندوق',
++      bond: 'اوراق',
++      economic: 'شاخص اقتصادی'
++    };
++
++    const SOURCE_NAMES_FA = {
++      binance: 'بایننس',
++      tradingview: 'تریدینگ‌ویو',
++      tgju: 'TGJU',
++      brsapi: 'بورس',
++      tsetmc_proxy: 'TSETMC'
++    };
++
++    const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
++    const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : String(s.category || '').toUpperCase();
++    const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
++    const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
++    const typeLabel = isFa ? (TYPE_NAMES_FA[s.type] || s.type || 'دارایی') : String(s.type || 'asset').toUpperCase();
++    const sourceLabel = isFa ? (SOURCE_NAMES_FA[s.source] || s.source || 'زنده') : String(s.source || 'live').toUpperCase();
++    const displayName = (isFa && s.nameFa) ? s.nameFa : (s.name || s.symbol);
++    const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
++    const glyph = (isFa && s.tickerFa) ? s.tickerFa.replace(/\s+/g, '').slice(0, 3) : s.symbol.slice(0, 3);
++
++    let statusBadgeHtml = '';
++    if (s.dataStatus === 'delayed' || (s.delaySec && s.delaySec > 0)) {
++      const delayMin = Math.max(1, Math.round((s.delaySec || 600) / 60));
++      const txt = isFa ? `تأخیر ${toPersianDigits(delayMin)} دقیقه` : `Delayed ${delayMin}m`;
++      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.2);">${txt}</span>`;
++    } else if (s.dataStatus === 'eod') {
++      const txt = isFa ? 'پایان روز' : 'EOD';
++      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.2);">${txt}</span>`;
++    } else if (s.dataStatus === 'live') {
++      const txt = isFa ? 'زنده' : 'LIVE';
++      statusBadgeHtml = `<span class="sym-badge-status" style="font-size: 10px; font-weight: 700; color: #00F2B0; background: rgba(0, 242, 176, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">${txt}</span>`;
++    }
++
++    return `
++      <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
++        <div style="display: flex; align-items: center; gap: 12px;">
++          <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
++            ${glyph}
++          </div>
++          <div>
++            <div style="display: flex; align-items: center; gap: 8px;">
++              <span style="font-weight: 800; font-size: 14px; color: #fff;">${displayTicker}</span>
++              <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
++                ${catLabel}
++              </span>
++            </div>
++            <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : (s.base && s.quote ? ` (${s.base}/${s.quote})` : '')}</div>
++          </div>
++        </div>
++        <div style="text-align: end; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
++          <span class="sym-badge-exchange" style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
++            ${exchangeLabel}
++          </span>
++          <span class="sym-badge-type" style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
++            ${typeLabel}
++          </span>
++          ${statusBadgeHtml}
++          <span class="sym-badge-source" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.08); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">
++            ${sourceLabel}
++          </span>
++        </div>
++      </div>
++    `;
++  }
++
++  bindSymbolRowEvents(row) {
++    row.addEventListener('click', () => {
++      const sym = row.getAttribute('data-symbol');
++      this.switchSymbol(sym);
++      document.querySelector('#modal-symbol-search')?.classList.remove('open');
++    });
++    row.addEventListener('mouseenter', () => {
++      row.style.borderColor = 'var(--accent-cyan)';
++      row.style.background = 'var(--bg-card-hover)';
++    });
++    row.addEventListener('mouseleave', () => {
++      row.style.borderColor = 'var(--border-subtle)';
++      row.style.background = 'var(--bg-card)';
++    });
++  }
++
++  async populateSymbolSearch(query = '', category = 'all', exchange = 'all', market = null, type = 'all') {
+     const listCont = document.querySelector('#symbol-results-list');
+     const countBadge = document.querySelector('#sym-count-badge');
+     if (!listCont) return;
+ 
+     const isFa = getLanguage() === 'fa';
++    this.activeMarket = market;
+ 
+     try {
++      if (market) {
++        const url = `/api/symbols/browse?market=${encodeURIComponent(market)}&exchange=${encodeURIComponent(exchange)}&type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}&offset=0&limit=50`;
++        const res = await fetch(url);
++        if (res.ok) {
++          const data = await res.json();
++          const items = Array.isArray(data.items) ? data.items : [];
++          const total = typeof data.total === 'number' ? data.total : items.length;
++          this.browseItems = items;
++          this.browseTotal = total;
++          this.browseMarket = market;
++          this.browseExchange = exchange;
++          this.browseType = type;
++          this.browseQuery = query;
++
++          if (countBadge) {
++            countBadge.innerText = isFa
++              ? `${toPersianDigits(items.length)} از ${toPersianDigits(total)} نماد معاملاتی`
++              : `${items.length} of ${total.toLocaleString()} Instruments`;
++          }
++
++          if (items.length === 0) {
++            listCont.innerHTML = `<div style="text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 13px;">${isFa ? 'هیچ نمادی در این بازار یافت نشد.' : 'No instruments found in this market.'}</div>`;
++            return;
++          }
++
++          listCont.innerHTML = items.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
++          listCont.querySelectorAll('.sym-search-row').forEach(row => this.bindSymbolRowEvents(row));
++
++          // Infinite scroll
++          if (!this._browseScrollAttached) {
++            this._browseScrollAttached = true;
++            listCont.addEventListener('scroll', () => {
++              if (!this.browseMarket || this._browseLoading || !this.browseItems || this.browseItems.length >= this.browseTotal) return;
++              if (listCont.scrollTop + listCont.clientHeight >= listCont.scrollHeight - 80) {
++                this.loadMoreBrowseSymbols();
++              }
++            });
++          }
++
++          this.symbolSelectedIndex = 0;
++          this.highlightSymbolRow(listCont.querySelectorAll('.sym-search-row'), 0);
++        }
++        return;
++      }
++
++      this.browseMarket = null;
+       const res = await fetch(`/api/symbols?q=${encodeURIComponent(query)}&category=${category}&exchange=${exchange}`);
+       if (res.ok) {
+         const symbols = await res.json();
+@@ -1641,108 +1878,8 @@ class TradingChartApp {
+           return;
+         }
+ 
+-        const CAT_COLORS = {
+-          crypto: { bg: 'rgba(0, 242, 176, 0.12)', color: '#00F2B0' },
+-          metals: { bg: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' },
+-          commodities: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171' },
+-          forex: { bg: 'rgba(16, 185, 129, 0.12)', color: '#34d399' },
+-          indices: { bg: 'rgba(168, 85, 247, 0.12)', color: '#c084fc' },
+-          stocks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' },
+-          iran_gold: { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' },
+-          iran_tse: { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }
+-        };
+-
+-        const CAT_NAMES_FA = {
+-          crypto: 'رمزارزها',
+-          metals: 'فلزات',
+-          commodities: 'کالاها',
+-          forex: 'فارکس',
+-          indices: 'شاخص‌ها',
+-          stocks: 'سهام بین‌الملل',
+-          iran_gold: 'طلای تهران و ارز',
+-          iran_tse: 'بورس و فرابورس ایران'
+-        };
+-
+-        const TYPE_NAMES_FA = {
+-          crypto: 'رمزارز',
+-          forex: 'ارز',
+-          stock: 'سهام',
+-          index: 'شاخص',
+-          commodity: 'کالا',
+-          metal: 'فلز',
+-          gold: 'طلا',
+-          coin: 'سکه',
+-          currency: 'ارز',
+-          fund: 'صندوق',
+-          etf: 'صندوق',
+-          bond: 'اوراق'
+-        };
+-
+-        const SOURCE_NAMES_FA = {
+-          binance: 'بایننس',
+-          tradingview: 'تریدینگ‌ویو',
+-          tgju: 'TGJU',
+-          brsapi: 'بورس',
+-          tsetmc_proxy: 'TSETMC'
+-        };
+-
+-        listCont.innerHTML = symbols.map(s => {
+-          const catStyle = CAT_COLORS[s.category] || { bg: 'rgba(255,255,255,0.1)', color: '#fff' };
+-          const catLabel = isFa ? (CAT_NAMES_FA[s.category] || s.category) : s.category.toUpperCase();
+-          const EXCH_FA = { Binance: 'بایننس', OANDA: 'اواندا', CBOE: 'CBOE', DJ: 'داوجونز', 'Dubai FX': 'ارز دبی', FX_IDC: 'FX_IDC', ICE: 'ICE', NASDAQ: 'نزدک', Nobitex: 'نوبیتکس', NYMEX: 'نایمکس', 'Tehran Bazaar': 'بازار تهران', 'Tehran FX': 'ارز تهران', TSETMC: 'بورس تهران', Global: 'جهانی' };
+-          const exchangeLabel = isFa ? (EXCH_FA[s.exchange] || s.exchange || 'جهانی') : (s.exchange || 'Global');
+-          const typeLabel = isFa ? (TYPE_NAMES_FA[s.type] || s.type || 'دارایی') : String(s.type || 'asset').toUpperCase();
+-          const sourceLabel = isFa ? (SOURCE_NAMES_FA[s.source] || s.source || 'زنده') : String(s.source || 'live').toUpperCase();
+-          const displayName = (isFa && s.nameFa) ? s.nameFa : s.name;
+-          // Iranian instruments: show the Persian ticker (نماد) as primary label
+-          const displayTicker = (isFa && s.tickerFa) ? s.tickerFa : s.symbol;
+-          const glyph = (isFa && s.tickerFa) ? s.tickerFa.replace(/\s+/g, '').slice(0, 3) : s.symbol.slice(0, 3);
+-          return `
+-            <div class="sym-search-row symbol-search-item" data-symbol="${s.symbol}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-card); cursor: pointer; transition: all 0.15s ease;">
+-              <div style="display: flex; align-items: center; gap: 12px;">
+-                <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: ${catStyle.color}; border: 1px solid var(--border-subtle);">
+-                  ${glyph}
+-                </div>
+-                <div>
+-                  <div style="display: flex; align-items: center; gap: 8px;">
+-                    <span style="font-weight: 800; font-size: 14px; color: #fff;">${displayTicker}</span>
+-                    <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; background: ${catStyle.bg}; color: ${catStyle.color}; padding: 1px 6px; border-radius: 3px;">
+-                      ${catLabel}
+-                    </span>
+-                  </div>
+-                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${displayName}${(isFa && s.tickerFa) ? '' : (s.base && s.quote ? ` (${s.base}/${s.quote})` : '')}</div>
+-                </div>
+-              </div>
+-              <div style="text-align: end; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+-                <span class="sym-badge-exchange" style="font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+-                  ${exchangeLabel}
+-                </span>
+-                <span class="sym-badge-type" style="font-size: 10px; font-weight: 700; color: var(--text-dim); background: var(--bg-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+-                  ${typeLabel}
+-                </span>
+-                <span class="sym-badge-source" style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); background: rgba(0, 242, 176, 0.08); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0, 242, 176, 0.2);">
+-                  ${sourceLabel}
+-                </span>
+-              </div>
+-            </div>
+-          `;
+-        }).join('');
+-
+-        listCont.querySelectorAll('.sym-search-row').forEach(row => {
+-          row.addEventListener('click', () => {
+-            const sym = row.getAttribute('data-symbol');
+-            this.switchSymbol(sym);
+-            document.querySelector('#modal-symbol-search')?.classList.remove('open');
+-          });
+-          row.addEventListener('mouseenter', () => {
+-            row.style.borderColor = 'var(--accent-cyan)';
+-            row.style.background = 'var(--bg-card-hover)';
+-          });
+-          row.addEventListener('mouseleave', () => {
+-            row.style.borderColor = 'var(--border-subtle)';
+-            row.style.background = 'var(--bg-card)';
+-          });
+-        });
++        listCont.innerHTML = symbols.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
++        listCont.querySelectorAll('.sym-search-row').forEach(row => this.bindSymbolRowEvents(row));
+         this.symbolSelectedIndex = 0;
+         this.highlightSymbolRow(listCont.querySelectorAll('.sym-search-row'), 0);
+       }
+@@ -1751,6 +1888,38 @@ class TradingChartApp {
+     }
+   }
+ 
++  loadMoreBrowseSymbols() {
++    if (this._browseLoading || !this.browseMarket || !this.browseItems || this.browseItems.length >= this.browseTotal) return;
++    this._browseLoading = true;
++    const listCont = document.querySelector('#symbol-results-list');
++    const countBadge = document.querySelector('#sym-count-badge');
++    const isFa = getLanguage() === 'fa';
++    const offset = this.browseItems.length;
++
++    fetch(`/api/symbols/browse?market=${encodeURIComponent(this.browseMarket)}&exchange=${encodeURIComponent(this.browseExchange)}&type=${encodeURIComponent(this.browseType)}&q=${encodeURIComponent(this.browseQuery)}&offset=${offset}&limit=50`)
++      .then(r => r.ok ? r.json() : null)
++      .then(data => {
++        this._browseLoading = false;
++        if (!data || !Array.isArray(data.items) || data.items.length === 0) return;
++        this.browseItems.push(...data.items);
++        if (countBadge) {
++          countBadge.innerText = isFa
++            ? `${toPersianDigits(this.browseItems.length)} از ${toPersianDigits(this.browseTotal)} نماد معاملاتی`
++            : `${this.browseItems.length} of ${this.browseTotal.toLocaleString()} Instruments`;
++        }
++        const tempDiv = document.createElement('div');
++        tempDiv.innerHTML = data.items.map(s => this.renderSymbolRowHtml(s, isFa)).join('');
++        while (tempDiv.firstChild) {
++          const row = tempDiv.firstChild;
++          listCont.appendChild(row);
++          this.bindSymbolRowEvents(row);
++        }
++      })
++      .catch(() => {
++        this._browseLoading = false;
++      });
++  }
++
+   highlightSymbolRow(rows, idx) {
+     rows.forEach((row, i) => {
+       if (i === idx) {
+diff --git a/server/dataFeed.js b/server/dataFeed.js
+index a25e369..da158fc 100644
+--- a/server/dataFeed.js
++++ b/server/dataFeed.js
+@@ -487,7 +487,7 @@ export async function getGoldMarketSnapshot() {
+ // ─────────────────────────────────────────────────────────────────────────────
+ 
+ /** Get live TSETMC market tape, individual vs institutional volume & smart money ratio */
+-export function getTseMarketTape(symbol = 'TSE:FOOLAD') {
++export function getTseMarketTape(symbol = 'TSETMC:FOOLAD') {
+   if (!tseSource.isTseEnabled()) {
+     const err = new Error('tse_unavailable');
+     err.code = 'TSE_UNAVAILABLE';
+@@ -514,7 +514,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+   const canonical = tf.canonical;
+ 
+   // 1. TradingView-routed symbols: exchange-qualified non-Binance
+-  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
++  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSETMC:');
+   if (isTvSymbol) {
+     const dedupeKey = `tv:${resolved}:${canonical}:${limit}:${fromTime || 0}:${toTime || 0}`;
+     return dedupeInFlight(dedupeKey, async () => {
+@@ -535,6 +535,7 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+         }
+         const candles = result.candles || [];
+         const finalResult = [...candles];
++        finalResult.symbol = resolved;
+         finalResult.source = result.source || 'tradingview';
+         finalResult.exchange = result.exchange;
+         finalResult.delaySec = result.delaySec || 0;
+@@ -585,8 +586,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
+     });
+   }
+ 
+-  // 1c. Tehran Stock Exchange (TSE) when enabled
+-  const isTseSymbol = resolved.startsWith('TSE:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
++  // 1c. Tehran Stock Exchange (TSETMC) when enabled
++  const isTseSymbol = resolved.startsWith('TSETMC:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
+   if (isTseSymbol) {
+     if (!tseSource.isTseEnabled()) {
+       const err = new Error('unknown_symbol');
+@@ -667,7 +668,7 @@ export async function get24hTicker(symbol) {
+   const meta = getSymbolMeta(clean) || getSymbolMeta(resolved);
+ 
+   // 1. Exchange-qualified non-Binance symbols -> TradingView
+-  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSE:');
++  const isTvSymbol = resolved.includes(':') && !resolved.startsWith('BINANCE:') && !resolved.startsWith('IR:') && !resolved.startsWith('TSETMC:');
+   if (isTvSymbol) {
+     try {
+       const q = await tvClient.getQuote(resolved);
+@@ -698,8 +699,8 @@ export async function get24hTicker(symbol) {
+     return await tgjuClient.getQuote(resolved);
+   }
+ 
+-  // 1c. TSE symbols
+-  const isTseSymbol = resolved.startsWith('TSE:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
++  // 1c. TSETMC symbols
++  const isTseSymbol = resolved.startsWith('TSETMC:') || meta?.source === 'brsapi' || meta?.source === 'tsetmc_proxy';
+   if (isTseSymbol) {
+     if (!tseSource.isTseEnabled()) {
+       return { unknown: true, symbol };
+@@ -828,7 +829,7 @@ export async function getMarketSourceStatus() {
+       live: true,
+       protocol: tseStatus.mode === 'tsetmc_proxy' ? 'Iran-IP Relay' : 'BrsApi REST v2',
+       protocolFa: tseStatus.mode === 'tsetmc_proxy' ? 'رله پروکسی ایران' : 'ای‌پی‌آی BrsApi',
+-      marketsCovered: ['TSE', 'IFB'],
++      marketsCovered: ['TSETMC', 'IFB'],
+       marketsCoveredFa: ['بورس تهران', 'فرابورس'],
+       tier: 4,
+       activeSymbols: countCat('iran_tse')
+diff --git a/server/index.js b/server/index.js
+index a88df86..09d3ca1 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -9,7 +9,7 @@ import path from 'path';
+ import { fileURLToPath } from 'url';
+ import { getCandles, get24hTicker, getGoldMarketSnapshot, getTseMarketTape, getMarketSourceStatus } from './dataFeed.js';
+ import { parseTimeframe } from './timeframes.js';
+-import { searchSymbols, getSymbolMeta, resolveSymbolAlias, isKnownSymbol, initPromise as initCatalogPromise } from './symbolCatalog.js';
++import { searchSymbols, getSymbolMeta, resolveSymbolAlias, isKnownSymbol, initPromise as initCatalogPromise, getMarkets, browseSymbols } from './symbolCatalog.js';
+ import { CONGRESSIONAL_TRADES, INSIDER_TRADES, HEDGE_FUND_13F, FINRA_SHORT_VOLUME } from './marketTrackers.js';
+ import { ECONOMIC_EVENTS, getEconomicEvents } from './economicCalendar.js';
+ import { getScreenerData } from './technicalScreener.js';
+@@ -21,8 +21,8 @@ import { tvClient } from './tradingviewClient.js';
+ import { tgjuClient } from './tgjuClient.js';
+ import { tseSource } from './tseSource.js';
+ 
+-// Preserve EXCHANGE:SYMBOL in cleanSymbol (FR-002, FR-003)
+-const SYMBOL_RE = /^[A-Z0-9_]{1,16}:[A-Z0-9._\-]{1,32}$|^[A-Z0-9._\-]{1,32}$/;
++// Preserve EXCHANGE:SYMBOL in cleanSymbol (FR-002, FR-003, FR-013)
++const SYMBOL_RE = /^[A-Z0-9_.]{1,24}:[^\s]{1,40}$|^[A-Z0-9._\-!&]{1,40}$/;
+ export function cleanSymbol(raw, fallback = null) {
+   if (raw === undefined || raw === null || raw === '') return fallback;
+   const s = String(raw).trim().toUpperCase();
+@@ -51,7 +51,7 @@ app.use((req, res, next) => {
+ });
+ app.use(securityHeaders);
+ // Same-origin app: CORS is only opened for read-only public market data.
+-const PUBLIC_CORS = /^\/api\/(candles|tickers|symbols|symbol-info|news|economic-calendar|screener|depth)$/;
++const PUBLIC_CORS = /^\/api\/(candles|tickers|symbols|symbols\/.*|symbol-info|news|economic-calendar|screener|depth)$/;
+ app.use((req, res, next) => (PUBLIC_CORS.test(req.path) && req.method === 'GET') ? cors({ credentials: false })(req, res, next) : next());
+ app.use(apiRateLimit);
+ app.use(sameOriginWrites);
+@@ -195,6 +195,26 @@ app.get('/api/tickers', async (req, res) => {
+ });
+ 
+ // 4. Symbol Search & Catalog
++app.get('/api/symbols/markets', async (req, res) => {
++  try {
++    const markets = await getMarkets();
++    res.json(markets);
++  } catch (error) { serverError(res, '/api/symbols/markets', error); }
++});
++
++app.get('/api/symbols/browse', async (req, res) => {
++  try {
++    const market = String(req.query.market || 'global').slice(0, 32);
++    const exchange = req.query.exchange ? String(req.query.exchange).slice(0, 32) : 'all';
++    const type = req.query.type ? String(req.query.type).slice(0, 32) : 'all';
++    const q = req.query.q ? String(req.query.q).slice(0, 64) : '';
++    const offset = req.query.offset ? parseInt(req.query.offset, 10) : 0;
++    const limit = req.query.limit ? Math.min(200, parseInt(req.query.limit, 10)) : 50;
++    const result = await browseSymbols({ market, exchange, type, q, offset, limit });
++    res.json(result);
++  } catch (error) { serverError(res, '/api/symbols/browse', error); }
++});
++
+ app.get('/api/symbols', async (req, res) => {
+   try {
+     const query = String(req.query.q || '').slice(0, 64);
+@@ -245,7 +265,7 @@ app.get('/api/tse-tape', (req, res) => {
+     if (!tseSource.isTseEnabled()) {
+       return res.status(404).json({ ok: false, error: 'tse_unavailable' });
+     }
+-    const raw = cleanSymbol(req.query.symbol, 'TSE:FOOLAD');
++    const raw = cleanSymbol(req.query.symbol, 'TSETMC:FOOLAD');
+     if (!raw) return bad(res, 'invalid_symbol');
+     const symbol = resolveSymbolAlias(raw);
+     res.json(getTseMarketTape(symbol));
+diff --git a/server/symbolCatalog.js b/server/symbolCatalog.js
+index 05d34c0..5a7ac95 100644
+--- a/server/symbolCatalog.js
++++ b/server/symbolCatalog.js
+@@ -274,8 +274,21 @@ export function resolveSymbolAlias(raw) {
+   if (!raw) return raw;
+   const s = String(raw).trim().toUpperCase();
+   if (LEGACY_ALIASES[s]) return LEGACY_ALIASES[s];
++
++  if (s.startsWith('TSE:')) {
++    const ticker = s.slice(4);
++    if (tseSource.isTseEnabled() && tseSource.isKnownSymbol(ticker)) {
++      return `TSETMC:${ticker}`;
++    }
++    return s;
++  }
++
+   if (s.includes(':')) return s;
+ 
++  if (tseSource.isTseEnabled() && tseSource.isKnownSymbol(s)) {
++    return `TSETMC:${s}`;
++  }
++
+   if (binancePairSet.has(s) || catalogMap.has(`BINANCE:${s}`)) {
+     return `BINANCE:${s}`;
+   }
+@@ -301,11 +314,11 @@ export function getSymbolMeta(symbol) {
+   const tgjuEntry = TGJU_ENTRIES.find(e => e.symbol === canonical || e.symbol === raw);
+   if (tgjuEntry) return tgjuEntry;
+ 
+-  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL)
+-  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSE:')) {
++  // TradingView symbol on-demand: exchange:ticker (e.g. OANDA:EURUSD, NASDAQ:AAPL, TSE:7203)
++  if (canonical.includes(':') && !canonical.startsWith('BINANCE:') && !canonical.startsWith('IR:') && !canonical.startsWith('TSETMC:')) {
+     const parts = canonical.split(':');
+     const exch = parts[0];
+-    const ticker = parts[1];
++    const ticker = parts.slice(1).join(':');
+     const cachedMeta = tvClient?.metaCache?.get(canonical);
+     if (cachedMeta) {
+       return {
+@@ -353,7 +366,7 @@ export function isKnownSymbol(sym) {
+   if (catalogMap.has(canonical) || catalogMap.has(raw)) return true;
+   if (LEGACY_ALIASES[raw]) return true;
+ 
+-  if (canonical.startsWith('TSE:') || raw.startsWith('TSE:')) {
++  if (canonical.startsWith('TSETMC:') || raw.startsWith('TSETMC:')) {
+     return tseSource.isTseEnabled() && (catalogMap.has(canonical) || catalogMap.has(raw));
+   }
+ 
+@@ -544,7 +557,7 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
+ 
+   const matchesEx = (itemEx) => {
+     const ie = String(itemEx || '').toLowerCase();
+-    if (ie === 'tse' && !tseSource.isTseEnabled()) return false;
++    if (ie === 'tsetmc' && !tseSource.isTseEnabled()) return false;
+     if (ex === 'all') return true;
+     return ie.includes(ex);
+   };
+@@ -691,3 +704,11 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
+ 
+   return merged.slice(0, 50);
+ }
++
++export async function getMarkets() {
++  return tvClient.getScannerMarkets();
++}
++
++export async function browseSymbols(options = {}) {
++  return tvClient.browseScanner(options);
++}
+diff --git a/server/tradingviewClient.js b/server/tradingviewClient.js
+index f13ec21..740416a 100644
+--- a/server/tradingviewClient.js
++++ b/server/tradingviewClient.js
+@@ -267,6 +267,9 @@ export class TradingViewClient {
+     this.quotes = new CostLruCache(5000);
+     this.barsCache = new CostLruCache(150000);
+     this.lastGoodCache = new CostLruCache(150000);
++    this.browseCache = new CostLruCache(2000);
++    this.marketsCache = null;
++    this.marketsCacheTime = 0;
+ 
+     this.quoteListeners = new Map();
+     this.liveTickListeners = new Set();
+@@ -890,7 +893,216 @@ export class TradingViewClient {
+       });
+     });
+   }
++
++  async getScannerMarkets() {
++    const now = Date.now();
++    if (this.marketsCache && (now - this.marketsCacheTime < 10 * 60 * 1000)) {
++      return this.marketsCache;
++    }
++
++    const results = await Promise.all(SCANNER_MARKETS.map(async (m) => {
++      try {
++        const res = await fetch(`https://scanner.tradingview.com/${encodeURIComponent(m.market)}/scan`, {
++          method: 'POST',
++          headers: {
++            'Content-Type': 'application/json',
++            Origin: 'https://www.tradingview.com',
++            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
++          },
++          body: JSON.stringify({ columns: ['name'], range: [0, 1] }),
++          signal: AbortSignal.timeout(6000)
++        });
++        if (res.ok) {
++          const j = await res.json();
++          const total = typeof j.totalCount === 'number' && j.totalCount > 0 ? j.totalCount : m.minEstimate;
++          return { market: m.market, labelEn: m.labelEn, labelFa: m.labelFa, total };
++        }
++      } catch (e) {}
++      return { market: m.market, labelEn: m.labelEn, labelFa: m.labelFa, total: m.minEstimate };
++    }));
++
++    this.marketsCache = results;
++    this.marketsCacheTime = now;
++    return results;
++  }
++
++  async browseScanner(options = {}) {
++    const market = String(options.market || 'global').trim().toLowerCase();
++    const exchange = options.exchange && options.exchange !== 'all' ? String(options.exchange).trim().toUpperCase() : null;
++    const type = options.type && options.type !== 'all' ? String(options.type).trim().toLowerCase() : null;
++    const q = options.q ? String(options.q).trim() : null;
++    const offset = Math.max(0, parseInt(options.offset, 10) || 0);
++    const limit = Math.max(1, Math.min(200, parseInt(options.limit, 10) || 50));
++
++    const cacheKey = `${market}:${exchange || 'all'}:${type || 'all'}:${q || ''}:${offset}:${limit}`;
++    const cached = this.browseCache.get(cacheKey);
++    if (cached) return cached;
++
++    const filter = [];
++    if (exchange) {
++      filter.push({ left: 'exchange', operation: 'equal', right: exchange });
++    }
++    if (type) {
++      filter.push({ left: 'type', operation: 'equal', right: type });
++    }
++    if (q) {
++      filter.push({ left: 'name,description', operation: 'match', right: q });
++    }
++
++    const payload = {
++      columns: ['name', 'description', 'exchange', 'type', 'subtype', 'currency', 'pricescale', 'minmov', 'update_mode'],
++      range: [offset, offset + limit]
++    };
++    if (filter.length > 0) {
++      payload.filter = filter;
++    }
++
++    const res = await fetch(`https://scanner.tradingview.com/${encodeURIComponent(market)}/scan`, {
++      method: 'POST',
++      headers: {
++        'Content-Type': 'application/json',
++        Origin: 'https://www.tradingview.com',
++        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
++      },
++      body: JSON.stringify(payload),
++      signal: AbortSignal.timeout(10000)
++    });
++
++    if (!res.ok) {
++      throw new Error(`scanner_error_${res.status}`);
++    }
++
++    const json = await res.json();
++    const total = Number(json.totalCount) || 0;
++    const items = (json.data || []).map(row => {
++      const symbol = String(row.s || '').trim();
++      const [name, description, exch, rawType, subtype, currency, pricescale, minmov, update_mode] = Array.isArray(row.d) ? row.d : [];
++
++      let dataStatus = 'live';
++      let delaySec = 0;
++      const mode = String(update_mode || '').toLowerCase();
++      if (mode === 'streaming') {
++        dataStatus = 'live';
++        delaySec = 0;
++      } else if (mode.startsWith('delayed')) {
++        dataStatus = 'delayed';
++        const m = mode.match(/\d+/);
++        delaySec = m ? parseInt(m[0], 10) : 600;
++      } else if (mode === 'endofday' || mode === 'eod') {
++        dataStatus = 'eod';
++        delaySec = 0;
++      } else {
++        if (mode.includes('delay')) {
++          dataStatus = 'delayed';
++          delaySec = 600;
++        } else if (mode.includes('end') || mode.includes('eod')) {
++          dataStatus = 'eod';
++          delaySec = 0;
++        } else {
++          dataStatus = 'live';
++          delaySec = 0;
++        }
++      }
++
++      let minTick = 0.01;
++      let precision = 2;
++      if (typeof pricescale === 'number' && pricescale > 0) {
++        const mm = (typeof minmov === 'number' && minmov > 0) ? minmov : 1;
++        minTick = mm / pricescale;
++        precision = getMinTickDecimals(minTick, 2);
++      }
++
++      const cleanType = String(rawType || '').toLowerCase();
++      let mappedType = cleanType === 'economic' ? 'economic' : mapScannerType(cleanType);
++      let mappedCat = cleanType === 'economic' ? 'economics' : mapScannerCategory(cleanType, name || symbol);
++      const isBinance = symbol.startsWith('BINANCE:');
++
++      const entry = {
++        symbol,
++        name: description || name || symbol.split(':')[1] || symbol,
++        nameFa: description || name || symbol.split(':')[1] || symbol,
++        exchange: exch || symbol.split(':')[0] || 'TradingView',
++        type: mappedType,
++        category: mappedCat,
++        currency: currency || 'USD',
++        source: isBinance ? 'binance' : 'tradingview',
++        dataStatus,
++        delaySec,
++        timeframes: ['1s', '1', '3', '5', '15', '30', '45', '60', '120', '180', '240', 'D', '3D', 'W', 'M'],
++        precision,
++        minTick,
++        lotSize: 1
++      };
++
++      this.metaCache.set(symbol, {
++        symbol,
++        name: entry.name,
++        exchange: entry.exchange,
++        type: entry.type,
++        dataStatus,
++        delaySec,
++        precision,
++        minTick
++      });
++
++      return entry;
++    });
++
++    const result = { total, items };
++    this.browseCache.set(cacheKey, result, items.length || 1, 10 * 60 * 1000);
++    return result;
++  }
++}
++
++function mapScannerType(rawType) {
++  const t = String(rawType || '').toLowerCase();
++  if (t === 'forex') return 'forex';
++  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
++  if (t === 'index') return 'index';
++  if (t === 'stock' || t === 'dr') return 'stock';
++  if (t === 'fund') return 'fund';
++  if (t === 'bond') return 'bond';
++  if (t === 'commodity' || t === 'futures') return 'commodity';
++  if (t === 'economic') return 'economic';
++  return t || 'stock';
++}
++
++function mapScannerCategory(rawType, sym) {
++  const t = String(rawType || '').toLowerCase();
++  const s = String(sym || '').toUpperCase();
++  if (t === 'forex') return 'forex';
++  if (t === 'crypto' || t === 'spot' || t === 'swap') return 'crypto';
++  if (t === 'index') return 'indices';
++  if (t === 'fund') return 'etf';
++  if (t === 'bond') return 'bonds';
++  if (t === 'economic') return 'economics';
++  if (t === 'commodity' || t === 'futures') {
++    if (s.includes('XAU') || s.includes('XAG') || s.includes('GOLD') || s.includes('SILVER') || s.includes('PLATINUM') || s.includes('COPPER')) {
++      return 'metals';
++    }
++    if (s.includes('OIL') || s.includes('GAS') || s.includes('BRENT')) {
++      return 'energy';
++    }
++    return 'commodities';
++  }
++  return 'stocks';
+ }
+ 
++export const SCANNER_MARKETS = [
++  { market: 'global', labelEn: 'Global (All Markets)', labelFa: 'کل بازارهای جهانی', minEstimate: 454562 },
++  { market: 'crypto', labelEn: 'Crypto', labelFa: 'بازار رمزارزها', minEstimate: 64494 },
++  { market: 'futures', labelEn: 'Futures & Commodities', labelFa: 'قراردادهای آتی و کالا', minEstimate: 52622 },
++  { market: 'america', labelEn: 'United States', labelFa: 'ایالات متحده آمریکا', minEstimate: 20053 },
++  { market: 'forex', labelEn: 'Forex (Currencies)', labelFa: 'بازار تبادلات ارزی (فارکس)', minEstimate: 6332 },
++  { market: 'bonds', labelEn: 'Bonds & Rates', labelFa: 'اوراق قرضه و نرخ بهره', minEstimate: 1163 },
++  { market: 'economics2', labelEn: 'Economic Indicators', labelFa: 'شاخص‌های کلان اقتصادی', minEstimate: 15167 },
++  { market: 'cfd', labelEn: 'CFD Contracts', labelFa: 'قراردادهای مابه‌التفاوت (CFD)', minEstimate: 650 },
++  { market: 'germany', labelEn: 'Germany', labelFa: 'آلمان', minEstimate: 39830 },
++  { market: 'uk', labelEn: 'United Kingdom', labelFa: 'بریتانیا', minEstimate: 9509 },
++  { market: 'india', labelEn: 'India', labelFa: 'هند', minEstimate: 8759 },
++  { market: 'turkey', labelEn: 'Turkey', labelFa: 'ترکیه', minEstimate: 650 },
++  { market: 'japan', labelEn: 'Japan', labelFa: 'ژاپن', minEstimate: 4384 }
++];
++
+ export const tvClient = new TradingViewClient();
+ export default tvClient;
+\ No newline at end of file
+diff --git a/server/tseSource.js b/server/tseSource.js
+index 5484cbb..7639909 100644
+--- a/server/tseSource.js
++++ b/server/tseSource.js
+@@ -1,10 +1,80 @@
+ // server/tseSource.js
+ // Tehran Stock Exchange (TSETMC / IFB) gated source adapter
+ // Supports:
+-// 1. BrsApi.ir via env TC_BRSAPI_KEY
++// 1. BrsApi.ir via env TC_BRSAPI_KEY (AllSymbols snapshot + on-demand 24h history, fair use)
+ // 2. Iran-IP relay via env TC_TSETMC_PROXY
+-// Health probing with strict gating: unless a source is configured and healthy,
++// Strict gating: unless a source is configured and healthy,
+ // iran_tse symbols, category, tape view, and routes remain completely disabled (FR-007).
++// Prefix: TSETMC: (TSE: is reserved for Tokyo Stock Exchange on TradingView) (FR-013).
++
++import { CostLruCache } from './lru.js';
++import { parseTimeframe, aggregate } from './timeframes.js';
++
++class FairUseLimiter {
++  constructor({ minSpacingMs = 300, maxRequests = 300, windowMs = 5 * 60 * 1000 } = {}) {
++    this.minSpacingMs = minSpacingMs;
++    this.maxRequests = maxRequests;
++    this.windowMs = windowMs;
++    this.lastRequestTime = 0;
++    this.requestTimestamps = [];
++    this.queue = [];
++    this.processing = false;
++  }
++
++  schedule(fn) {
++    return new Promise((resolve, reject) => {
++      this.queue.push({ fn, resolve, reject });
++      this.processQueue();
++    });
++  }
++
++  async processQueue() {
++    if (this.processing || this.queue.length === 0) return;
++    this.processing = true;
++
++    while (this.queue.length > 0) {
++      const now = Date.now();
++      this.requestTimestamps = this.requestTimestamps.filter(t => now - t < this.windowMs);
++
++      if (this.requestTimestamps.length >= this.maxRequests) {
++        const oldest = this.requestTimestamps[0];
++        const waitMs = this.windowMs - (now - oldest) + 50;
++        await new Promise(r => setTimeout(r, Math.max(50, waitMs)));
++        continue;
++      }
++
++      const elapsed = now - this.lastRequestTime;
++      if (elapsed < this.minSpacingMs) {
++        await new Promise(r => setTimeout(r, this.minSpacingMs - elapsed));
++      }
++
++      const item = this.queue.shift();
++      if (!item) break;
++
++      this.lastRequestTime = Date.now();
++      this.requestTimestamps.push(this.lastRequestTime);
++
++      try {
++        const res = await item.fn();
++        item.resolve(res);
++      } catch (err) {
++        item.reject(err);
++      }
++    }
++
++    this.processing = false;
++  }
++}
++
++function detectTseType(ticker, title) {
++  const s = String(ticker || '').trim();
++  const t = String(title || '').trim();
++  if (s.endsWith('ح') || t.includes('حق تقدم')) return 'rights';
++  if (t.includes('صندوق') || t.includes('ETF') || t.includes('سرمایه گذاری')) return 'fund';
++  if (t.includes('اوراق') || t.includes('صکوک') || t.includes('اسناد') || t.includes('اخزا') || t.includes('سلف') || t.includes('مرابحه') || t.includes('گام')) return 'bond';
++  if (t.includes('اختیار') || s.startsWith('ض') || s.startsWith('ط')) return 'option';
++  return 'stock';
++}
+ 
+ class TseSource {
+   constructor() {
+@@ -13,7 +83,10 @@ class TseSource {
+     this.lastProbeTime = 0;
+     this.lastProbeError = null;
+     this.symbolsCache = [];
++    this.tickersMap = new Map();
+     this.cacheTimestamp = 0;
++    this.limiter = new FairUseLimiter({ minSpacingMs: 300, maxRequests: 300, windowMs: 5 * 60 * 1000 });
++    this.historyCache = new CostLruCache(1000); // 24h history cache
+ 
+     // Periodic health probe
+     this.probeTimer = setInterval(() => {
+@@ -21,6 +94,14 @@ class TseSource {
+     }, 60000);
+     if (this.probeTimer?.unref) this.probeTimer.unref();
+ 
++    // 1-minute snapshot timer for live prices when enabled via BrsApi
++    this.snapshotTimer = setInterval(() => {
++      if (this.isTseEnabled() && this.mode === 'brsapi') {
++        this.fetchBrsApiAllSymbols().catch(() => {});
++      }
++    }, 60000);
++    if (this.snapshotTimer?.unref) this.snapshotTimer.unref();
++
+     // Trigger initial probe
+     this.probeHealth().catch(() => {});
+   }
+@@ -39,6 +120,15 @@ class TseSource {
+     };
+   }
+ 
++  isKnownSymbol(ticker) {
++    if (!ticker) return false;
++    const clean = String(ticker).trim().toUpperCase().replace(/^TSETMC:/, '').replace(/^TSE:/, '');
++    return this.symbolsCache.some(s => {
++      const symClean = s.symbol.replace(/^TSETMC:/, '').toUpperCase();
++      return symClean === clean || (s.name && s.name.toUpperCase() === clean) || (s.nameFa && s.nameFa.toUpperCase() === clean);
++    });
++  }
++
+   async probeHealth() {
+     this.lastProbeTime = Date.now();
+     const proxyUrl = process.env.TC_TSETMC_PROXY;
+@@ -62,6 +152,7 @@ class TseSource {
+           this.healthy = true;
+           this.mode = 'tsetmc_proxy';
+           this.lastProbeError = null;
++          this.loadSymbols().catch(() => {});
+           return true;
+         }
+       } catch (err) {
+@@ -73,17 +164,23 @@ class TseSource {
+     if (brsApiKey) {
+       try {
+         const key = String(brsApiKey).trim();
+-        const res = await fetch(`https://api.brsapi.ir/v2/tsetmc/stock/all?apiKey=${encodeURIComponent(key)}`, {
+-          signal: AbortSignal.timeout(4000)
++        const res = await this.limiter.schedule(async () => {
++          return fetch(`https://Api.BrsApi.ir/Tsetmc/AllSymbols.php?key=${encodeURIComponent(key)}`, {
++            signal: AbortSignal.timeout(6000)
++          });
+         });
++
+         if (res.ok) {
+-          this.healthy = true;
+-          this.mode = 'brsapi';
+-          this.lastProbeError = null;
+-          return true;
+-        } else {
+-          this.lastProbeError = `brsapi_error_${res.status}`;
++          const json = await res.json();
++          if (json && (Array.isArray(json) || Array.isArray(json.data))) {
++            this.healthy = true;
++            this.mode = 'brsapi';
++            this.lastProbeError = null;
++            this.parseBrsApiSymbols(json);
++            return true;
++          }
+         }
++        this.lastProbeError = `brsapi_error_${res.status}`;
+       } catch (err) {
+         this.lastProbeError = `brsapi_probe_failed: ${err.message}`;
+       }
+@@ -94,93 +191,245 @@ class TseSource {
+     return false;
+   }
+ 
+-  async getTseSymbols() {
+-    if (!this.isTseEnabled()) return [];
++  parseBrsApiSymbols(raw) {
++    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
++    if (!list.length) return;
++
++    const mapped = [];
++    this.tickersMap.clear();
++
++    for (const item of list) {
++      const ticker = String(item.l18 || item.symbol || item.ticker || '').trim();
++      if (!ticker) continue;
++
++      const title = item.title || item.l30 || item.name || ticker;
++      const type = detectTseType(ticker, title);
++      const symbol = `TSETMC:${ticker}`;
++
++      const entry = {
++        symbol,
++        name: title,
++        nameFa: title,
++        tickerFa: ticker,
++        exchange: 'TSETMC',
++        type,
++        category: 'iran_tse',
++        currency: 'IRR',
++        source: 'brsapi',
++        dataStatus: 'delayed',
++        delaySec: 900,
++        timeframes: ['D', 'W', 'M'],
++        precision: 0,
++        minTick: 10,
++        lotSize: 1
++      };
++      mapped.push(entry);
++
++      const lastPrice = Number(item.pl || item.last_price || item.pc || item.close_price) || 0;
++      const closePrice = Number(item.pc || item.close_price || item.pl) || lastPrice;
++      const prevClose = Number(item.py || item.yesterday_price) || closePrice;
++      const priceChange = closePrice - prevClose;
++      const priceChangePercent = prevClose > 0 ? Number(((priceChange / prevClose) * 100).toFixed(2)) : 0;
++
++      this.tickersMap.set(symbol, {
++        symbol,
++        lastPrice,
++        priceChange,
++        priceChangePercent,
++        highPrice: Number(item.pmax || item.high) || lastPrice,
++        lowPrice: Number(item.pmin || item.low) || lastPrice,
++        volume: Number(item.tvol || item.volume) || 0,
++        exchange: 'TSETMC',
++        category: 'iran_tse',
++        currency: 'IRR',
++        source: 'brsapi',
++        dataStatus: 'delayed',
++        delaySec: 900,
++        time: Date.now()
++      });
++    }
++
++    this.symbolsCache = mapped;
++    this.cacheTimestamp = Date.now();
++  }
++
++  async fetchBrsApiAllSymbols() {
++    const key = process.env.TC_BRSAPI_KEY;
++    if (!key) return;
+ 
++    try {
++      const res = await this.limiter.schedule(async () => {
++        return fetch(`https://Api.BrsApi.ir/Tsetmc/AllSymbols.php?key=${encodeURIComponent(key.trim())}`, {
++          signal: AbortSignal.timeout(8000)
++        });
++      });
++      if (res.ok) {
++        const json = await res.json();
++        this.parseBrsApiSymbols(json);
++      }
++    } catch (e) {
++      // Keep previous snapshot on transient error
++    }
++  }
++
++  async loadSymbols() {
++    if (!this.isTseEnabled()) return [];
+     if (this.symbolsCache.length > 0 && Date.now() - this.cacheTimestamp < 3600000) {
+       return this.symbolsCache;
+     }
+ 
+-    // When healthy source exists, fetch and map TSE symbols
+-    try {
+-      if (this.mode === 'tsetmc_proxy') {
++    if (this.mode === 'tsetmc_proxy') {
++      try {
+         const proxyUrl = String(process.env.TC_TSETMC_PROXY).trim().replace(/\/+$/, '');
+         const res = await fetch(`${proxyUrl}/tsetmc/symbols`, { signal: AbortSignal.timeout(5000) });
+         if (res.ok) {
+           const list = await res.json();
+           if (Array.isArray(list)) {
+-            this.symbolsCache = list.map(item => ({
+-              symbol: `TSE:${item.symbol}`,
+-              name: item.name || item.symbol,
+-              nameFa: item.nameFa || item.name || item.symbol,
+-              exchange: 'TSE',
+-              type: 'stock',
+-              category: 'iran_tse',
+-              currency: 'IRR',
+-              source: 'tsetmc_proxy',
+-              dataStatus: 'live',
+-              delaySec: 0,
+-              timeframes: ['1', '5', '15', '60', 'D', 'W', 'M'],
+-              precision: 0,
+-              minTick: 10,
+-              lotSize: 1
+-            }));
++            this.symbolsCache = list.map(item => {
++              const ticker = String(item.symbol || item.l18 || '').trim();
++              const title = item.nameFa || item.name || ticker;
++              const type = detectTseType(ticker, title);
++              return {
++                symbol: `TSETMC:${ticker}`,
++                name: item.name || ticker,
++                nameFa: title,
++                tickerFa: ticker,
++                exchange: 'TSETMC',
++                type,
++                category: 'iran_tse',
++                currency: 'IRR',
++                source: 'tsetmc_proxy',
++                dataStatus: 'live',
++                delaySec: 0,
++                timeframes: ['1', '5', '15', '60', 'D', 'W', 'M'],
++                precision: 0,
++                minTick: 10,
++                lotSize: 1
++              };
++            });
+             this.cacheTimestamp = Date.now();
+             return this.symbolsCache;
+           }
+         }
+-      } else if (this.mode === 'brsapi') {
+-        const key = String(process.env.TC_BRSAPI_KEY).trim();
+-        const res = await fetch(`https://api.brsapi.ir/v2/tsetmc/stock/all?apiKey=${encodeURIComponent(key)}`, {
+-          signal: AbortSignal.timeout(6000)
+-        });
+-        if (res.ok) {
+-          const list = await res.json();
+-          if (Array.isArray(list)) {
+-            this.symbolsCache = list.map(item => ({
+-              symbol: `TSE:${item.l18 || item.symbol}`,
+-              name: item.title || item.l18 || item.symbol,
+-              nameFa: item.name || item.title || item.symbol,
+-              exchange: 'TSE',
+-              type: 'stock',
+-              category: 'iran_tse',
+-              currency: 'IRR',
+-              source: 'brsapi',
+-              dataStatus: 'delayed',
+-              delaySec: 900,
+-              timeframes: ['D', 'W', 'M'],
+-              precision: 0,
+-              minTick: 10,
+-              lotSize: 1
+-            }));
+-            this.cacheTimestamp = Date.now();
+-            return this.symbolsCache;
+-          }
+-        }
+-      }
+-    } catch (e) {
+-      // return cached or empty
++      } catch (e) {}
++    } else if (this.mode === 'brsapi') {
++      await this.fetchBrsApiAllSymbols();
++      return this.symbolsCache;
+     }
+ 
+     return this.symbolsCache;
+   }
+ 
++  async getTseSymbols() {
++    return this.loadSymbols();
++  }
++
+   async getCandles(symbol, tfParsed, limit = 500, fromTime = null, toTime = null) {
+     if (!this.isTseEnabled()) {
+       const err = new Error('tse_unavailable');
+       err.code = 'TSE_UNAVAILABLE';
+       throw err;
+     }
+-    // Implement downstream fetching when provider is configured
+-    const err = new Error('tse_unavailable');
+-    err.code = 'TSE_UNAVAILABLE';
+-    throw err;
++
++    const clean = String(symbol).trim().toUpperCase().replace(/^TSETMC:/, '').replace(/^TSE:/, '');
++    const canonicalSym = `TSETMC:${clean}`;
++    const parsed = typeof tfParsed === 'object' && tfParsed?.canonical ? tfParsed : parseTimeframe(tfParsed);
++
++    if (!parsed || (parsed.unit !== 'D' && parsed.unit !== 'W' && parsed.unit !== 'M')) {
++      const err = new Error('timeframe_unavailable');
++      err.code = 'TIMEFRAME_UNAVAILABLE';
++      throw err;
++    }
++
++    const cacheKey = `history:${canonicalSym}`;
++    let dailyBars = this.historyCache.get(cacheKey);
++
++    if (!dailyBars) {
++      if (this.mode === 'brsapi') {
++        const key = process.env.TC_BRSAPI_KEY;
++        const res = await this.limiter.schedule(async () => {
++          return fetch(`https://Api.BrsApi.ir/Tsetmc/History.php?key=${encodeURIComponent(key)}&l18=${encodeURIComponent(clean)}`, {
++            signal: AbortSignal.timeout(8000)
++          });
++        });
++        if (!res.ok) {
++          const err = new Error('tse_unavailable');
++          err.code = 'TSE_UNAVAILABLE';
++          throw err;
++        }
++        const json = await res.json();
++        const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
++        dailyBars = list.map(row => {
++          const tSec = typeof row.time === 'number' ? row.time : Math.floor(new Date(row.date || row.d).getTime() / 1000);
++          return {
++            time: tSec * 1000,
++            open: Number(row.open || row.pf || row.first || 0),
++            high: Number(row.high || row.pmax || 0),
++            low: Number(row.low || row.pmin || 0),
++            close: Number(row.close || row.pc || row.pl || 0),
++            volume: Number(row.volume || row.tvol || 0)
++          };
++        }).filter(b => b.time > 0 && b.close > 0).sort((a, b) => a.time - b.time);
++
++        this.historyCache.set(cacheKey, dailyBars, dailyBars.length, 24 * 60 * 60 * 1000);
++      } else if (this.mode === 'tsetmc_proxy') {
++        const proxyUrl = String(process.env.TC_TSETMC_PROXY).trim().replace(/\/+$/, '');
++        const res = await fetch(`${proxyUrl}/tsetmc/history?symbol=${encodeURIComponent(clean)}`, {
++          signal: AbortSignal.timeout(8000)
++        });
++        if (!res.ok) {
++          const err = new Error('tse_unavailable');
++          err.code = 'TSE_UNAVAILABLE';
++          throw err;
++        }
++        const json = await res.json();
++        const list = Array.isArray(json) ? json : [];
++        dailyBars = list.map(b => ({
++          time: typeof b.time === 'number' ? b.time : new Date(b.date).getTime(),
++          open: Number(b.open),
++          high: Number(b.high),
++          low: Number(b.low),
++          close: Number(b.close),
++          volume: Number(b.volume || 0)
++        })).sort((a, b) => a.time - b.time);
++
++        this.historyCache.set(cacheKey, dailyBars, dailyBars.length, 24 * 60 * 60 * 1000);
++      } else {
++        const err = new Error('tse_unavailable');
++        err.code = 'TSE_UNAVAILABLE';
++        throw err;
++      }
++    }
++
++    let aggregated = dailyBars;
++    if (parsed.unit === 'W' || parsed.unit === 'M') {
++      aggregated = aggregate(dailyBars, parsed);
++    }
++
++    let filtered = aggregated;
++    if (fromTime !== null) filtered = filtered.filter(b => b.time >= fromTime);
++    if (toTime !== null) filtered = filtered.filter(b => b.time <= toTime);
++
++    const candles = filtered.slice(-Math.min(limit, 5000));
++    return {
++      symbol: canonicalSym,
++      timeframe: parsed.canonical,
++      exchange: 'TSETMC',
++      delaySec: this.mode === 'brsapi' ? 900 : 0,
++      source: this.mode || 'brsapi',
++      count: candles.length,
++      candles
++    };
+   }
+ 
+   async getTicker(symbol) {
+     if (!this.isTseEnabled()) {
+       return { unknown: true, symbol };
+     }
++    const clean = String(symbol).trim().toUpperCase().replace(/^TSETMC:/, '').replace(/^TSE:/, '');
++    const canonicalSym = `TSETMC:${clean}`;
++    const t = this.tickersMap.get(canonicalSym);
++    if (t) return t;
+     return { unknown: true, symbol };
+   }
+ 
+@@ -190,9 +439,9 @@ class TseSource {
+       err.code = 'TSE_UNAVAILABLE';
+       throw err;
+     }
+-    // Return real tape when enabled
++    const clean = String(symbol).trim().toUpperCase().replace(/^TSETMC:/, '').replace(/^TSE:/, '');
+     return {
+-      symbol,
++      symbol: `TSETMC:${clean}`,
+       trades: [],
+       timestamp: Date.now()
+     };
