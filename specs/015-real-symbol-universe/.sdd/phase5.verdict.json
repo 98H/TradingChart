@@ -1,9 +1,9 @@
 {
   "feature": "015-real-symbol-universe",
   "phase": 5,
-  "attempt": 1,
+  "attempt": 2,
   "pass": false,
-  "at": "2026-10-28T08:20:50.063Z",
+  "at": "2026-10-28T08:38:42.869Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -45,5 +45,6 @@
   "highRisk": [],
   "knownGapsSkipped": [],
   "deferredToLaterPhase": [],
-  "escalate": false
+  "escalate": true,
+  "reason": "implementer reports a spec problem: SPEC_PROBLEM: FR-013 and FR-008 in specs/015-real-symbol-universe/spec.md:105 and specs/015-real-symbol-universe/tasks.md:28 cause verify_specs.mjs failures (phantom FR-013 without acceptance test, and T013 citing deleted server/marketSessions.js) which require edits to protected spec files outside implementer scope."
 }
