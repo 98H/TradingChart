@@ -28,13 +28,20 @@ export const ALIAS_MAP = {
   // Metals & Commodities
   'XAUUSD': 'OANDA:XAUUSD',
   'XAGUSD': 'OANDA:XAGUSD',
+  'COPPER': 'COMEX:HG1!',
+  'TVC:COPPER': 'COMEX:HG1!',
   'USOIL': 'TVC:USOIL',
   'UKOIL': 'TVC:UKOIL',
-  'NATGAS': 'TVC:NATGAS',
+  'NATGAS': 'NYMEX:NG1!',
+  'TVC:NATGAS': 'NYMEX:NG1!',
   // Indices
   'SPX': 'SP:SPX',
   'NDX': 'NASDAQ:NDX',
   'DJI': 'DJ:DJI',
+  'FTSE': 'TVC:UKX',
+  'TVC:FTSE': 'TVC:UKX',
+  'TLT': 'NASDAQ:TLT',
+  'AMEX:TLT': 'NASDAQ:TLT',
   // Equities
   'AAPL': 'NASDAQ:AAPL',
   'NVDA': 'NASDAQ:NVDA',
@@ -517,7 +524,15 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
 
       const lastGoodKey = `last_good_tv:${resolved}:${canonical}`;
       try {
-        const result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        let result = null;
+        try {
+          result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        } catch (firstErr) {
+          if (firstErr.code === 'UNKNOWN_SYMBOL' || String(firstErr.message).toLowerCase().includes('symbol error') || String(firstErr.message).toLowerCase().includes('unknown_symbol') || String(firstErr.message).toLowerCase().includes('invalid symbol')) {
+            throw firstErr;
+          }
+          result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        }
         const candles = result.candles || [];
         const finalResult = [...candles];
         finalResult.source = result.source || 'tradingview';
@@ -529,6 +544,11 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
         candleLru.set(lastGoodKey, finalResult, candles.length, 24 * 60 * 60 * 1000);
         return finalResult;
       } catch (err) {
+        if (err.code === 'UNKNOWN_SYMBOL' || String(err.message).toLowerCase().includes('symbol error') || String(err.message).toLowerCase().includes('unknown_symbol') || String(err.message).toLowerCase().includes('invalid symbol')) {
+          const unknownErr = new Error('unknown_symbol');
+          unknownErr.code = 'UNKNOWN_SYMBOL';
+          throw unknownErr;
+        }
         const lastGood = candleLru.get(lastGoodKey);
         if (lastGood && lastGood.length > 0) {
           const res = [...lastGood];
@@ -576,8 +596,8 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
     return await tseSource.getCandles(resolved, tf, limit, fromTime, toTime);
   }
 
-  // 2. Crypto via Binance
-  const isCrypto = resolved.startsWith('BINANCE:') || meta?.category === 'crypto' || cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC');
+  // 2. Crypto via Binance (strictly BINANCE: prefix or bare crypto pair)
+  const isCrypto = resolved.startsWith('BINANCE:') || (!resolved.includes(':') && (cleanSymbol.endsWith('USDT') || cleanSymbol.endsWith('BTC') || meta?.category === 'crypto'));
   const known = isKnownSymbol(cleanSymbol) || isKnownSymbol(resolved);
 
   if (isCrypto) {
@@ -687,8 +707,9 @@ export async function get24hTicker(symbol) {
     return await tseSource.getTicker(resolved);
   }
 
-  // 2. Crypto via Binance
-  if (clean.endsWith('USDT') || clean.endsWith('BTC') || meta?.category === 'crypto') {
+  // 2. Crypto via Binance (strictly BINANCE: prefix or bare crypto pair)
+  const isCrypto = resolved.startsWith('BINANCE:') || (!resolved.includes(':') && (clean.endsWith('USDT') || clean.endsWith('BTC') || meta?.category === 'crypto'));
+  if (isCrypto) {
     const bases = getBinanceBases();
     for (const base of bases) {
       try {

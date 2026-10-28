@@ -1,6 +1,6 @@
 {
  "suite": "cycleA_desktop",
- "ts": "2026-10-28T02:04:20.496Z",
+ "ts": "2026-10-28T11:07:32.295Z",
  "results": [
   {
    "suite": "cycleA_desktop",
@@ -11,7 +11,7 @@
    "info": {
     "overflow": 0,
     "overlaps": 0,
-    "innerClip": 0
+    "innerClip": 2
    }
   },
   {
@@ -37,8 +37,14 @@
    "suite": "cycleA_desktop",
    "viewport": "desktop",
    "test": "D04_panels_menu_all_items",
-   "status": "pass",
-   "defects": [],
+   "status": "fail",
+   "defects": [
+    {
+     "kind": "layout",
+     "feature": "panel-menu-item",
+     "text": "too small 0x0 (tse)"
+    }
+   ],
    "info": {
     "items": 24,
     "panels": [
@@ -106,11 +112,14 @@
    "status": "pass",
    "defects": [],
    "info": {
-    "results": 1,
+    "results": 50,
     "sample": [
-     "SOLUSDT"
+     "TVC:USOIL",
+     "NASDAQ:MSFT",
+     "BINANCE:SOLBNB",
+     "BINANCE:SOLBTC"
     ],
-    "badge": "۱ نماد معاملاتی"
+    "badge": "۵۰ نماد معاملاتی"
    }
   },
   {
@@ -136,8 +145,21 @@
    "suite": "cycleA_desktop",
    "viewport": "desktop",
    "test": "D10_bottom_panel_tabs",
-   "status": "pass",
-   "defects": []
+   "status": "fail",
+   "defects": [
+    {
+     "kind": "functional",
+     "feature": "bottom-tab:tse",
+     "text": "no active view rendered",
+     "d": {
+      "activeId": "view-tse",
+      "has": true,
+      "w": 0,
+      "h": 0,
+      "text": "داده‌های تابلوی بورس تهران در دسترس نیست به دلیل عدم تنظیم درگاه داده "
+     }
+    }
+   ]
   },
   {
    "suite": "cycleA_desktop",
@@ -150,7 +172,7 @@
      "exists": true,
      "vis": "block",
      "items": 12,
-     "txt": "🔔 ثبت هشدار روی 2,332.2 Alt+A ⚡ سفارش لیمیت خرید روی 2,332.2 ⚡ سفارش استاپ فروش"
+     "txt": "🔔 ثبت هشدار روی 2,346.1 Alt+A ⚡ سفارش لیمیت خرید روی 2,346.1 ⚡ سفارش استاپ فروش"
     },
     "replay": {
      "exists": true,

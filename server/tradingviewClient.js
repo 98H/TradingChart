@@ -13,6 +13,26 @@ const MAX_SERIES_PER_SOCKET = Number(process.env.TC_TV_MAX_SERIES_PER_SOCKET || 
 const MAX_RATE_PER_SEC = Number(process.env.TC_TV_RATE || 10);
 const RATE_INTERVAL_MS = Math.max(50, Math.ceil(1000 / MAX_RATE_PER_SEC));
 
+export function getMinTickDecimals(minTick, fallbackPrecision = 2) {
+  if (typeof minTick === 'number' && Number.isFinite(minTick)) {
+    const s = String(minTick);
+    if (s.includes('e-')) {
+      const parts = s.split('e-');
+      return parseInt(parts[1], 10);
+    }
+    if (s.includes('.')) {
+      return s.split('.')[1].length;
+    }
+    return 0;
+  }
+  return typeof fallbackPrecision === 'number' ? fallbackPrecision : 2;
+}
+
+export function roundToTick(val, decimals) {
+  if (typeof val !== 'number' || !Number.isFinite(val)) return val;
+  return Number(val.toFixed(decimals));
+}
+
 // Standard TradingView chart resolutions supported natively on free tier
 const NATIVE_TV_RESOLUTIONS = new Set([
   '1', '3', '5', '15', '30', '45', '60', '120', '180', '240',
@@ -32,7 +52,8 @@ function parseFramedBuffer(buffer) {
     if (remaining.startsWith('~h~')) {
       const match = remaining.match(/^~h~\d+/);
       if (match) {
-        msgs.push({ type: 'heartbeat', raw: match[0] });
+        const raw = `~m~${match[0].length}~m~${match[0]}`;
+        msgs.push({ type: 'heartbeat', raw });
         remaining = remaining.slice(match[0].length);
         continue;
       }
@@ -48,6 +69,12 @@ function parseFramedBuffer(buffer) {
 
     const bodyStr = remaining.slice(headLen, headLen + len);
     remaining = remaining.slice(headLen + len);
+
+    if (bodyStr.startsWith('~h~')) {
+      const raw = `~m~${bodyStr.length}~m~${bodyStr}`;
+      msgs.push({ type: 'heartbeat', raw });
+      continue;
+    }
 
     try {
       const json = JSON.parse(bodyStr);
@@ -75,6 +102,7 @@ class TVSocket {
     this.qsId = `qs_${this.id}`;
     this.subscribedQuotes = new Set();
     this.pendingHandlers = new Map(); // csId -> handler
+    this.outgoingQueue = [];
   }
 
   connect() {
@@ -100,18 +128,24 @@ class TVSocket {
       this.backoffMs = 1000;
 
       // 1. Authenticate with unauthorized_user_token
-      this.sendRaw('set_auth_token', [AUTH_TOKEN]);
+      this.ws.send(formatMessage('set_auth_token', [AUTH_TOKEN]));
 
       // 2. Initialize persistent quote session
-      this.sendRaw('quote_create_session', [this.qsId]);
-      this.sendRaw('quote_set_fields', [
+      this.ws.send(formatMessage('quote_create_session', [this.qsId]));
+      this.ws.send(formatMessage('quote_set_fields', [
         this.qsId,
         'lp', 'ch', 'chp', 'high_price', 'low_price', 'volume', 'lp_time', 'update_mode', 'short_name'
-      ]);
+      ]));
 
       // Re-subscribe existing quotes on reconnect
       if (this.subscribedQuotes.size > 0) {
-        this.sendRaw('quote_add_symbols', [this.qsId, ...this.subscribedQuotes]);
+        this.ws.send(formatMessage('quote_add_symbols', [this.qsId, ...this.subscribedQuotes]));
+      }
+
+      // Flush queued messages
+      while (this.outgoingQueue.length > 0) {
+        const item = this.outgoingQueue.shift();
+        this.ws.send(formatMessage(item.m, item.p));
       }
     });
 
@@ -126,6 +160,15 @@ class TVSocket {
     this.ws.on('close', () => {
       this.connected = false;
       this.isConnecting = false;
+      this.outgoingQueue = [];
+      const err = new Error('socket_closed');
+      for (const [csId, handler] of this.pendingHandlers.entries()) {
+        try {
+          handler.onCriticalError?.(err);
+        } catch (e) {}
+      }
+      this.pendingHandlers.clear();
+      this.activeSeriesCount = 0;
       this.scheduleReconnect();
     });
   }
@@ -140,7 +183,13 @@ class TVSocket {
   }
 
   sendRaw(m, p) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+    if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.outgoingQueue.push({ m, p });
+      if (!this.isConnecting && !this.connected) {
+        this.connect();
+      }
+      return false;
+    }
     this.ws.send(formatMessage(m, p));
     return true;
   }
@@ -223,6 +272,7 @@ export class TradingViewClient {
     this.liveTickListeners = new Set();
     this.rateQueue = [];
     this.rateTimer = null;
+    this.inFlightResolves = new Map();
 
     // Initial socket
     this.getOrAllocSocket();
@@ -319,7 +369,7 @@ export class TradingViewClient {
   }
 
   /**
-   * Resolves symbol metadata via TradingView public socket
+   * Resolves symbol metadata via TradingView public socket (cached 24h)
    */
   async resolve(symbol) {
     const cleanSym = String(symbol || '').trim();
@@ -329,15 +379,21 @@ export class TradingViewClient {
       return this.metaCache.get(cleanSym);
     }
 
+    if (this.inFlightResolves.has(cleanSym)) {
+      return this.inFlightResolves.get(cleanSym);
+    }
+
     const socket = this.getOrAllocSocket();
     const csId = `cs_res_${++this.seq}`;
     const symId = `sym_res_${this.seq}`;
 
-    return new Promise((resolve, reject) => {
+    const resolvePromise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         socket.pendingHandlers.delete(csId);
         socket.sendRaw('chart_delete_session', [csId]);
-        reject(new Error(`Timeout resolving symbol ${cleanSym}`));
+        const timeoutErr = new Error(`Timeout resolving symbol ${cleanSym}`);
+        timeoutErr.code = 'RESOLVE_TIMEOUT';
+        reject(timeoutErr);
       }, 6000);
 
       socket.pendingHandlers.set(csId, {
@@ -349,6 +405,19 @@ export class TradingViewClient {
           const delaySec = typeof info.delay === 'number' ? info.delay : 0;
           const prefix = cleanSym.includes(':') ? cleanSym.split(':')[0] : '';
           const exchange = prefix || info.listed_exchange || info.exchange || (info.source2 && info.source2.id) || '';
+          const pricescale = info.pricescale || 100;
+          const minmov = info.minmov || 1;
+          const minTick = minmov / pricescale;
+          const minTickStr = String(minTick);
+          let precision = 2;
+          if (minTickStr.includes('.')) {
+            precision = minTickStr.split('.')[1].length;
+          } else if (Number.isFinite(pricescale) && pricescale > 0) {
+            precision = Math.max(0, Math.round(Math.log10(pricescale)));
+          }
+          const isEod = Array.isArray(info.params) && info.params.includes('eod');
+          const dataStatus = isEod ? 'eod' : (delaySec > 0 ? 'delayed' : 'live');
+
           const meta = {
             symbol: cleanSym,
             name: info.name || cleanSym.replace(/^.*:/, ''),
@@ -356,23 +425,33 @@ export class TradingViewClient {
             listed_exchange: info.listed_exchange || exchange,
             type: info.type || 'forex',
             delaySec,
-            pricescale: info.pricescale || 100,
-            minmov: info.minmov || 1,
-            minTick: (info.minmov || 1) / (info.pricescale || 100),
-            precision: Math.round(Math.log10(info.pricescale || 100)) || 2
+            dataStatus,
+            pricescale,
+            minmov,
+            minTick,
+            precision
           };
-          this.metaCache.set(cleanSym, meta);
+          this.metaCache.set(cleanSym, meta, 1, 24 * 60 * 60 * 1000);
           resolve(meta);
         },
         onSymbolError: (err) => {
           clearTimeout(timer);
           socket.pendingHandlers.delete(csId);
           socket.sendRaw('chart_delete_session', [csId]);
-          reject(new Error(`Symbol error: ${err}`));
+          const error = new Error('unknown_symbol');
+          error.code = 'UNKNOWN_SYMBOL';
+          error.details = err;
+          reject(error);
+        },
+        onCriticalError: (err) => {
+          clearTimeout(timer);
+          socket.pendingHandlers.delete(csId);
+          socket.sendRaw('chart_delete_session', [csId]);
+          reject(err);
         }
       });
 
-      if (!socket.connected) {
+      if (!socket.connected && !socket.isConnecting) {
         socket.connect();
       }
       socket.sendRaw('chart_create_session', [csId, '']);
@@ -381,7 +460,12 @@ export class TradingViewClient {
         symId,
         '=' + JSON.stringify({ symbol: cleanSym, adjustment: 'splits', session: 'regular' })
       ]);
+    }).finally(() => {
+      this.inFlightResolves.delete(cleanSym);
     });
+
+    this.inFlightResolves.set(cleanSym, resolvePromise);
+    return resolvePromise;
   }
 
   /**
@@ -514,7 +598,18 @@ export class TradingViewClient {
   /**
    * Fetch historical candles for a symbol and resolution with paging and LRU caching
    */
-  async getBars(symbol, resolution, { limit = 500, from = null, to = null } = {}) {
+  async getBars(symbol, resolution, { limit = 500, from = null, to = null } = {}, attempt = 1) {
+    try {
+      return await this._getBarsInternal(symbol, resolution, { limit, from, to });
+    } catch (err) {
+      if (attempt < 2 && err.code !== 'UNKNOWN_SYMBOL' && !String(err.message).toLowerCase().includes('unknown_symbol') && !String(err.message).toLowerCase().includes('invalid')) {
+        return this.getBars(symbol, resolution, { limit, from, to }, attempt + 1);
+      }
+      throw err;
+    }
+  }
+
+  async _getBarsInternal(symbol, resolution, { limit = 500, from = null, to = null } = {}) {
     const cleanSym = String(symbol || '').trim();
     if (!cleanSym) throw new Error('invalid_symbol');
 
@@ -570,7 +665,15 @@ export class TradingViewClient {
       let filtered = aggregated;
       if (from !== null) filtered = filtered.filter(b => b.time >= from);
       if (to !== null) filtered = filtered.filter(b => b.time <= to);
-      const sliced = filtered.slice(-reqLimit);
+      const dec = getMinTickDecimals(baseResult.minTick, baseResult.precision);
+      const sliced = filtered.slice(-reqLimit).map(b => ({
+        time: b.time,
+        open: roundToTick(b.open, dec),
+        high: roundToTick(b.high, dec),
+        low: roundToTick(b.low, dec),
+        close: roundToTick(b.close, dec),
+        volume: b.volume
+      }));
 
       return {
         symbol: cleanSym,
@@ -578,6 +681,8 @@ export class TradingViewClient {
         exchange: baseResult.exchange,
         delaySec: baseResult.delaySec,
         source: baseResult.source,
+        minTick: baseResult.minTick,
+        precision: baseResult.precision,
         candles: sliced
       };
     }
@@ -641,13 +746,30 @@ export class TradingViewClient {
             const delaySec = typeof info.delay === 'number' ? info.delay : 0;
             const prefix = cleanSym.includes(':') ? cleanSym.split(':')[0] : '';
             const exchange = prefix || info.listed_exchange || info.exchange || (info.source2 && info.source2.id) || '';
+            const pricescale = info.pricescale || 100;
+            const minmov = info.minmov || 1;
+            const minTick = minmov / pricescale;
+            const minTickStr = String(minTick);
+            let precision = 2;
+            if (minTickStr.includes('.')) {
+              precision = minTickStr.split('.')[1].length;
+            } else if (Number.isFinite(pricescale) && pricescale > 0) {
+              precision = Math.max(0, Math.round(Math.log10(pricescale)));
+            }
+            const isEod = Array.isArray(info.params) && info.params.includes('eod');
+            const dataStatus = isEod ? 'eod' : (delaySec > 0 ? 'delayed' : 'live');
             meta = {
               symbol: cleanSym,
               name: info.name,
               exchange,
-              delaySec
+              delaySec,
+              dataStatus,
+              pricescale,
+              minmov,
+              minTick,
+              precision
             };
-            this.metaCache.set(cleanSym, meta);
+            this.metaCache.set(cleanSym, meta, 1, 24 * 60 * 60 * 1000);
 
             const initialCount = Math.max(reqLimit, 50);
             socket.sendRaw('create_series', [csId, seriesId, 's1', symId, tvResolution, initialCount, '']);
@@ -656,7 +778,10 @@ export class TradingViewClient {
           onSymbolError: (err) => {
             clearTimeout(timer);
             cleanup();
-            reject(new Error(`Symbol error for ${cleanSym}: ${err}`));
+            const error = new Error('unknown_symbol');
+            error.code = 'UNKNOWN_SYMBOL';
+            error.details = err;
+            reject(error);
           },
 
           onTimescaleUpdate: (data) => {
@@ -711,13 +836,23 @@ export class TradingViewClient {
             if (from !== null) filtered = filtered.filter(b => b.time >= from);
             if (to !== null) filtered = filtered.filter(b => b.time <= to);
 
-            const sliced = filtered.slice(-reqLimit);
+            const dec = getMinTickDecimals(meta?.minTick, meta?.precision);
+            const sliced = filtered.slice(-reqLimit).map(b => ({
+              time: b.time,
+              open: roundToTick(b.open, dec),
+              high: roundToTick(b.high, dec),
+              low: roundToTick(b.low, dec),
+              close: roundToTick(b.close, dec),
+              volume: b.volume
+            }));
             const result = {
               symbol: cleanSym,
               timeframe: canonical,
               exchange: meta?.exchange || cleanSym.split(':')[0] || 'TradingView',
               delaySec: meta?.delaySec || 0,
               source: 'tradingview',
+              minTick: meta?.minTick,
+              precision: meta?.precision,
               candles: sliced
             };
 

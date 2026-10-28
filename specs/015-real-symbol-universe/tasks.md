@@ -45,10 +45,11 @@
 Architect note: after phase 5 merged and deployed, the production audit found (and production was rolled back to 014):
 26 search results whose ids are not TradingView tickers (e.g. `Pepperstone:EURUSD`, `CMC Markets:EURUSD`), 8 unknown ids silently served BTCUSDT from Binance (`Capital.com:DXY`, `Euronext Oslo:GYL` → BINANCE:BTCUSDT — a fabricated chart), 12 search results answering 503 (`FXCM:EURUSD` — TradingView prefix is `FX`), 44 delayed instruments labelled live, forex search results with precision 2, 4 curated defaults that do not exist on TradingView (TVC:COPPER, TVC:NATGAS, TVC:FTSE, AMEX:TLT), and tools/accuracy_audit.mjs exiting 0 with an "offline baseline" when the server is unreachable plus a 2 % tolerance. Curated TradingView symbols (41) and TGJU (12) were verified equal to the providers. New locked test tests/acceptance/015/06_search_and_catalog_integrity.test.cjs.
 
-- [ ] T024 [US2] Build search ids from `prefix`/`source_id`/`exchange` (uppercase, no spaces), verify each result with `resolve_symbol` (cached 24 h) and take dataStatus/delaySec/precision/minTick from the resolution, in server/symbolCatalog.js and server/tradingviewClient.js (FR-012)
-- [ ] T025 [US1] Route strictly by prefix in server/dataFeed.js and server/symbolCatalog.js: only `BINANCE:`/bare crypto pairs go to Binance, `IR:` to TGJU, `TSE:` to the TSE source, every other prefix to TradingView; unresolvable → 404 `unknown_symbol` (no fallback) (FR-012)
-- [ ] T026 [US2] Replace the four unresolvable curated defaults and derive every curated `dataStatus` from the resolved delay in server/symbolCatalog.js (FR-012)
-- [ ] T027 [US6] Make tools/accuracy_audit.mjs fail closed (exit 1 when server/provider unreachable), compare TradingView symbols via the public socket, compare the last closed bar within one minTick (FR-012)
+<<<<<<< HEAD
+- [x] T024 [US2] Build search ids from `prefix`/`source_id`/`exchange` (uppercase, no spaces), verify each result with `resolve_symbol` (cached 24 h) and take dataStatus/delaySec/precision/minTick from the resolution, in server/symbolCatalog.js and server/tradingviewClient.js (FR-012)
+- [x] T025 [US1] Route strictly by prefix in server/dataFeed.js and server/symbolCatalog.js: only `BINANCE:`/bare crypto pairs go to Binance, `IR:` to TGJU, `TSE:` to the TSE source, every other prefix to TradingView; unresolvable → 404 `unknown_symbol` (no fallback) (FR-012)
+- [x] T026 [US2] Replace the four unresolvable curated defaults and derive every curated `dataStatus` from the resolved delay in server/symbolCatalog.js (FR-012)
+- [x] T027 [US6] Make tools/accuracy_audit.mjs fail closed (exit 1 when server/provider unreachable), compare TradingView symbols via the public socket, compare the last closed bar within one minTick (FR-012)
 
 ## Phase 7: Complete universe — all TradingView markets and all Iranian exchange symbols (founder 2026-10-28)
 
@@ -58,3 +59,9 @@ Architect note: founder rejected the curated-only catalogue («قراره جای
 - [ ] T029 [US5] Rename the Tehran exchange prefix to `TSETMC:` across server/tseSource.js, server/symbolCatalog.js and server/dataFeed.js, route `TSE:` to TradingView (Tokyo) (FR-013)
 - [ ] T030 [US5] Load ALL BrsApi `AllSymbols` instruments (stocks, rights, funds, bonds, options) with one snapshot per minute for live prices and on-demand cached daily history, respecting the fair-use limits, in server/tseSource.js (FR-013, FR-007)
 - [ ] T031 [US2] Add the market browser (market tabs, exchange/type filters, infinite scroll, status badges, FA/EN) to the symbol-search dialog in client/src/main.js and client/src/i18n.js (FR-013)
+=======
+- [x] T024 [US2] Build search ids from `prefix`/`source_id`/`exchange` (uppercase, no spaces), verify each result with `resolve_symbol` (cached 24 h) and take dataStatus/delaySec/precision/minTick from the resolution, in server/symbolCatalog.js and server/tradingviewClient.js (FR-012)
+- [x] T025 [US1] Route strictly by prefix in server/dataFeed.js and server/symbolCatalog.js: only `BINANCE:`/bare crypto pairs go to Binance, `IR:` to TGJU, `TSE:` to the TSE source, every other prefix to TradingView; unresolvable → 404 `unknown_symbol` (no fallback) (FR-012)
+- [x] T026 [US2] Replace the four unresolvable curated defaults and derive every curated `dataStatus` from the resolved delay in server/symbolCatalog.js (FR-012)
+- [x] T027 [US6] Make tools/accuracy_audit.mjs fail closed (exit 1 when server/provider unreachable), compare TradingView symbols via the public socket, compare the last closed bar within one minTick (FR-012)
+>>>>>>> sdd/015-phase6
