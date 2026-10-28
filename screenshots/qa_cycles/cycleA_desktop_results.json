@@ -1,6 +1,6 @@
 {
  "suite": "cycleA_desktop",
- "ts": "2026-10-28T11:07:32.295Z",
+ "ts": "2026-10-28T12:51:55.685Z",
  "results": [
   {
    "suite": "cycleA_desktop",
@@ -114,10 +114,10 @@
    "info": {
     "results": 50,
     "sample": [
-     "TVC:USOIL",
-     "NASDAQ:MSFT",
      "BINANCE:SOLBNB",
-     "BINANCE:SOLBTC"
+     "BINANCE:SOLBTC",
+     "BINANCE:SOLUSDT",
+     "BINANCE:SOLEUR"
     ],
     "badge": "۵۰ نماد معاملاتی"
    }
@@ -172,7 +172,7 @@
      "exists": true,
      "vis": "block",
      "items": 12,
-     "txt": "🔔 ثبت هشدار روی 2,346.1 Alt+A ⚡ سفارش لیمیت خرید روی 2,346.1 ⚡ سفارش استاپ فروش"
+     "txt": "🔔 ثبت هشدار روی 2,346.1 Alt+A ⚡ سفارش استاپ خرید روی 2,346.1 ⚡ سفارش لیمیت فروش"
     },
     "replay": {
      "exists": true,
