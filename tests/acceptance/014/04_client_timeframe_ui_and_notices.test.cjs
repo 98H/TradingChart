@@ -106,12 +106,17 @@ async function run() {
     // 2. Client Notices: No Data & Stale Data (FR-012)
     // ──────────────────────────────────────────────────────────────────────────
     {
+      // Architect amendment (phase-3 escalation): the app default language is English; select Persian
+      // explicitly instead of relying on a default (the spec never changes the default language).
+      await page.evaluate(() => window.__TRADING_APP__?.switchLanguage?.('fa'));
+      await new Promise(r => setTimeout(r, 500));
+
       // Switch to a non-existent symbol that produces 404 with no cached data
       await page.evaluate(() => {
         window.__TRADING_APP__.switchSymbol('NONEXISTENT_XYZ_TEST');
       });
 
-      // Wait for the notice banner to appear in Persian (default)
+      // Wait for the notice banner to appear in Persian (selected above)
       const expectedFaNotice = 'برای این نماد در این بازه‌ی زمانی داده‌ای در دسترس نیست.';
       const expectedEnNotice = 'No data is available for this symbol on this timeframe.';
 
