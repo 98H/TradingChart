@@ -1,9 +1,9 @@
 {
   "feature": "015-real-symbol-universe",
   "phase": 2,
-  "attempt": 1,
+  "attempt": 2,
   "pass": true,
-  "at": "2026-10-28T05:04:06.583Z",
+  "at": "2026-10-28T05:24:27.242Z",
   "gates": {
     "lock": {
       "pass": true,

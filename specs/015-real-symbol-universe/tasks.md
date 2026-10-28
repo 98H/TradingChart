@@ -11,10 +11,10 @@
 
 ## Phase 2: Real catalogue
 
-- [ ] T005 [US3] In server/symbolCatalog.js load all Binance spot TRADING pairs from exchangeInfo (24 h refresh) as `BINANCE:<PAIR>` with precision/minTick from filters (FR-005)
-- [ ] T006 [US2] In server/symbolCatalog.js add curated TradingView defaults per category (forex majors/crosses, metals, energy, indices, top US/EU stocks, ETFs, US10Y/DXY) with nameFa, and TradingView search proxy merged into `/api/symbols?q=` (cached 10 min) (FR-004)
-- [ ] T007 [US1] Add the legacy alias table in server/symbolCatalog.js and apply it on every route in server/index.js (FR-004)
-- [ ] T008 [US1] Real default watchlist / landing tickers / screener universe in client/src/watchlistManager.js, client/landing/landing.js and server/technicalScreener.js (FR-011)
+- [x] T005 [US3] In server/symbolCatalog.js load all Binance spot TRADING pairs from exchangeInfo (24 h refresh) as `BINANCE:<PAIR>` with precision/minTick from filters (FR-005)
+- [x] T006 [US2] In server/symbolCatalog.js add curated TradingView defaults per category (forex majors/crosses, metals, energy, indices, top US/EU stocks, ETFs, US10Y/DXY) with nameFa, and TradingView search proxy merged into `/api/symbols?q=` (cached 10 min) (FR-004)
+- [x] T007 [US1] Add the legacy alias table in server/symbolCatalog.js and apply it on every route in server/index.js (FR-004)
+- [x] T008 [US1] Real default watchlist / landing tickers / screener universe in client/src/watchlistManager.js, client/landing/landing.js and server/technicalScreener.js (FR-011)
 
 ## Phase 3: Tehran sources
 

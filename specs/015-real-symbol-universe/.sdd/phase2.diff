@@ -417,10 +417,10 @@ index 475ac76..fdaa485 100644
    console.log(`[Chartivia Server] Running on http://${HOST}:${PORT}`);
    console.log(`[Chartivia Server] WebSocket live stream on ws://${HOST}:${PORT}/ws/live`);
 diff --git a/server/symbolCatalog.js b/server/symbolCatalog.js
-index a1ef2c5..6a952a5 100644
+index a1ef2c5..6c09faf 100644
 --- a/server/symbolCatalog.js
 +++ b/server/symbolCatalog.js
-@@ -1,146 +1,530 @@
+@@ -1,146 +1,532 @@
  // server/symbolCatalog.js
 -// Universal symbol registry across Crypto, Forex, Metals, Commodities, Indices, Stocks,
 -// Tehran Gold & Currency Market, and Tehran Stock Exchange (TSETMC).
@@ -507,6 +507,8 @@ index a1ef2c5..6a952a5 100644
 +// Universal real symbol registry across Crypto (Binance spot universe),
 +// Curated TradingView global markets (Forex, Metals, Commodities, Indices, Stocks, ETFs, Bonds),
 +// and legacy alias resolution. Honest data only (zero demo/synthetic).
++
++import { CostLruCache } from './lru.js';
 +
 +const TV_SEARCH_URL = 'https://symbol-search.tradingview.com/symbol_search/v3/';
 +const TV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -725,20 +727,21 @@ index a1ef2c5..6a952a5 100644
 +  'USD_FREE': 'IR:USD_FREE',
 +  'GOLD_ABSHODEH': 'IR:GOLD_ABSHODEH'
 +};
-+
-+// Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
-+const binancePairSet = new Set();
  
 -    // 2. Exchange filter
 -    if (ex !== 'all') {
 -      const itemEx = (item.exchange || '').toLowerCase();
 -      if (!itemEx.includes(ex)) return false;
++// Aliases mapped from bare crypto pair -> BINANCE:<PAIR>
++const binancePairSet = new Set();
++
 +// Active catalog store and lookup map
 +export const SYMBOL_CATALOG = [];
 +const catalogMap = new Map();
 +
 +function rebuildCatalog(cryptoEntries) {
 +  catalogMap.clear();
++  binancePairSet.clear();
 +  SYMBOL_CATALOG.length = 0;
 +
 +  // 1. Add curated TradingView entries
@@ -798,11 +801,11 @@ index a1ef2c5..6a952a5 100644
 +
 +  const raw = String(symbol).trim().toUpperCase();
 +  if (catalogMap.has(raw)) return catalogMap.get(raw);
-+
-+  const bare = raw.replace(/^.*:/, '');
-+  if (catalogMap.has(bare)) return catalogMap.get(bare);
  
 -  const isCrypto = clean.endsWith('USDT') || clean.endsWith('BTC') || clean.endsWith('ETH');
++  const bare = raw.replace(/^.*:/, '');
++  if (catalogMap.has(bare)) return catalogMap.get(bare);
++
 +  const isCrypto = bare.endsWith('USDT') || bare.endsWith('BTC') || bare.endsWith('ETH');
    return {
 -    symbol: clean,
@@ -823,8 +826,8 @@ index a1ef2c5..6a952a5 100644
 -    currency: isCrypto ? 'USDT' : 'USD'
 +    currency: isCrypto ? 'USDT' : 'USD',
 +    syntheticFallback: true
-   };
- }
++  };
++}
 +
 +export function isKnownSymbol(sym) {
 +  if (!sym) return false;
@@ -922,7 +925,7 @@ index a1ef2c5..6a952a5 100644
 +export const initPromise = loadBinanceUniverse();
 +
 +// ── TradingView Symbol Search Proxy & Merge (/api/symbols?q=) ──────────────
-+const tvSearchCache = new Map();
++const tvSearchCache = new CostLruCache(500);
 +const TV_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 +
 +function mapTvType(rawType) {
@@ -980,7 +983,7 @@ index a1ef2c5..6a952a5 100644
 +  const matchesEx = (itemEx) => {
 +    if (ex === 'all') return true;
 +    return String(itemEx || '').toLowerCase().includes(ex);
-+  };
+   };
 +
 +  if (!q) {
 +    const local = SYMBOL_CATALOG.filter(item => matchesCat(item.category) && matchesEx(item.exchange));
@@ -999,10 +1002,9 @@ index a1ef2c5..6a952a5 100644
 +
 +  // Proxy TradingView symbol search (cached 10 min)
 +  let tvMatches = [];
-+  const now = Date.now();
 +  const cached = tvSearchCache.get(qLower);
-+  if (cached && (now - cached.at < TV_CACHE_TTL)) {
-+    tvMatches = cached.items;
++  if (cached) {
++    tvMatches = cached;
 +  } else {
 +    try {
 +      const ctl = new AbortController();
@@ -1046,7 +1048,7 @@ index a1ef2c5..6a952a5 100644
 +              lotSize: 1
 +            };
 +          }).filter(e => e.symbol && e.name);
-+          tvSearchCache.set(qLower, { at: now, items: tvMatches });
++          tvSearchCache.set(qLower, tvMatches, 1, TV_CACHE_TTL);
 +        }
 +      }
 +    } catch (e) {
@@ -1073,7 +1075,7 @@ index a1ef2c5..6a952a5 100644
 +  }
 +
 +  return merged.slice(0, 50);
-+}
+ }
 diff --git a/server/technicalScreener.js b/server/technicalScreener.js
 index 2590439..91642a7 100644
 --- a/server/technicalScreener.js
