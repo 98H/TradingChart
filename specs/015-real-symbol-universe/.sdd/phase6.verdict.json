@@ -1,9 +1,9 @@
 {
   "feature": "015-real-symbol-universe",
   "phase": 6,
-  "attempt": 2,
-  "pass": false,
-  "at": "2026-10-28T10:35:10.069Z",
+  "attempt": 3,
+  "pass": true,
+  "at": "2026-10-28T11:11:33.440Z",
   "gates": {
     "lock": {
       "pass": true,
@@ -26,8 +26,8 @@
       "summary": "up on :18088"
     },
     "acceptance": {
-      "pass": false,
-      "summary": "exit 1"
+      "pass": true,
+      "summary": "ok"
     },
     "ui": {
       "pass": true,

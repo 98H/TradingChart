@@ -1,6 +1,6 @@
-# Gate feedback — 015-real-symbol-universe phase 6, attempt 2
+# Gate feedback — 015-real-symbol-universe phase 6, attempt 3
 
-Result: FAIL
+Result: PASS
 
 ## PASS lock — ok
 
@@ -12,10 +12,7 @@ Result: FAIL
 
 ## PASS serve — up on :18088
 
-## FAIL acceptance — exit 1
-```
-❌ FR-012 every curated catalogue entry is chartable: OANDA:EURCHF -> 503 upstream_unavailable
-```
+## PASS acceptance — ok
 
 ## PASS ui — ok
 
