@@ -620,52 +620,58 @@ export async function searchSymbols(query = '', category = 'all', exchange = 'al
             };
           }).filter(e => e.symbol && e.name && !seenSymbols.has(e.symbol));
 
-          const resolvedItems = await Promise.all(candidates.map(async (item) => {
-            if (item.source === 'binance') {
-              const meta = getSymbolMeta(item.symbol);
-              if (meta) return meta;
-              return {
-                symbol: item.symbol,
-                name: item.name,
-                nameFa: item.nameFa,
-                exchange: 'Binance',
-                type: 'crypto',
-                category: 'crypto',
-                currency: item.currency,
-                source: 'binance',
-                dataStatus: 'live',
-                delaySec: 0,
-                timeframes: STANDARD_TIMEFRAMES,
-                precision: 2,
-                minTick: 0.01,
-                lotSize: 1
-              };
-            }
-            try {
-              const meta = await tvClient.resolve(item.symbol);
-              if (!meta) return null;
-              const delaySec = typeof meta.delaySec === 'number' ? meta.delaySec : 0;
-              const dataStatus = delaySec > 0 ? 'delayed' : (meta.dataStatus === 'eod' ? 'eod' : 'live');
-              return {
-                symbol: item.symbol,
-                name: item.name,
-                nameFa: item.nameFa,
-                exchange: item.exchange,
-                type: item.type || mapTvType(meta.type),
-                category: item.category || mapTvCategory(meta.type, item.cleanSym),
-                currency: item.currency || 'USD',
-                source: 'tradingview',
-                dataStatus,
-                delaySec,
-                timeframes: STANDARD_TIMEFRAMES,
-                precision: meta.precision ?? 2,
-                minTick: meta.minTick ?? 0.01,
-                lotSize: 1
-              };
-            } catch (err) {
-              return null;
-            }
-          }));
+          const batchSize = 8;
+          const resolvedItems = [];
+          for (let i = 0; i < candidates.length; i += batchSize) {
+            const batch = candidates.slice(i, i + batchSize);
+            const batchResults = await Promise.all(batch.map(async (item) => {
+              if (item.source === 'binance') {
+                const meta = getSymbolMeta(item.symbol);
+                if (meta) return meta;
+                return {
+                  symbol: item.symbol,
+                  name: item.name,
+                  nameFa: item.nameFa,
+                  exchange: 'Binance',
+                  type: 'crypto',
+                  category: 'crypto',
+                  currency: item.currency,
+                  source: 'binance',
+                  dataStatus: 'live',
+                  delaySec: 0,
+                  timeframes: STANDARD_TIMEFRAMES,
+                  precision: 2,
+                  minTick: 0.01,
+                  lotSize: 1
+                };
+              }
+              try {
+                const meta = await tvClient.resolve(item.symbol);
+                if (!meta) return null;
+                const delaySec = typeof meta.delaySec === 'number' ? meta.delaySec : 0;
+                const dataStatus = delaySec > 0 ? 'delayed' : (meta.dataStatus === 'eod' ? 'eod' : 'live');
+                return {
+                  symbol: item.symbol,
+                  name: item.name,
+                  nameFa: item.nameFa,
+                  exchange: item.exchange,
+                  type: item.type || mapTvType(meta.type),
+                  category: item.category || mapTvCategory(meta.type, item.cleanSym),
+                  currency: item.currency || 'USD',
+                  source: 'tradingview',
+                  dataStatus,
+                  delaySec,
+                  timeframes: STANDARD_TIMEFRAMES,
+                  precision: meta.precision ?? 2,
+                  minTick: meta.minTick ?? 0.01,
+                  lotSize: 1
+                };
+              } catch (err) {
+                return null;
+              }
+            }));
+            resolvedItems.push(...batchResults);
+          }
 
           tvMatches = resolvedItems.filter(Boolean);
           tvSearchCache.set(qLower, tvMatches, 1, TV_CACHE_TTL);

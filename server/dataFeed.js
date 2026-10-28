@@ -524,7 +524,15 @@ export async function getCandles(symbol, timeframe, limit = 500, fromTime = null
 
       const lastGoodKey = `last_good_tv:${resolved}:${canonical}`;
       try {
-        const result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        let result = null;
+        try {
+          result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        } catch (firstErr) {
+          if (firstErr.code === 'UNKNOWN_SYMBOL' || String(firstErr.message).toLowerCase().includes('symbol error') || String(firstErr.message).toLowerCase().includes('unknown_symbol') || String(firstErr.message).toLowerCase().includes('invalid symbol')) {
+            throw firstErr;
+          }
+          result = await tvClient.getBars(resolved, tf, { limit, from: fromTime, to: toTime });
+        }
         const candles = result.candles || [];
         const finalResult = [...candles];
         finalResult.source = result.source || 'tradingview';

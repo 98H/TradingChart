@@ -52,7 +52,8 @@ function parseFramedBuffer(buffer) {
     if (remaining.startsWith('~h~')) {
       const match = remaining.match(/^~h~\d+/);
       if (match) {
-        msgs.push({ type: 'heartbeat', raw: match[0] });
+        const raw = `~m~${match[0].length}~m~${match[0]}`;
+        msgs.push({ type: 'heartbeat', raw });
         remaining = remaining.slice(match[0].length);
         continue;
       }
@@ -68,6 +69,12 @@ function parseFramedBuffer(buffer) {
 
     const bodyStr = remaining.slice(headLen, headLen + len);
     remaining = remaining.slice(headLen + len);
+
+    if (bodyStr.startsWith('~h~')) {
+      const raw = `~m~${bodyStr.length}~m~${bodyStr}`;
+      msgs.push({ type: 'heartbeat', raw });
+      continue;
+    }
 
     try {
       const json = JSON.parse(bodyStr);
@@ -153,6 +160,15 @@ class TVSocket {
     this.ws.on('close', () => {
       this.connected = false;
       this.isConnecting = false;
+      this.outgoingQueue = [];
+      const err = new Error('socket_closed');
+      for (const [csId, handler] of this.pendingHandlers.entries()) {
+        try {
+          handler.onCriticalError?.(err);
+        } catch (e) {}
+      }
+      this.pendingHandlers.clear();
+      this.activeSeriesCount = 0;
       this.scheduleReconnect();
     });
   }
@@ -426,6 +442,12 @@ export class TradingViewClient {
           error.code = 'UNKNOWN_SYMBOL';
           error.details = err;
           reject(error);
+        },
+        onCriticalError: (err) => {
+          clearTimeout(timer);
+          socket.pendingHandlers.delete(csId);
+          socket.sendRaw('chart_delete_session', [csId]);
+          reject(err);
         }
       });
 
@@ -576,7 +598,18 @@ export class TradingViewClient {
   /**
    * Fetch historical candles for a symbol and resolution with paging and LRU caching
    */
-  async getBars(symbol, resolution, { limit = 500, from = null, to = null } = {}) {
+  async getBars(symbol, resolution, { limit = 500, from = null, to = null } = {}, attempt = 1) {
+    try {
+      return await this._getBarsInternal(symbol, resolution, { limit, from, to });
+    } catch (err) {
+      if (attempt < 2 && err.code !== 'UNKNOWN_SYMBOL' && !String(err.message).toLowerCase().includes('unknown_symbol') && !String(err.message).toLowerCase().includes('invalid')) {
+        return this.getBars(symbol, resolution, { limit, from, to }, attempt + 1);
+      }
+      throw err;
+    }
+  }
+
+  async _getBarsInternal(symbol, resolution, { limit = 500, from = null, to = null } = {}) {
     const cleanSym = String(symbol || '').trim();
     if (!cleanSym) throw new Error('invalid_symbol');
 
